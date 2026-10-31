@@ -168,3 +168,21 @@ Feature batch: compact chooser card; live listing of unreachable scan locations;
 ### Phase-aware window sizing
 
 The window now follows the scene: a 660 × 640 frame (content minimum 600 × 560) for chooser, scan, and preparing screens, and the remembered last full size (960 × 640 at minimum) for exploration, cancelled, and failed outcomes. The old fixed 960 × 640 SwiftUI minimum frame was replaced by per-phase `contentMinSize`; the issues sheet became size-adaptive. Build, core/app tests, and the localization audit pass. Animated resizing honors Reduce Motion and re-centers the change on the window's current center, clamped to the visible frame. Not yet exercised on real hardware: fullscreen transitions, multi-display clamping, state-restored oversized frames, dense-window interplay during rescan, and the automated UI suite (same desktop-automation limitation as above).
+
+## 2026-10-31 — grouped quick actions
+
+Feature: "All caches" and "Dev tools" quick actions scan several known home locations in one pass. `ScanRequest` gained `extraRoots`/`groupTitle`, the enumeration worker chains roots under a synthetic `ScanGroup.path` wrapper node (fresh parent stack, enumerator, and device check per root), `CleanupPlan.roots` authorizes multi-scope plans, refresh validates branches across the synthetic wrapper, and the app keeps the combined scope across post-cleanup rescans.
+
+### Automated checks
+
+- `swift test --package-path Packages/DiskCore`: 34 tests pass, including three new ones — a grouped scan stacks each real location under the wrapper with a missing root recorded as an issue (wrapper stays incomplete, children keep known sizes), a secondary-root branch refresh succeeds through the wrapper, and `CleanupSafety` multi-root scopes accept candidates inside any listed root while rejecting roots themselves, outside paths, and the synthetic wrapper. An intermediate worker regression that kept the root flag active after exhaustion (preventing batch termination) was caught by the fixture tests and fixed before any hosted or manual run relied on it.
+- Hosted app tests: 32 tests pass, including three new grouped tests — the catalog shape (grouped targets list their locations; home stays single), `ScanViewModel` prepares stacked requests, allows refresh inside any listed root, refuses outside-scope and wrapper targets, and reuses the whole grouped scope on rescan while a new single selection clears it, and the explorer searches the union of all listed roots while focused on the wrapper and scopes to one subtree inside any root. All prior presentation tests still pass (the authorization retention test now exercises `retainOnly([URL])`).
+- Release build and the full test-build (including the UI test bundle) compile. The Release binary smoke-launched for 7 seconds without crashing; no visual or UI automation was performed (same desktop-automation limitation as above).
+- The localization audit validates 282 English/Russian entries; the new keys ("All caches", "Dev tools", their details, the grouped authorization message, the all-unreadable failure message, and the "%lld locations" plural with Russian one/few/many/other forms) were inserted by a script that reproduced Xcode's `localizedStandardCompare` ordering (verified equal before and after) and byte-identical formatting.
+
+### Honest defaults and remaining checks
+
+- Grouped authorization was verified at the model level only: the home-grant derivation, saved-location restore, and home-folder picker suggestion paths are unit and logic tested, but real picker/TCC flows for grouped targets were not exercised manually this session.
+- Missing locations are skipped with a per-root issue, and a grouped scan of locations that produce no children fails with the new message; this was verified with fixtures (nonexistent paths), not against real TCC-denied homes.
+- Docker/Android/VM/model-store root names follow common macOS defaults; unused defaults simply do not appear in the map. The actual set needs a hands-on pass on machines that use those tools.
+- The dock/pill hover text uses the new "%lld locations" plural; VoiceOver and Russian visual review remain part of the manual pass above. No user files were removed during this work.

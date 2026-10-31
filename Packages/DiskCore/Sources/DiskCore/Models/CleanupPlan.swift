@@ -2,16 +2,21 @@ import Foundation
 
 public enum CleanupMode: Sendable { case trash, permanent }
 public struct CleanupPlan: Sendable {
-    public let root: URL
+    public let roots: [URL]
     public let items: [FileNode]
     public let mode: CleanupMode
     public let preflight: (@Sendable (FileNode) async -> String?)?
     public let ancestorIdentities: [String: String]
     /// Curated cache locations allowed through the managed-data protection for this plan.
     public let knownCacheRoots: [String]
+    public var root: URL { roots.first ?? URL(fileURLWithPath: "/") }
     public init(root: URL, items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (FileNode) async -> String?)? = nil, knownCacheRoots: [String] = []) {
+        self.init(roots: [root], items: items, mode: mode, ancestorIdentities: ancestorIdentities, preflight: preflight, knownCacheRoots: knownCacheRoots)
+    }
+    /// Multi-scope plans authorize candidates under every scanned root, as grouped scans do.
+    public init(roots: [URL], items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (FileNode) async -> String?)? = nil, knownCacheRoots: [String] = []) {
         self.preflight = preflight
-        self.root = canonicalURL(root)
+        self.roots = roots.map(canonicalURL)
         self.mode = mode
         self.ancestorIdentities = ancestorIdentities
         self.knownCacheRoots = knownCacheRoots

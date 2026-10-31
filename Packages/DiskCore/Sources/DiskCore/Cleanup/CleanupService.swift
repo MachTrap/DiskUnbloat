@@ -26,7 +26,7 @@ public actor CleanupService: CleanupServing {
 
     private nonisolated static func remove(_ node: FileNode, plan: CleanupPlan) -> CleanupResult {
                     do {
-                        if let reason = CleanupSafety.blockedReason(node, root: plan.root, exemptingCacheRoots: plan.knownCacheRoots) { throw CleanupError.refused(reason) }
+                        if let reason = CleanupSafety.blockedReason(node, roots: plan.roots, exemptingCacheRoots: plan.knownCacheRoots) { throw CleanupError.refused(reason) }
                         let parent = node.url.deletingLastPathComponent()
                         // Resolving parent ancestry detects replaced directory components, without following the leaf link.
                         guard canonicalURL(parent).path == parent.path else { throw CleanupError.refused("An ancestor changed or is a symbolic link. Scan again.") }

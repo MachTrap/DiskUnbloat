@@ -98,7 +98,7 @@ enum WorkspacePhase: Equatable {
         explorer.reset()
         cleanup.reset(preservingReport: preservingCleanupReport)
         scanTask = Task {
-            authorization.retainOnly(request.root)
+            authorization.retainOnly(request.roots)
             do {
                 try await scan.run(request)
                 guard let index = scan.index, await index.node(1) != nil else {
@@ -106,16 +106,27 @@ enum WorkspacePhase: Equatable {
                     return
                 }
                 if scan.snapshot?.cancelled == true { phase = .cancelled; return }
+                if request.extraRoots.isEmpty == false {
+                    // Grouped scans fail only when every listed location was unreadable.
+                    var probe = FileQuery(); probe.parentID = 1; probe.limit = 1
+                    guard !(await index.query(probe)).isEmpty else {
+                        phase = .failed(L10n.text("None of these locations could be read. Check their permissions or scan individual folders."))
+                        return
+                    }
+                }
                 phase = .preparingResults
                 scan.stage = .preparingMap
-                await explorer.attach(index, options: request.options)
+                await explorer.attach(index, options: request.options, grouped: scan.isGroupScan)
                 phase = .exploring
             } catch { phase = .failed(L10n.format("Couldn’t start the scan. %@", error.diagnosticDescription)) }
         }
     }
 
     func refreshFolder(_ node: FileNode) {
-        guard !isBusy, !shuttingDown, phase == .exploring, let request = scan.prepareRefresh(node) else { return }
+        guard !isBusy, !shuttingDown, phase == .exploring else { return }
+        // The synthetic group root stands for the whole scan; refreshing it reruns every location.
+        if node.isGroupRoot { startScan(preservingCleanupReport: true); return }
+        guard let request = scan.prepareRefresh(node) else { return }
         explorer.suspendQueries(); phase = .scanning
         scanTask = Task {
             do {
@@ -165,23 +176,55 @@ enum WorkspacePhase: Equatable {
 
     func scanTarget(_ target: ScanTarget) {
         guard !isBusy else { return }
-        if let url = authorization.authorizedURL(for: target.url) { scan.pendingRoot = url; startScan(); return }
-        if let saved = authorization.locations.first(where: { target.url.path == $0.name || target.url.path.hasPrefix($0.name + "/") }) {
+        guard target.grouped else {
+            if let url = authorization.authorizedURL(for: target.url) { scan.pendingRoot = url; startScan(); return }
+            if let saved = authorization.locations.first(where: { target.url.path == $0.name || target.url.path.hasPrefix($0.name + "/") }) {
+                restoringLocation = true
+                locationTask = Task {
+                    defer { restoringLocation = false }
+                    do {
+                        _ = try await authorization.restore(saved)
+                        guard !Task.isCancelled else { return }
+                        if let url = authorization.authorizedURL(for: target.url) {
+                            scan.pendingRoot = url; restoringLocation = false; startScan(); return
+                        }
+                    } catch { /* Renew through the system picker at the requested location. */ }
+                    guard !Task.isCancelled else { return }
+                    restoringLocation = false
+                    chooseSuggested(target.url)
+                }
+            } else { chooseSuggested(target.url) }
+            return
+        }
+        // Grouped quick actions scan several known locations; the home grant covers them all.
+        let covered = target.roots.allSatisfy { authorization.authorizedURL(for: $0) != nil }
+        if covered { startGrouped(target); return }
+        if let saved = authorization.locations.first(where: { saved in target.roots.allSatisfy { $0.path == saved.name || $0.path.hasPrefix(saved.name + "/") } }) {
             restoringLocation = true
             locationTask = Task {
                 defer { restoringLocation = false }
-                do {
-                    _ = try await authorization.restore(saved)
-                    guard !Task.isCancelled else { return }
-                    if let url = authorization.authorizedURL(for: target.url) {
-                        scan.pendingRoot = url; restoringLocation = false; startScan(); return
-                    }
-                } catch { /* Renew through the system picker at the requested location. */ }
+                var renewed = false
+                do { _ = try await authorization.restore(saved); renewed = true } catch { /* Renew through the system picker instead. */ }
                 guard !Task.isCancelled else { return }
                 restoringLocation = false
-                chooseSuggested(target.url)
+                if renewed, target.roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) { startGrouped(target) }
+                else { chooseGroup(target) }
             }
-        } else { chooseSuggested(target.url) }
+        } else { chooseGroup(target) }
+    }
+
+    private func startGrouped(_ target: ScanTarget) {
+        let resolved = target.roots.map { authorization.authorizedURL(for: $0) ?? $0 }
+        scan.pendingGroup = PendingGroup(title: target.title, roots: resolved)
+        startScan()
+    }
+
+    private func chooseGroup(_ target: ScanTarget) {
+        do {
+            if try authorization.choose(suggestedLocation: location.catalog.home, message: L10n.text("Authorize your home folder so every known cache location becomes available.")) != nil {
+                startGrouped(target)
+            }
+        } catch { message = L10n.format("Couldn’t open that location. %@", error.diagnosticDescription) }
     }
 
     private func chooseSuggested(_ url: URL) {
@@ -195,7 +238,7 @@ enum WorkspacePhase: Equatable {
     func viewPartialMap() {
         guard phase == .cancelled, let index = scan.index else { return }
         phase = .preparingResults; scan.stage = .preparingMap
-        scanTask = Task { await explorer.attach(index, options: scan.options); phase = .exploring }
+        scanTask = Task { await explorer.attach(index, options: scan.options, grouped: scan.isGroupScan); phase = .exploring }
     }
 
     func addSelectionToBasket() { explorer.normalizedSelection.forEach(addToBasket) }
@@ -203,14 +246,14 @@ enum WorkspacePhase: Equatable {
     func cancel() { scan.requestCancellation(); Task { await scan.cancel() } }
 
     func addToBasket(_ node: FileNode) {
-        guard canClean, let root = scan.root else { return }
-        if let reason = cleanup.add(node, root: root) { message = reason }
+        guard canClean, !scan.roots.isEmpty else { return }
+        if let reason = cleanup.add(node, roots: scan.roots) { message = reason }
     }
 
     func performCleanup(_ mode: CleanupMode) {
-        guard canClean, let root = scan.root, let index = scan.index, let items = cleanup.begin() else { return }
+        guard canClean, !scan.roots.isEmpty, let index = scan.index, let items = cleanup.begin() else { return }
         cleanupTask = Task {
-            if await cleanup.execute(items, root: root, index: index, mode: mode) {
+            if await cleanup.execute(items, roots: scan.roots, index: index, mode: mode) {
                 // Recompute hard-link ownership throughout the scope after any successful removal.
                 startScan(preservingCleanupReport: true)
             }

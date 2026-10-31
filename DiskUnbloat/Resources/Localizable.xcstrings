@@ -137,6 +137,7 @@
       }
     },
     "%lld items · %@ estimated" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -205,7 +206,60 @@
         }
       }
     },
+    "%lld locations" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld location"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld locations"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld расположение"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld расположения"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld расположений"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld расположений"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld locations unavailable · results will be marked partial" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -258,6 +312,7 @@
       }
     },
     "%lld locations unavailable · view list" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -280,12 +335,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Недоступно %lld расположение · открыть список"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -296,6 +345,12 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Недоступно %lld расположений · открыть список"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Недоступно %lld расположение · открыть список"
                 }
               },
               "other" : {
@@ -415,6 +470,7 @@
       }
     },
     "%lld selections · %@ estimated" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -628,6 +684,22 @@
         }
       }
     },
+    "All caches" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All caches"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все кэши"
+          }
+        }
+      }
+    },
     "An ancestor changed or is a symbolic link. Scan again." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -823,6 +895,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разрешите доступ к %@ или выберите другую папку, если она недоступна."
+          }
+        }
+      }
+    },
+    "Authorize your home folder so every known cache location becomes available." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorize your home folder so every known cache location becomes available."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешите доступ к домашней папке, чтобы стали доступны все известные расположения кэшей."
           }
         }
       }
@@ -1272,6 +1360,7 @@
       }
     },
     "Click to return this item to the candidate list" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1321,6 +1410,7 @@
       }
     },
     "Contents of these folders can usually be rebuilt or downloaded again by their tools." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1518,6 +1608,7 @@
       }
     },
     "Deletion queue · %lld items · %@ estimated" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1545,6 +1636,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сведения"
+          }
+        }
+      }
+    },
+    "Dev tools" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dev tools"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты разработчика"
           }
         }
       }
@@ -1795,6 +1902,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "У каждого байта своя история."
+          }
+        }
+      }
+    },
+    "Every known cache in your home folder in one scan: user caches, Xcode build data, developer caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every known cache in your home folder in one scan: user caches, Xcode build data, developer caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все известные кэши домашней папки за одно сканирование: кэши пользователя, данные сборки Xcode, кэши разработчиков, медиафайлы мессенджеров и файлы моделей браузера. Отсутствующие расположения пропускаются и перечисляются во время сканирования."
           }
         }
       }
@@ -2093,6 +2216,7 @@
       }
     },
     "Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .cache, .artifacts, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2169,6 +2293,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Жёсткие ссылки учитываются один раз в области сканирования. Общие блоки APFS, снимки и очищаемое хранилище не позволяют точно предсказать освобождаемое место. Неизвестные метаданные и недоступные папки делают итоги неполными."
+          }
+        }
+      }
+    },
+    "Heavy developer artifacts: simulators, device support, Android SDK, Docker data, virtual machines, and local AI model stores." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heavy developer artifacts: simulators, device support, Android SDK, Docker data, virtual machines, and local AI model stores."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тяжёлые артефакты разработки: симуляторы, device support, Android SDK, данные Docker, виртуальные машины и хранилища локальных моделей ИИ."
           }
         }
       }
@@ -2641,6 +2781,7 @@
       }
     },
     "Matched by folder name, independent of age" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2882,6 +3023,22 @@
         }
       }
     },
+    "None of these locations could be read. Check their permissions or scan individual folders." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None of these locations could be read. Check their permissions or scan individual folders."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ни одно из этих расположений не удалось прочитать. Проверьте права доступа или просканируйте папки по отдельности."
+          }
+        }
+      }
+    },
     "npm cache" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2984,6 +3141,7 @@
       }
     },
     "Old cache data from ~/Library/Caches and known application cache locations, including Xcode build data, device support, simulators, and messenger caches. The most recent device support stays. Removal can disrupt applications and require re-downloading data." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3514,6 +3672,7 @@
       }
     },
     "Progress" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3660,6 +3819,7 @@
       }
     },
     "Refreshed items were removed from the deletion queue. Review their current contents again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3693,6 +3853,7 @@
       }
     },
     "Regenerable folders" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3821,6 +3982,7 @@
       }
     },
     "Review" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4725,6 +4887,7 @@
       }
     },
     "User & application caches" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

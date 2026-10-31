@@ -1,12 +1,18 @@
 import Foundation
 
 public enum CleanupSafety {
-    public static func blockedReason(_ node: FileNode, root: URL, exemptingCacheRoots: [String] = []) -> String? { blockedReasonCode(node, root: root, exemptingCacheRoots: exemptingCacheRoots)?.message }
-    public static func blockedReasonCode(_ node: FileNode, root: URL, exemptingCacheRoots: [String] = []) -> CleanupReason? {
+    public static func blockedReason(_ node: FileNode, root: URL, exemptingCacheRoots: [String] = []) -> String? { blockedReasonCode(node, roots: [root], exemptingCacheRoots: exemptingCacheRoots)?.message }
+    public static func blockedReason(_ node: FileNode, roots: [URL], exemptingCacheRoots: [String] = []) -> String? { blockedReasonCode(node, roots: roots, exemptingCacheRoots: exemptingCacheRoots)?.message }
+    public static func blockedReasonCode(_ node: FileNode, root: URL, exemptingCacheRoots: [String] = []) -> CleanupReason? { blockedReasonCode(node, roots: [root], exemptingCacheRoots: exemptingCacheRoots) }
+    /// Grouped scans authorize every listed root; a candidate must sit inside one scope.
+    public static func blockedReasonCode(_ node: FileNode, roots: [URL], exemptingCacheRoots: [String] = []) -> CleanupReason? {
         let path = node.path
-        let rootPath = canonicalURL(root).path
-        if path == rootPath || path == "/" { return .scanRoot }
-        if !path.hasPrefix(rootPath == "/" ? "/" : rootPath + "/") { return .outsideScope }
+        let scopePaths = roots.map { canonicalURL($0).path }
+        if path == "/" { return .scanRoot }
+        guard !scopePaths.isEmpty else { return .outsideScope }
+        if scopePaths.contains(path) { return .scanRoot }
+        // A "/" scope authorizes the whole scanned volume, as plain single-root scans did.
+        guard scopePaths.contains(where: { $0 == "/" || path.hasPrefix($0 + "/") }) else { return .outsideScope }
         // Only the exact curated cache locations (and their contents) are exempt; their managed
         // parents and every other managed tree remain protected.
         let knownCache = exemptingCacheRoots.contains { path == $0 || path.hasPrefix($0 + "/") }

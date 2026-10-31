@@ -85,7 +85,7 @@ struct ExplorerView: View {
     }
 
     private var inspector: some View {
-        FileInspector(model: model, root: scan.root, canClean: canClean, preview: preview, reveal: reveal, addToBasket: addToBasket)
+        FileInspector(model: model, roots: scan.roots, canClean: canClean, preview: preview, reveal: reveal, addToBasket: addToBasket)
     }
     private var pathBar: some View {
         HStack(spacing: 12) {

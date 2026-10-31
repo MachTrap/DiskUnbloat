@@ -565,3 +565,66 @@ private actor CleanupGate {
     #expect(CleanupSafety.blockedReasonCode(new,root: f.root) == .packageContents)
     await destroy(staging); await destroy(index)
 }
+
+@Test func groupedScansStackLocationsUnderWrapperNode() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let one = try f.file("one/payload",bytes: 1024).deletingLastPathComponent()
+    let two = try f.file("two/other",bytes: 2048).deletingLastPathComponent()
+    let missing = f.root.appendingPathComponent("absent")
+    let index = try ScanIndex(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString+".sqlite"))
+    let stream = await ScanCoordinator().scan(ScanRequest(root: one, extraRoots: [two,missing], groupTitle: "All caches"), into: index)
+    var final: ScanSnapshot?
+    for await event in stream {
+        if case .finished(let s) = event { final = s }
+        if case .failed(let error) = event { Issue.record(Comment(rawValue: error)) }
+    }
+    let wrapper = try #require(await index.node(1))
+    #expect(wrapper.isGroupRoot && wrapper.name == "All caches" && wrapper.isDirectory)
+    var q = FileQuery(); q.parentID = 1
+    let roots = await index.query(q)
+    #expect(roots.map(\.path) == [canonicalURL(one).path, canonicalURL(two).path])
+    #expect(roots.map(\.parentID) == [wrapper.id, wrapper.id])
+    #expect(roots.map(\.logicalSize) == [1024, 2048])
+    // The unreadable location is listed as an issue instead of failing the scan.
+    let issues = await index.issues()
+    #expect(issues.map(\.path) == [canonicalURL(missing).path])
+    #expect(final?.complete == false)
+    // The wrapper stays conservative (incomplete) while children keep computed sizes.
+    #expect(await index.node(1)?.allocatedSize == nil)
+    let payload = try #require(await index.node(path: canonicalURL(one).path+"/payload"))
+    #expect(payload.logicalSize == 1024)
+    await destroy(index)
+}
+
+@Test func groupedIndexRefreshesSecondaryRootBranches() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    _ = try f.file("one/keep",bytes: 10)
+    _ = try f.file("two/branch/a",bytes: 8)
+    let one = f.root.appendingPathComponent("one")
+    let branch = f.root.appendingPathComponent("two/branch")
+    let index = try ScanIndex(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString+".sqlite"))
+    let stream = await ScanCoordinator().scan(ScanRequest(root: one, extraRoots: [branch], groupTitle: "Dev tools"), into: index)
+    for await event in stream { if case .failed(let error) = event { Issue.record(Comment(rawValue: error)) } }
+    let branchNode = try #require(await index.node(path: canonicalURL(branch).path))
+    _ = try f.file("two/branch/b",bytes: 9)
+    let (staging, _) = try await scan(branch); await staging.close()
+    // The synthetic wrapper sits between the branch and every real root; validation must skip it.
+    _ = try await index.replaceBranch(BranchRefreshRequest(nodeID: branchNode.id, identity: branchNode.identity), stagingURL: staging.url)
+    #expect(await index.node(path: branch.path + "/b") != nil)
+    #expect(await index.node(path: branch.path + "/a") != nil)
+    await destroy(staging); await destroy(index)
+}
+
+@Test func cleanupScopeSpansEveryGroupedRoot() {
+    let first = URL(fileURLWithPath: "/Users/g/Library/Caches")
+    let second = URL(fileURLWithPath: "/Users/g/.gradle/caches")
+    func node(_ path: String, _ directory: Bool) -> FileNode {
+        FileNode(id: 1, parentID: 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: directory, logicalSize: directory ? nil : 10, allocatedSize: directory ? nil : 10, modified: nil, identity: "n")
+    }
+    #expect(CleanupSafety.blockedReasonCode(node("/Users/g/.gradle/caches/sub", false), roots: [first, second]) == nil)
+    #expect(CleanupSafety.blockedReasonCode(node("/Users/g/Library/Caches/sub", true), roots: [first, second]) == nil)
+    #expect(CleanupSafety.blockedReasonCode(node("/Users/g/Downloads/other", false), roots: [first, second]) == .outsideScope)
+    #expect(CleanupSafety.blockedReasonCode(node("/Users/g/.gradle/caches", true), roots: [first, second]) == .scanRoot)
+    #expect(CleanupSafety.blockedReasonCode(node("/Users/g/Downloads/other", false), roots: [URL(fileURLWithPath: "/")]) == nil)
+    #expect(CleanupSafety.blockedReasonCode(node(ScanGroup.path, true), roots: [first, second]) == .outsideScope)
+}

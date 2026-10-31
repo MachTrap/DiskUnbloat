@@ -32,10 +32,13 @@ import DiskCore
         if !preservingReport { results = [] }
     }
 
-    func add(_ node: FileNode, root: URL) -> String? {
+    func add(_ node: FileNode, root: URL) -> String? { add(node, roots: [root]) }
+
+    func add(_ node: FileNode, roots: [URL]) -> String? {
+        guard !roots.isEmpty else { return L10n.text(CleanupReason.outsideScope.message) }
         if let reason = activityReason(node) { return reason }
-        if let reason = CleanupSafety.blockedReasonCode(node, root: root, exemptingCacheRoots: knownCacheRoots()) { return L10n.text(reason.message) }
-        basket = CleanupPlan(root: root, items: basket + [node], mode: .trash, knownCacheRoots: knownCacheRoots()).items
+        if let reason = CleanupSafety.blockedReasonCode(node, roots: roots, exemptingCacheRoots: knownCacheRoots()) { return L10n.text(reason.message) }
+        basket = CleanupPlan(roots: roots, items: basket + [node], mode: .trash, knownCacheRoots: knownCacheRoots()).items
         return nil
     }
 
@@ -58,6 +61,11 @@ import DiskCore
     }
 
     func execute(_ items: [FileNode], root: URL, index: ScanIndex, mode: CleanupMode) async -> Bool {
+        await execute(items, roots: [root], index: index, mode: mode)
+    }
+
+    func execute(_ items: [FileNode], roots: [URL], index: ScanIndex, mode: CleanupMode) async -> Bool {
+        guard !roots.isEmpty else { return false }
         defer { cleaning = false }
         var eligible: [FileNode] = []
         var refused: [CleanupResult] = []
@@ -67,7 +75,7 @@ import DiskCore
         }
         let ancestors = await index.ancestorIdentities(for: items.map(\.id))
         let activity = self.activity; let home = homePath
-        let plan = CleanupPlan(root: root, items: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { node in
+        let plan = CleanupPlan(roots: roots, items: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { node in
             await MainActor.run {
                 if activity.blockedCachePaths(home: home).contains(where: { node.path == $0 || node.path.hasPrefix($0 + "/") || $0.hasPrefix(node.path + "/") }) {
                     return L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again.")

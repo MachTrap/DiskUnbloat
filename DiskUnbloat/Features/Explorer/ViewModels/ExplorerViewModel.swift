@@ -15,6 +15,9 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var candidateRule: CleanupRule = .large
     private let cacheRootPath: String?
     @ObservationIgnored private var index: ScanIndex?
+    /// Grouped scans put several locations under one synthetic root; filter scope then
+    /// spans the union of all listed locations instead of one path prefix.
+    @ObservationIgnored private var groupScan = false
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var pageTask: Task<Void, Never>?
     @ObservationIgnored private var nodesByID: [Int64: FileNode] = [:]
@@ -117,8 +120,8 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         scheduleRefresh()
     }
 
-    func attach(_ index: ScanIndex, options: ScanOptions) async {
-        self.index = index; self.options = options
+    func attach(_ index: ScanIndex, options: ScanOptions, grouped: Bool = false) async {
+        self.index = index; self.options = options; groupScan = grouped
         let root = await index.node(1)
         guard self.index === index else { return }
         current = root
@@ -160,12 +163,19 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Focused grouping roots span multiple real locations; their subtree scope covers the
+    /// whole scan, because every scanned path lives under one of the listed roots.
+    private func subtreeScope() -> String? {
+        guard scope == .current, let current else { return nil }
+        return groupScan && current.isGroupRoot ? nil : current.path
+    }
+
     private func makeQuery() -> FileQuery {
         var q = FileQuery()
         q.inspectPackages = options.inspectPackages; q.metric = metric
         if hasFilters || drawerTab != .files {
             q.leafResults = true
-            if scope == .current { q.subtreePath = current?.path }
+            if scope == .current { q.subtreePath = subtreeScope() }
         } else { q.parentID = current?.id }
         if drawerTab == .candidates || suggestion != nil {
             q.cleanupRule = drawerTab == .candidates ? candidateRule : suggestion?.rule; q.userHome = homePath; q.cacheAgeDays = settings.cacheAgeDays
@@ -188,12 +198,12 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         var q = makeQuery(); let filtered = hasFilters
         let browserSummary = await index.summary(q)
         var statsQuery = q; statsQuery.parentID = nil; statsQuery.leafResults = true; statsQuery.knownSizesOnly = false; statsQuery.cleanupRule = suggestion?.rule
-        statsQuery.subtreePath = scope == .current ? current.path : nil
+        statsQuery.subtreePath = subtreeScope()
         let statistics = await index.categorySummaries(statsQuery)
         // Drawer mode must never change the map geometry.
         let nodes = await index.query(q)
         q.cleanupRule = suggestion?.rule; q.knownSizesOnly = false; q.parentID = hasFilters ? nil : current.id; q.leafResults = hasFilters
-        q.subtreePath = hasFilters && scope == .current ? current.path : nil
+        q.subtreePath = hasFilters ? subtreeScope() : nil
         let key = "\(revision):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
         let map: MapScene
         if !filtered, let cached = sceneCache[key] { map = cached }

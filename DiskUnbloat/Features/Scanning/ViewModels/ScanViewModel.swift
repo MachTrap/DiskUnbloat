@@ -3,14 +3,26 @@ import Observation
 import Darwin
 import DiskCore
 
+struct PendingGroup: Sendable {
+    var title: String
+    var roots: [URL]
+}
+
 @MainActor @Observable final class ScanViewModel {
     @ObservationIgnored private let coordinator: any ScanServing
     @ObservationIgnored private let storage: ScanSessionStore
     private(set) var index: ScanIndex?
     var root: URL?
     var pendingRoot: URL?
+    /// A grouped quick action waiting to become the active scan scope.
+    var pendingGroup: PendingGroup?
+    private(set) var groupTitle: String?
+    private(set) var groupRoots: [URL] = []
     var options = ScanOptions()
     private var sessionOptions = ScanOptions()
+    var isGroupScan: Bool { groupRoots.count > 1 }
+    /// Every authorized scan scope: the single root, or all locations of a grouped scan.
+    var roots: [URL] { groupRoots.isEmpty ? (root.map { [$0] } ?? []) : groupRoots }
     var exclusionText = ""
     var showSetup = false
     var stage: ScanStage = .reading
@@ -54,14 +66,28 @@ import DiskCore
 
     /// Prepares state synchronously before the workspace starts its lifecycle task.
     func prepare() -> ScanRequest? {
-        guard let chosen = pendingRoot ?? root, !scanning else { return nil }
+        guard !scanning else { return nil }
+        // A grouped quick action, or the same scope again after a cleanup rescan.
+        var group = pendingGroup
+        if pendingRoot == nil, group == nil, !groupRoots.isEmpty { group = PendingGroup(title: groupTitle ?? "", roots: groupRoots) }
+        if pendingRoot == nil, let group, !group.roots.isEmpty {
+            pendingGroup = nil
+            return startSession(roots: group.roots, title: group.title, volume: group.roots.first)
+        }
+        guard let chosen = pendingRoot ?? root else { return nil }
+        if pendingRoot != nil { pendingGroup = nil }
+        return startSession(roots: [chosen], title: nil, volume: chosen)
+    }
+
+    private func startSession(roots: [URL], title: String?, volume: URL?) -> ScanRequest {
         refreshNode = nil; previousSnapshot = nil
-        root = chosen; pendingRoot = nil
+        root = roots[0]; pendingRoot = nil
+        groupTitle = title; groupRoots = title == nil ? [] : roots
         showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []
-        volumeUsedBytes = Self.volumeUsedBytes(for: chosen)
+        volumeUsedBytes = volume.flatMap(Self.volumeUsedBytes(for:))
         options.exclusions = exclusionText.split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        return ScanRequest(root: chosen, options: options)
+        return ScanRequest(root: roots[0], extraRoots: title == nil ? [] : Array(roots.dropFirst()), groupTitle: title ?? "", options: options)
     }
 
     func run(_ request: ScanRequest) async throws {
@@ -96,15 +122,21 @@ import DiskCore
     private(set) var refreshNode: FileNode?
     @ObservationIgnored private var previousSnapshot: ScanSnapshot?
 
+    /// Refresh targets must sit inside one of the authorized scopes; grouped scans list
+    /// every location, so a secondary cache folder can refresh too.
     func prepareRefresh(_ node: FileNode) -> ScanRequest? {
-        guard !scanning, let root, node.isDirectory, !node.isSymbolicLink else { return nil }
-        let rootPath = canonicalURL(root).path
-        guard rootPath == "/" || node.path == rootPath || node.path.hasPrefix(rootPath + "/") else { return nil }
+        guard !scanning, let root, node.isDirectory, !node.isSymbolicLink, !node.isGroupRoot else { return nil }
+        let scopes = groupRoots.isEmpty ? [root] : groupRoots
+        guard let scope = scopes.first(where: {
+            let path = canonicalURL($0).path
+            return path == "/" || node.path == path || node.path.hasPrefix(path + "/")
+        }) else { return nil }
+        let canonical = canonicalURL(scope).path
         refreshNode = node; previousSnapshot = snapshot
         scanning = true; stage = .reading; cancellationRequested = false; startedAt = Date(); snapshot = nil
         volumeUsedBytes = Self.volumeUsedBytes(for: root)
-        let relative = String(node.path.dropFirst(canonicalURL(root).path.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return ScanRequest(root: relative.isEmpty ? root : root.appendingPathComponent(relative), options: sessionOptions)
+        let relative = String(node.path.dropFirst(canonical.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return ScanRequest(root: relative.isEmpty ? scope : scope.appendingPathComponent(relative), options: sessionOptions)
     }
 
     func runRefresh(_ request: ScanRequest, node: FileNode) async throws -> Bool {

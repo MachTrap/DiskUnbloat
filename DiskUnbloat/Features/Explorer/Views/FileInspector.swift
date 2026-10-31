@@ -3,7 +3,7 @@ import DiskCore
 
 struct FileInspector: View {
     @Bindable var model: ExplorerViewModel
-    let root: URL?
+    let roots: [URL]
     let canClean: Bool
     let preview: (FileNode) -> Void
     let reveal: (FileNode) -> Void
@@ -34,7 +34,7 @@ struct FileInspector: View {
                     Button("Quick Look", systemImage: "eye") { preview(node) }
                     Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { reveal(node) }
                     if model.canNavigate(node) { Button("Explore folder", systemImage: "folder") { model.navigate(node) } }
-                    if let root, let reason = CleanupSafety.blockedReason(node, root: root, exemptingCacheRoots: CleanupRule.knownCacheRoots(home: model.homePath ?? "")) {
+                    if !roots.isEmpty, let reason = CleanupSafety.blockedReason(node, roots: roots, exemptingCacheRoots: CleanupRule.knownCacheRoots(home: model.homePath ?? "")) {
                         Label(L10n.text(reason), systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
                     } else {
                         Button("Add to deletion queue", systemImage: "tray.and.arrow.down") { addToBasket(node) }

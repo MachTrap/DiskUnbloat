@@ -83,6 +83,11 @@ struct LocationSelectionView: View {
                 .background(.primary.opacity(0.05), in: .rect(cornerRadius: 9))
                 .overlay { RoundedRectangle(cornerRadius: 9).strokeBorder(.primary.opacity(0.08)) }
                 .contentShape(.rect(cornerRadius: 9))
-        }.buttonStyle(.plain).help(item.url.path + " — " + L10n.text(item.detail)).accessibilityIdentifier("target-" + item.id)
+        }.buttonStyle(.plain).help(pillHelp(item)).accessibilityIdentifier("target-" + item.id)
+    }
+
+    private func pillHelp(_ item: ScanTarget) -> String {
+        let detail = L10n.text(item.detail)
+        return (item.grouped ? L10n.count("%lld locations", item.roots.count) : item.url.path) + " — " + detail
     }
 }

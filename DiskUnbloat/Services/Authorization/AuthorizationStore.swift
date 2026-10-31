@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import Observation
 import OSLog
+import DiskCore
 
 struct SavedLocation: Identifiable, Codable {
     var id: UUID
@@ -26,14 +27,14 @@ struct SavedLocation: Identifiable, Codable {
         }
     }
 
-    func choose(suggestedLocation: URL? = nil) throws -> URL? {
+    func choose(suggestedLocation: URL? = nil, message: (String)? = nil) throws -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.showsHiddenFiles = true
         panel.prompt = L10n.text("Choose location")
         panel.directoryURL = suggestedLocation
-        if let suggestedLocation { panel.message = L10n.format("Authorize %@, or choose another folder if it isn’t available.", suggestedLocation.path) }
+        if let suggestedLocation { panel.message = message ?? L10n.format("Authorize %@, or choose another folder if it isn’t available.", suggestedLocation.path) }
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
         return try acceptSelection(url)
     }
@@ -108,9 +109,12 @@ struct SavedLocation: Identifiable, Codable {
         return nil
     }
 
-    func retainOnly(_ url: URL) {
-        for item in active where item != url && !url.path.hasPrefix(item.path + "/") { bookmarks.stopAccessing(item) }
-        active.removeAll { $0 != url && !url.path.hasPrefix($0.path + "/") }
+    /// Keep every grant that covers one of the scan scopes; grouped scans need them all.
+    func retainOnly(_ urls: [URL]) {
+        let kept = urls.map(canonicalURL)
+        func covers(_ item: URL) -> Bool { kept.contains { $0.path == item.path || item.path.hasPrefix($0.path + "/") } }
+        for item in active where !covers(item) { bookmarks.stopAccessing(item) }
+        active.removeAll { !covers($0) }
     }
 
     func release() {

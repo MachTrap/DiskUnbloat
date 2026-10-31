@@ -17,11 +17,14 @@ private final class EnumerationWorker: @unchecked Sendable {
     private var parents: [(path: String, id: Int64, package: Bool)] = []
     private var nextID: Int64 = 1
     private var rootDevice: Int32 = 0
-    
+
     private var seenHardLinks: Set<String> = []
     private var pendingBytes: Int64 = 0
     private var pendingIssues: [(String, String)] = []
     private var initialized = false
+    private var remainingRoots: [URL] = []
+    private var wrapperID: Int64 = 0
+    private var rootActive = false
     private let keys: [URLResourceKey] = [.isPackageKey, .fileSizeKey, .totalFileAllocatedSizeKey, .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey]
     init(_ request: ScanRequest) { self.request = request; self.excludedPaths = request.options.exclusions.map { canonicalURL(URL(fileURLWithPath: $0)).path } }
     func next() async -> WorkerBatch {
@@ -36,24 +39,50 @@ private final class EnumerationWorker: @unchecked Sendable {
         if !identity.directory && (identity.links <= 1 || seenHardLinks.insert(identity.identity).inserted) { pendingBytes += node.displaySize }
         nextID += 1; return node
     }
+    /// Opens one scan root: a fresh parent stack, enumerator, and per-root cross-volume check.
+    private func openRoot(_ url: URL, parentID: Int64?) throws -> FileNode {
+        let requestedIdentity = try FileIdentity.read(url)
+        guard !requestedIdentity.link else { throw CocoaError(.fileReadUnsupportedScheme) }
+        let rootURL = canonicalURL(url)
+        rootDevice = try FileIdentity.read(rootURL).device
+        let root = try makeNode(rootURL, parent: parentID, insidePackage: false)
+        guard root.isDirectory && !root.isSymbolicLink else { throw CocoaError(.fileReadUnsupportedScheme) }
+        parents = [(root.path, root.id, root.isPackage)]
+        let options: FileManager.DirectoryEnumerationOptions = request.options.includeHidden ? [] : [.skipsHiddenFiles]
+        enumerator = FileManager.default.enumerator(at: rootURL, includingPropertiesForKeys: keys, options: options, errorHandler: { [weak self] url, error in
+            self?.pendingIssues.append((url.path, error.localizedDescription)); return true
+        })
+        if enumerator == nil { pendingIssues.append((url.path, "Unable to enumerate this location.")) }
+        return root
+    }
+    private func beginRoot(_ url: URL, parentID: Int64?, into batch: inout WorkerBatch) {
+        do { batch.nodes.append(try openRoot(url, parentID: parentID)); rootActive = true }
+        catch {
+            batch.issues.append((url.path, error.localizedDescription))
+            rootActive = false
+            startNextRoot(into: &batch)
+        }
+    }
+    /// Grouped scans continue with the next listed location; a single-root scan ends instead.
+    private func startNextRoot(into batch: inout WorkerBatch) {
+        while !remainingRoots.isEmpty {
+            let next = remainingRoots.removeFirst()
+            do { batch.nodes.append(try openRoot(next, parentID: wrapperID)); rootActive = true; return }
+            catch { batch.issues.append((next.path, error.localizedDescription)) }
+        }
+        batch.done = true
+    }
     private func readBatch() -> WorkerBatch {
         var batch = WorkerBatch()
         if !initialized {
             initialized = true
-            do {
-                let requestedIdentity = try FileIdentity.read(request.root)
-                guard !requestedIdentity.link else { throw CocoaError(.fileReadUnsupportedScheme) }
-                let rootURL = canonicalURL(request.root)
-                rootDevice = try FileIdentity.read(rootURL).device
-                let root = try makeNode(rootURL, parent: nil, insidePackage: false)
-                guard root.isDirectory && !root.isSymbolicLink else { throw CocoaError(.fileReadUnsupportedScheme) }
-                batch.nodes.append(root); parents = [(root.path, root.id, root.isPackage)]
-                let options: FileManager.DirectoryEnumerationOptions = request.options.includeHidden ? [] : [.skipsHiddenFiles]
-                enumerator = FileManager.default.enumerator(at: rootURL, includingPropertiesForKeys: keys, options: options, errorHandler: { [weak self] url, error in
-                    self?.pendingIssues.append((url.path, error.localizedDescription)); return true
-                })
-                if enumerator == nil { pendingIssues.append((request.root.path, "Unable to enumerate this location.")) }
-            } catch { batch.issues.append((request.root.path, error.localizedDescription)); batch.done = true; return batch }
+            if !request.extraRoots.isEmpty {
+                let wrapper = FileNode(id: nextID, parentID: nil, path: ScanGroup.path, name: request.groupTitle, isDirectory: true, isPackage: false, isSymbolicLink: false, logicalSize: nil, allocatedSize: nil, modified: nil, identity: ScanGroup.path, packageAncestor: false)
+                batch.nodes.append(wrapper)
+                wrapperID = nextID; nextID += 1
+                remainingRoots = request.extraRoots
+            }
+            beginRoot(request.root, parentID: wrapperID == 0 ? nil : wrapperID, into: &batch)
         }
         let start = Date()
         while batch.nodes.count < 512 && Date().timeIntervalSince(start) < 0.1 {
@@ -73,6 +102,13 @@ private final class EnumerationWorker: @unchecked Sendable {
                     } else { parents.append((node.path, node.id, node.isPackage || node.packageAncestor)) }
                 }
             } catch { enumerator?.skipDescendants(); pendingIssues.append((url.path, error.localizedDescription)) }
+        }
+        // A finished grouped root hands the turn to the next listed location; the scan
+        // completes only when no root remains active and none can be opened.
+        if batch.done {
+            rootActive = false
+            if wrapperID != 0 { startNextRoot(into: &batch) }
+            batch.done = batch.done && !rootActive
         }
         batch.bytes = pendingBytes; pendingBytes = 0
         batch.issues += pendingIssues; pendingIssues.removeAll(keepingCapacity: true)

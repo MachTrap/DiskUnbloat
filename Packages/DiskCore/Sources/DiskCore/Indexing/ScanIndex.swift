@@ -255,6 +255,7 @@ public actor ScanIndex {
         guard let original = node(request.nodeID), original.identity == request.identity else { throw RefreshError.changedFolder }
         var current: FileNode? = original
         while let item = current {
+            if item.isGroupRoot { current = item.parentID.flatMap { node($0) }; continue }
             let identity = try FileIdentity.read(item.url)
             guard identity.identity == item.identity, !identity.link, identity.directory else { throw RefreshError.changedFolder }
             current = item.parentID.flatMap { node($0) }
@@ -268,6 +269,7 @@ public actor ScanIndex {
         try validateBranch(request)
         var ancestor = original.parentID.flatMap { node($0) }
         while let current = ancestor {
+            if current.isGroupRoot { ancestor = current.parentID.flatMap { node($0) }; continue }
             let identity = try FileIdentity.read(current.url)
             guard identity.identity == current.identity, !identity.link else { throw RefreshError.changedFolder }
             ancestor = current.parentID.flatMap { node($0) }

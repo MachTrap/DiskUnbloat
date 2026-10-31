@@ -5,6 +5,8 @@ public struct FileQuery: Sendable {
     public var userHome: String?
     public var cacheAgeDays = 30
     public var excludedCandidatePaths: [String] = []
+    /// Queued deletion items hidden from the map, browser, and statistics.
+    public var hiddenPaths: [String] = []
     public var metric: SizeMetric = .allocated
     public var knownSizesOnly = false
     public var leafResults = false

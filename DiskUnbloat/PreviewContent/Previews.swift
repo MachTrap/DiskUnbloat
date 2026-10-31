@@ -2,9 +2,9 @@ import SwiftUI
 import DiskCore
 
 #Preview("Choose location") { WorkspaceView(model: WorkspaceViewModel()).frame(width: 1100,height: 760) }
-#Preview("Scan animation") { ScanningView(model: ScanViewModel(coordinator: ScanCoordinator()), preparing: false, cancel: {}).frame(width: 1100,height: 760) }
+#Preview("Scan animation") { ScanningView(model: ScanViewModel(coordinator: ScanCoordinator()), preparing: false, cancel: {}, issues: {}).frame(width: 1100,height: 760) }
 
-#Preview("Compact scanning") { ScanningView(model: ScanViewModel(coordinator: ScanCoordinator()), preparing: true, cancel: {}).frame(width: 960,height: 640) }
+#Preview("Compact scanning") { ScanningView(model: ScanViewModel(coordinator: ScanCoordinator()), preparing: true, cancel: {}, issues: {}).frame(width: 960,height: 640) }
 #Preview("Nested map · light") {
     TreemapView(scene: PreviewMap.scene, selection: [], highlighted: nil, fitRevision: 0, select: { _,_ in }, open: { _ in }, aggregate: { _ in }, preview: { _ in }, reveal: { _ in }, addToBasket: { _ in }, canClean: false)
         .frame(width: 960,height: 560).padding(16).preferredColorScheme(.light)

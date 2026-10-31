@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Darwin
 import DiskCore
 
 @MainActor @Observable final class ScanViewModel {
@@ -20,11 +21,28 @@ import DiskCore
     private(set) var scanning = false
     private(set) var snapshot: ScanSnapshot?
     private(set) var issues: [String] = []
+    /// Used space on the scanned volume; the honest denominator for overall progress.
+    private(set) var volumeUsedBytes: Int64?
 
     init(coordinator: any ScanServing, storage: ScanSessionStore = ScanSessionStore()) {
         self.coordinator = coordinator
         self.storage = storage
         storage.purgeAbandonedIndexes()
+    }
+
+    /// Approximate share of the volume's used space already read. Subfolder scans may finish
+    /// below high values; completion always shows 100.
+    var progressPercent: Int? {
+        if stage == .preparingMap { return 100 }
+        guard scanning, let snapshot, let used = volumeUsedBytes, used > 0 else { return nil }
+        return min(99, max(1, Int(Double(max(0, snapshot.bytes)) / Double(used) * 100)))
+    }
+
+    private static func volumeUsedBytes(for url: URL) -> Int64? {
+        var stats = statfs()
+        guard statfs(url.path, &stats) == 0 else { return nil }
+        let used = (Int64(stats.f_blocks) - Int64(stats.f_bfree)) * Int64(stats.f_bsize)
+        return used > 0 ? used : nil
     }
 
     var status: String {
@@ -40,6 +58,7 @@ import DiskCore
         refreshNode = nil; previousSnapshot = nil
         root = chosen; pendingRoot = nil
         showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []
+        volumeUsedBytes = Self.volumeUsedBytes(for: chosen)
         options.exclusions = exclusionText.split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         return ScanRequest(root: chosen, options: options)
@@ -53,10 +72,17 @@ import DiskCore
         index = db
         let stream = await coordinator.scan(request, into: db)
         if cancellationRequested { await coordinator.cancel() }
+        var lastIssuesRefresh = Date.distantPast
         for await event in stream {
             switch event {
             case .stage(let stage): self.stage = stage
-            case .progress(let progress): snapshot = progress
+            case .progress(let progress):
+                snapshot = progress
+                // Unreachable locations are listable while the scan is still running.
+                if progress.errors > 0, Date().timeIntervalSince(lastIssuesRefresh) >= 1 {
+                    lastIssuesRefresh = Date()
+                    issues = await db.issues().map { $0.path + ": " + L10n.text($0.message) }
+                }
             case .finished(let result): snapshot = result
             case .failed(let error): throw ScanFailure(message: error)
             }
@@ -76,6 +102,7 @@ import DiskCore
         guard rootPath == "/" || node.path == rootPath || node.path.hasPrefix(rootPath + "/") else { return nil }
         refreshNode = node; previousSnapshot = snapshot
         scanning = true; stage = .reading; cancellationRequested = false; startedAt = Date(); snapshot = nil
+        volumeUsedBytes = Self.volumeUsedBytes(for: root)
         let relative = String(node.path.dropFirst(canonicalURL(root).path.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         return ScanRequest(root: relative.isEmpty ? root : root.appendingPathComponent(relative), options: sessionOptions)
     }

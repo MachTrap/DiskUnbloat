@@ -44,15 +44,11 @@ struct TreemapView: View {
                     ContentUnavailableView("No sized items", systemImage: "square.dashed", description: Text(scene.summary.unknownCount > 0 ? "Some sizes are unknown. Open Files to inspect these entries." : "This folder is empty, or no items match your filters."))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                if let hovered {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(hovered.entry.localizedTitle).font(.callout.weight(.semibold)).lineLimit(1)
-                        Text(scene.summary.knownBytes > 0 ? L10n.format("%@ · %lld%% of view", sizeText(hovered.entry.bytes), Int(Double(hovered.entry.bytes) / Double(scene.summary.knownBytes) * 100)) : sizeText(hovered.entry.bytes))
-                            .font(.caption).foregroundStyle(.secondary)
-                        if let path = hovered.entry.node?.path { Text(path).font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }
-                        if hovered.entry.kind == .aggregate { Text("Click to browse all items in this folder").font(.caption2).foregroundStyle(.secondary) }
-                    }.padding(12).frame(maxWidth: 340, alignment: .leading).background(.regularMaterial, in: .rect(cornerRadius: 12)).padding(12).allowsHitTesting(false)
-                }
+            }
+            // The hover card settles in the corner opposite the hovered tile, so tiles under the
+            // pointer (previously the fixed top-right corner) are never covered by it.
+            .overlay(alignment: popupAlignment(in: geometry.size)) {
+                if let hovered { hoverCard(hovered).allowsHitTesting(false) }
             }
             .background(.primary.opacity(0.025), in: .rect(cornerRadius: 12))
             .clipShape(.rect(cornerRadius: 12))
@@ -91,7 +87,7 @@ struct TreemapView: View {
                         Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { reveal(node) }
                         Button("Copy path", systemImage: "doc.on.doc") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(node.path, forType: .string) }
                         Divider()
-                        Button("Add to cleanup review", systemImage: "tray.and.arrow.down") { addToBasket(node) }.disabled(!canClean)
+                        Button("Add to deletion queue", systemImage: "tray.and.arrow.down") { addToBasket(node) }.disabled(!canClean)
                     } else { Button("Browse these items") { aggregate(entry) } }
                 }
             }
@@ -117,6 +113,21 @@ struct TreemapView: View {
         }
     }
     private struct LayoutKey: Equatable { let scene: MapScene; let size: CGSize; let revision: Int }
+    private func popupAlignment(in size: CGSize) -> Alignment {
+        guard let rect = hovered?.rect else { return .topTrailing }
+        let horizontal: HorizontalAlignment = rect.midX > size.width * 0.5 ? .leading : .trailing
+        let vertical: VerticalAlignment = rect.midY > size.height * 0.5 ? .top : .bottom
+        return Alignment(horizontal: horizontal, vertical: vertical)
+    }
+    private func hoverCard(_ tile: SceneTile) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(tile.entry.localizedTitle).font(.callout.weight(.semibold)).lineLimit(1)
+            Text(scene.summary.knownBytes > 0 ? L10n.format("%@ · %lld%% of view", sizeText(tile.entry.bytes), Int(Double(tile.entry.bytes) / Double(scene.summary.knownBytes) * 100)) : sizeText(tile.entry.bytes))
+                .font(.caption).foregroundStyle(.secondary)
+            if let path = tile.entry.node?.path { Text(path).font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }
+            if tile.entry.kind == .aggregate { Text("Click to browse all items in this folder").font(.caption2).foregroundStyle(.secondary) }
+        }.padding(12).frame(maxWidth: 340, alignment: .leading).background(.regularMaterial, in: .rect(cornerRadius: 12)).padding(12)
+    }
 }
 
 private struct MapDrawing: View, Equatable {

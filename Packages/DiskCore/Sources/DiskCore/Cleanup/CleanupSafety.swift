@@ -1,18 +1,24 @@
 import Foundation
 
 public enum CleanupSafety {
-    public static func blockedReason(_ node: FileNode, root: URL) -> String? { blockedReasonCode(node, root: root)?.message }
-    public static func blockedReasonCode(_ node: FileNode, root: URL) -> CleanupReason? {
+    public static func blockedReason(_ node: FileNode, root: URL, exemptingCacheRoots: [String] = []) -> String? { blockedReasonCode(node, root: root, exemptingCacheRoots: exemptingCacheRoots)?.message }
+    public static func blockedReasonCode(_ node: FileNode, root: URL, exemptingCacheRoots: [String] = []) -> CleanupReason? {
         let path = node.path
         let rootPath = canonicalURL(root).path
         if path == rootPath || path == "/" { return .scanRoot }
         if !path.hasPrefix(rootPath == "/" ? "/" : rootPath + "/") { return .outsideScope }
-        if path == "/Users" || path == "/Volumes" || path.hasSuffix("/Library") || (path.contains("/Library/Containers/") && !path.contains("/Data/Library/Caches/")) || path.hasSuffix("/Library/Containers") || path.contains("/Library/Group Containers/") || path.hasSuffix("/Library/Group Containers") || path.contains("/Library/Application Support/") || path.hasSuffix("/Library/Application Support") { return .managedData }
+        // Only the exact curated cache locations (and their contents) are exempt; their managed
+        // parents and every other managed tree remain protected.
+        let knownCache = exemptingCacheRoots.contains { path == $0 || path.hasPrefix($0 + "/") }
+        if !knownCache, isManagedData(path) { return .managedData }
         if node.packageAncestor { return .packageContents }
         let protected = ["/System", "/Library", "/bin", "/sbin", "/usr", "/dev", "/etc", "/var", "/private/etc", "/private/var/db", "/private/var/root", "/private/var/vm", "/private/var/log", "/Applications", "/System/Volumes/Data/System", "/System/Volumes/Data/Library"]
         if protected.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) { return .systemManaged }
         if let values = try? node.url.resourceValues(forKeys: [.isVolumeKey]), values.isVolume == true { return .volumeRoot }
         return nil
+    }
+    private static func isManagedData(_ path: String) -> Bool {
+        path == "/Users" || path == "/Volumes" || path.hasSuffix("/Library") || (path.contains("/Library/Containers/") && !path.contains("/Data/Library/Caches/")) || path.hasSuffix("/Library/Containers") || path.contains("/Library/Group Containers/") || path.hasSuffix("/Library/Group Containers") || path.contains("/Library/Application Support/") || path.hasSuffix("/Library/Application Support")
     }
 }
 

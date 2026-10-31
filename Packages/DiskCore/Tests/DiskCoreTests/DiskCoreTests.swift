@@ -375,6 +375,107 @@ func destroy(_ index: ScanIndex) async {
     await destroy(index)
 }
 
+@Test func curatedAppCachesSuggestManagedLocationsAndKeepNewestDeviceSupport() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    let home = "/Users/appcache"
+    let old = Date().addingTimeInterval(-90*86400)
+    func node(_ id: Int64,_ parent: Int64?,_ path: String,_ directory: Bool,_ date: Date?) -> FileNode {
+        FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: directory,logicalSize: 10,allocatedSize: 10,modified: date,identity: "\(id)")
+    }
+    let support = home + "/Library/Application Support/Code - Insiders"
+    let webStorage = support + "/WebStorage"
+    let telegram = home + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram"
+    let deviceSupport = home + "/Library/Developer/Xcode/iOS DeviceSupport"
+    let caches = home + "/Library/Caches"
+    try await index.insert([
+        node(1,nil,home,true,old),
+        node(2,1,support,true,old),
+        node(3,2,webStorage,true,old),
+        node(4,3,webStorage+"/old.bin",false,old),
+        node(5,1,telegram,true,old),
+        node(6,5,telegram+"/media.bin",false,old),
+        node(7,1,deviceSupport,true,old),
+        node(8,7,deviceSupport+"/17.5",true,old),
+        node(9,7,deviceSupport+"/18.0",true,Date()),
+        node(12,1,home+"/Library",true,old),
+        node(13,12,caches,true,old),
+        node(10,13,caches+"/old-cache",true,old),
+        node(11,9,deviceSupport+"/18.0/symbol",false,Date())
+    ])
+    try await index.aggregate()
+    var q = FileQuery(); q.cleanupRule = .userCaches; q.userHome = home; q.leafResults = true
+    // Whole curated folders, old device support children, and per-app caches — never the
+    // managed parent, the newest device support version, or its descendants.
+    #expect(await index.query(q).map(\.id).sorted() == [3,5,8,10])
+    // Cache search through the suggestion covers the same curated locations.
+    var s = FileQuery(); s.suggestion = .caches; s.userHome = home; s.cleanupRule = .userCaches
+    #expect(await index.query(s).map(\.id).sorted() == [3,5,8,10])
+    // Only the exact curated cache locations are exempt from managed-data protection.
+    #expect(CleanupSafety.blockedReasonCode(node(3,2,webStorage,true,old),root: URL(fileURLWithPath: home)) == .managedData)
+    let exemptions = CleanupRule.allCases.flatMap { $0.roots(relativeTo: home) }.map(\.path)
+    #expect(CleanupSafety.blockedReasonCode(node(3,2,webStorage,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == nil)
+    #expect(CleanupSafety.blockedReasonCode(node(5,1,telegram,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == nil)
+    #expect(CleanupSafety.blockedReasonCode(node(2,1,support,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == .managedData)
+    await destroy(index)
+}
+
+@Test func curatedCachePlanDeletesManagedCacheLocation() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let webStorage = try f.file("Library/Application Support/Code - Insiders/WebStorage/cache.bin")
+    let (index, _) = try await scan(f.root)
+    let folder = try #require(await index.node(path: (webStorage.deletingLastPathComponent().path)))
+    let refused = await CleanupService().execute(CleanupPlan(root: f.root, items: [folder], mode: .permanent))
+    #expect(refused.first?.succeeded == false)
+    #expect(FileManager.default.fileExists(atPath: folder.path))
+    let exemptions = [folder.path]
+    let done = await CleanupService().execute(CleanupPlan(root: f.root, items: [folder], mode: .permanent, knownCacheRoots: exemptions))
+    #expect(done.first?.succeeded == true, "\(done.first?.message ?? "no result")")
+    #expect(!FileManager.default.fileExists(atPath: folder.path))
+    await destroy(index)
+}
+
+@Test func regenerableFoldersMatchByNameAnywhere() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    func dir(_ id: Int64,_ parent: Int64,_ name: String) -> FileNode {
+        FileNode(id: id,parentID: parent,path: "/proj/\(name)",name: name,isDirectory: true,logicalSize: 10,allocatedSize: 10,modified: nil,identity: "\(id)")
+    }
+    try await index.insert([
+        FileNode(id: 1,parentID: nil,path: "/proj",name: "proj",isDirectory: true,logicalSize: 0,allocatedSize: 0,modified: nil,identity: "1"),
+        dir(2,1,"node_modules"), dir(3,1,"Pods"), dir(4,1,".derivedData-mapcheck"), dir(5,1,".cache"), dir(6,1,"artifacts"), dir(7,1,"sources"),
+        FileNode(id: 8,parentID: 1,path: "/proj/README.md",name: "README.md",isDirectory: false,logicalSize: 1,allocatedSize: 1,modified: nil,identity: "8")
+    ])
+    try await index.aggregate()
+    var q = FileQuery(); q.cleanupRule = .regenerable
+    #expect(await index.query(q).map(\.id).sorted() == [2,3,4,5])
+    q = FileQuery(); q.suggestion = .regenerable
+    #expect(await index.query(q).map(\.id).sorted() == [2,3,4,5])
+    await destroy(index)
+}
+
+@Test func hiddenPathsExcludeSubtreesFromQueriesAndScenes() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    let old = Date().addingTimeInterval(-90*86400)
+    func node(_ id: Int64,_ parent: Int64?,_ path: String,_ directory: Bool) -> FileNode {
+        FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: directory,logicalSize: 10,allocatedSize: 10,modified: old,identity: "\(id)")
+    }
+    try await index.insert([
+        node(1,nil,"/hide",true), node(2,1,"/hide/queued",true), node(3,2,"/hide/queued/inner.bin",false), node(4,1,"/hide/keep.bin",false)
+    ])
+    try await index.aggregate()
+    var q = FileQuery(); q.parentID = 1
+    #expect(await index.query(q).map(\.id).sorted() == [2,4])
+    q.hiddenPaths = ["/hide/queued"]
+    #expect(await index.query(q).map(\.id) == [4])
+    #expect(await index.summary(q).itemCount == 1)
+    #expect(await index.mapScene(rootID: 1, query: q, filtered: false).entries.map(\.id) == [4])
+    q.hiddenPaths = []
+    #expect(await index.query(q).map(\.id).sorted() == [2,4])
+    await destroy(index)
+}
+
 @Test func refreshedSameIdentityKeepsIDAndReplacementsNeverReuseIDs() async throws {
     let f = try Fixture(); defer { f.dispose() }
     let keptURL = try f.file("branch/keep",bytes: 50)

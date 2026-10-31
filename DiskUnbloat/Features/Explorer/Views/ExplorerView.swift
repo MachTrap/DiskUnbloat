@@ -8,6 +8,7 @@ struct ExplorerView: View {
     let canClean: Bool
     let basketCount: Int
     let basketBytes: Int64
+    let queuedPaths: [String]
     let newScan: () -> Void
     let rescan: () -> Void
     let refreshFolder: (FileNode) -> Void
@@ -51,23 +52,36 @@ struct ExplorerView: View {
             inspector.inspectorColumnWidth(min: 245, ideal: 275, max: 330)
         }
         .toolbar { toolbar }
-        .onChange(of: model.drawerTab) { model.scheduleRefresh() }
-        .onChange(of: model.candidateRule) { model.scheduleRefresh() }
-        .onChange(of: model.search) { model.scheduleRefresh() }
-        .onChange(of: model.scope) { model.scheduleRefresh() }
-        .onChange(of: model.suggestion) { model.scheduleRefresh() }
-        .onChange(of: model.minimumGB) { model.scheduleRefresh() }
-        .onChange(of: model.olderDays) { model.scheduleRefresh() }
-        .onChange(of: model.extensionFilter) { model.scheduleRefresh() }
-        .onChange(of: model.metric) { model.scheduleRefresh() }
-        .onChange(of: model.sortName) { model.scheduleRefresh() }
-        .onChange(of: model.ascending) { model.scheduleRefresh() }
-        .onChange(of: model.searchRequested) { searchFocused = true }
+        .modifier(RefreshHooks(model: model, queuedPaths: queuedPaths, focusSearch: { searchFocused = true }))
         .focusable().focusEffectDisabled()
         .onKeyPress(.return) { guard let node = model.selected else { return .ignored }; if model.canNavigate(node) { model.navigate(node) } else { preview(node) }; return .handled }
         .onKeyPress(.space) { guard let node = model.selected else { return .ignored }; preview(node); return .handled }
         .onExitCommand { if !model.selectionIDs.isEmpty { model.selectionIDs = [] } else { model.up() } }
         .accessibilityIdentifier("explorerScreen")
+    }
+
+    /// Debounced query refreshes keyed to every filter input, extracted to keep `body` tractable.
+    private struct RefreshHooks: ViewModifier {
+        @Bindable var model: ExplorerViewModel
+        let queuedPaths: [String]
+        let focusSearch: () -> Void
+        func body(content: Content) -> some View {
+            content
+                .onChange(of: model.drawerTab) { model.scheduleRefresh() }
+                .onChange(of: model.candidateRule) { model.scheduleRefresh() }
+                .onChange(of: model.search) { model.scheduleRefresh() }
+                .onChange(of: model.scope) { model.scheduleRefresh() }
+                .onChange(of: model.suggestion) { model.scheduleRefresh() }
+                .onChange(of: model.minimumGB) { model.scheduleRefresh() }
+                .onChange(of: model.olderDays) { model.scheduleRefresh() }
+                .onChange(of: model.extensionFilter) { model.scheduleRefresh() }
+                .onChange(of: model.metric) { model.scheduleRefresh() }
+                .onChange(of: model.sortName) { model.scheduleRefresh() }
+                .onChange(of: model.ascending) { model.scheduleRefresh() }
+                .onChange(of: model.searchRequested) { focusSearch() }
+                .onChange(of: queuedPaths) { model.updateHiddenPaths(queuedPaths) }
+                .onAppear { model.updateHiddenPaths(queuedPaths) }
+        }
     }
 
     private var inspector: some View {
@@ -119,7 +133,7 @@ struct ExplorerView: View {
             if let node = model.selected { Button { preview(node) } label: { Image(systemName: "eye") }.help("Quick Look"); Button { reveal(node) } label: { Image(systemName: "arrow.up.forward.square") }.help("Reveal in Finder") }
             Button("Details", systemImage: "info.circle") { model.showDetails.toggle() }
                 .popover(isPresented: Binding(get: { !wide && model.showDetails }, set: { if !wide { model.showDetails = $0 } })) { inspector.frame(width: 290, height: 470) }
-            Button("Review", systemImage: "tray.and.arrow.down", action: addSelection).disabled(!canClean).accessibilityIdentifier("addToReview")
+            Button("Queue", systemImage: "tray.and.arrow.down", action: addSelection).disabled(!canClean).accessibilityIdentifier("addToReview")
             Button { model.selectionIDs = [] } label: { Image(systemName: "xmark") }.help("Clear selection")
         }.buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 10).background(.bar)
     }
@@ -150,6 +164,18 @@ struct ExplorerView: View {
                 if dragOrigin == nil { dragOrigin = model.drawerHeight }
                 model.drawerHeight = min(max(110, (dragOrigin ?? 190) - value.translation.height), max(110,maxHeight))
             }.onEnded { _ in dragOrigin = nil })
+    }
+    /// Toolbar tray icon with a small red circle showing the queued item count.
+    private var queueBadge: some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: "tray")
+            if basketCount > 0 {
+                Text("\(basketCount)").font(.system(size: 9, weight: .bold)).monospacedDigit().foregroundStyle(.white)
+                    .padding(.horizontal, basketCount > 9 ? 3 : 0)
+                    .frame(minWidth: 14, minHeight: 14).background(Circle().fill(.red))
+                    .fixedSize().offset(x: 7, y: -7).accessibilityHidden(true)
+            }
+        }.frame(width: 30, height: 22)
     }
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {
@@ -183,7 +209,9 @@ struct ExplorerView: View {
                 Button("Scan again", action: rescan)
             } label: { Label("Display", systemImage: "rectangle.3.group") }
             Button(action: newScan) { Label("New scan", systemImage: "folder.badge.plus") }
-            Button(action: review) { Label("\(basketCount)", systemImage: "tray") }.disabled(basketCount == 0).help("Review \(basketCount) items · \(sizeText(basketBytes)) estimated").accessibilityIdentifier("reviewCleanup")
+            Button(action: review) { queueBadge }.disabled(basketCount == 0)
+                .help(L10n.format("Deletion queue · %lld items · %@ estimated", basketCount, sizeText(basketBytes)))
+                .accessibilityIdentifier("reviewCleanup")
         }
         ToolbarItem(placement: .automatic) {
             Color.clear.frame(width: 0,height: 0).popover(isPresented: $showOptions) { ScanOptionsView(model: scan) }

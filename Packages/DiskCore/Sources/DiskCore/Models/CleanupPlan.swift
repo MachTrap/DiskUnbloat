@@ -7,11 +7,14 @@ public struct CleanupPlan: Sendable {
     public let mode: CleanupMode
     public let preflight: (@Sendable (FileNode) async -> String?)?
     public let ancestorIdentities: [String: String]
-    public init(root: URL, items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (FileNode) async -> String?)? = nil) {
+    /// Curated cache locations allowed through the managed-data protection for this plan.
+    public let knownCacheRoots: [String]
+    public init(root: URL, items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (FileNode) async -> String?)? = nil, knownCacheRoots: [String] = []) {
         self.preflight = preflight
         self.root = canonicalURL(root)
         self.mode = mode
         self.ancestorIdentities = ancestorIdentities
+        self.knownCacheRoots = knownCacheRoots
         let sorted = items.sorted { $0.path.count < $1.path.count }
         var normalized: [FileNode] = []
         for item in sorted where !normalized.contains(where: { item.path == $0.path || item.path.hasPrefix($0.path + "/") }) { normalized.append(item) }

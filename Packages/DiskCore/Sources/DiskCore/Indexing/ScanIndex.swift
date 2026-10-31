@@ -143,14 +143,24 @@ public actor ScanIndex {
         if let date = q.olderThan { clauses.append("modified<\(date.timeIntervalSince1970)") }
         if !q.fileExtension.isEmpty { clauses.append("lower(path) LIKE ? ESCAPE '\\'"); strings.append("%." + escapeLike(q.fileExtension.lowercased())) }
         if let suggestion = q.suggestion {
-            clauses.append("directory=0 AND insidePackage=0 AND symlink=0")
+            // Regenerable and cache candidates are folders; the other suggestions are leaf entries.
+            clauses.append(suggestion == .regenerable || suggestion == .caches ? "insidePackage=0 AND symlink=0" : "directory=0 AND insidePackage=0 AND symlink=0")
             let cutoff = Date().addingTimeInterval(-Double(max(1, q.ageDays)) * 86400).timeIntervalSince1970
             switch suggestion {
             case .large: clauses.append("allocated>=\(q.largeThreshold)")
             case .downloads: clauses.append("path LIKE '%/Downloads/%' AND modified<\(cutoff)")
             case .archives: clauses.append("modified<\(cutoff) AND (lower(name) LIKE '%.zip' OR lower(name) LIKE '%.dmg' OR lower(name) LIKE '%.pkg' OR lower(name) LIKE '%.tar' OR lower(name) LIKE '%.gz')")
+            case .regenerable: clauses.append("directory=1 AND " + regenerableNameSQL(&strings))
             case .caches:
-                if let root = q.cacheRootPath {
+                // All curated cache locations, not only ~/Library/Caches.
+                if let home = q.userHome {
+                    let parts = CleanupRule.userCaches.roots(relativeTo: home).map { root -> String in
+                        if root.candidate == .rootItself { strings.append(root.path); return "path=?" }
+                        strings += [root.path + "/", root.path + "0"]
+                        return "path>=? COLLATE BINARY AND path<? COLLATE BINARY"
+                    }
+                    clauses.append("(" + parts.joined(separator: " OR ") + ")")
+                } else if let root = q.cacheRootPath {
                     clauses.append("path>=? COLLATE BINARY AND path<? COLLATE BINARY")
                     strings.append(root + "/"); strings.append(root + "0")
                 } else { clauses.append("path LIKE '/Users/%/Library/Caches/%'") }
@@ -158,28 +168,68 @@ public actor ScanIndex {
         }
         if let rule = q.cleanupRule {
             clauses.append("symlink=0 AND insidePackage=0 AND incomplete=0")
-            if !rule.isCache { clauses.append(q.inspectPackages ? "directory=0" : "(directory=0 OR package=1)") }
+            if !rule.isCache && rule != .regenerable { clauses.append(q.inspectPackages ? "directory=0" : "(directory=0 OR package=1)") }
             if rule == .large { clauses.append("allocated>=\(q.largeThreshold)") }
-            else {
-                let days = rule.isCache ? q.cacheAgeDays : q.ageDays
-                let cutoff = Date().addingTimeInterval(-Double(max(1,days))*86400).timeIntervalSince1970
-                clauses.append("unknownModified=0 AND latestModified<\(cutoff) AND unknownAllocated=0")
-            }
-            if let root = q.userHome.flatMap({ rule.root(relativeTo: $0) }) {
-                clauses.append("path>=? COLLATE BINARY AND path<? COLLATE BINARY")
-                strings += [root + "/",root + "0"]
-                if rule.isCache {
-                    // Direct cache-root children are disjoint; narrower scans fall back to leaf entries.
-                    clauses.append("(parent=(SELECT id FROM nodes WHERE path=?) OR (NOT EXISTS(SELECT 1 FROM nodes WHERE path=?) AND directory=0))")
-                    strings += [root,root]
+            else if rule == .regenerable {
+                // Regenerable folders are identified by name anywhere in the scanned tree.
+                clauses.append("directory=1 AND " + regenerableNameSQL(&strings))
+            } else {
+                let roots = q.userHome.flatMap { rule.roots(relativeTo: $0) } ?? []
+                if roots.isEmpty {
+                    if rule.isCache || rule == .downloads { clauses.append("0=1") }
+                    if rule == .archives {
+                        let cutoff = Date().addingTimeInterval(-Double(max(1, q.ageDays)) * 86400).timeIntervalSince1970
+                        clauses.append("category='Archives' AND unknownModified=0 AND latestModified<\(cutoff) AND unknownAllocated=0")
+                    }
+                } else {
+                    // Age gating applies per root so version-staleness roots can keep the newest entry instead.
+                    let rootClauses = roots.map { root in
+                        var parts: [String] = []
+                        if root.candidate == .rootItself {
+                            parts.append("path=?"); strings.append(root.path)
+                            if rule.isCache || rule == .downloads {
+                                let days = rule.isCache ? q.cacheAgeDays : q.ageDays
+                                let cutoff = Date().addingTimeInterval(-Double(max(1, days)) * 86400).timeIntervalSince1970
+                                parts.append("unknownModified=0 AND latestModified<\(cutoff) AND unknownAllocated=0")
+                            }
+                        } else {
+                            parts.append("path>=? COLLATE BINARY AND path<? COLLATE BINARY")
+                            strings += [root.path + "/", root.path + "0"]
+                            if root.candidate == .childrenKeepingNewest {
+                                // Exclude the subtree of the most recently used direct child.
+                                parts.append("NOT(path>=(SELECT ?||'/'||name FROM nodes WHERE parent=(SELECT id FROM nodes WHERE path=?) ORDER BY COALESCE(latestModified,0) DESC,name DESC LIMIT 1) AND path<(SELECT ?||'/'||name FROM nodes WHERE parent=(SELECT id FROM nodes WHERE path=?) ORDER BY COALESCE(latestModified,0) DESC,name DESC LIMIT 1)||'0')")
+                                strings += [root.path, root.path, root.path, root.path]
+                            } else if rule.isCache || rule == .downloads {
+                                let days = rule.isCache ? q.cacheAgeDays : q.ageDays
+                                let cutoff = Date().addingTimeInterval(-Double(max(1, days)) * 86400).timeIntervalSince1970
+                                parts.append("unknownModified=0 AND latestModified<\(cutoff) AND unknownAllocated=0")
+                            }
+                            if rule.isCache {
+                                // Direct cache-root children are disjoint; narrower scans fall back to leaf entries.
+                                parts.append("(parent=(SELECT id FROM nodes WHERE path=?) OR (NOT EXISTS(SELECT 1 FROM nodes WHERE path=?) AND directory=0))")
+                                strings += [root.path, root.path]
+                            }
+                        }
+                        return "(" + parts.joined(separator: " AND ") + ")"
+                    }
+                    clauses.append("(" + rootClauses.joined(separator: " OR ") + ")")
                 }
-            } else if rule.isCache || rule == .downloads { clauses.append("0=1") }
-            if rule == .archives { clauses.append("category='Archives'") }
+            }
             for path in q.excludedCandidatePaths {
                 clauses.append("NOT(path=? OR (path>=? COLLATE BINARY AND path<? COLLATE BINARY))")
                 strings += [path,path + "/",path + "0"]
             }
-            clauses.append("path NOT LIKE '/usr/%' AND path NOT LIKE '/bin/%' AND path NOT LIKE '/sbin/%' AND path NOT LIKE '/dev/%' AND path NOT LIKE '/etc/%' AND path NOT LIKE '/var/%' AND path NOT LIKE '/System/%' AND path NOT LIKE '/Library/%' AND path NOT LIKE '/Applications/%' AND path NOT LIKE '/private/%' AND path NOT LIKE '%/Library/Containers/%' AND path NOT LIKE '%/Library/Group Containers/%' AND path NOT LIKE '%/Library/Application Support/%'")
+            // Curated roots may legitimately live under managed-application trees; those blanket
+            // exclusions are dropped only when a declared root requires it.
+            let roots = q.userHome.flatMap { rule.roots(relativeTo: $0) } ?? []
+            var generic = ["path NOT LIKE '/usr/%'", "path NOT LIKE '/bin/%'", "path NOT LIKE '/sbin/%'", "path NOT LIKE '/dev/%'", "path NOT LIKE '/etc/%'", "path NOT LIKE '/var/%'", "path NOT LIKE '/System/%'", "path NOT LIKE '/Library/%'", "path NOT LIKE '/Applications/%'", "path NOT LIKE '/private/%'", "path NOT LIKE '%/Library/Containers/%'", "path NOT LIKE '%/Library/Group Containers/%'", "path NOT LIKE '%/Library/Application Support/%'"]
+            if roots.contains(where: { $0.path.contains("/Library/Group Containers/") }) { generic.removeAll { $0.contains("Group Containers") } }
+            if roots.contains(where: { $0.path.contains("/Library/Application Support/") }) { generic.removeAll { $0.contains("Application Support") } }
+            clauses += generic
+        }
+        for path in q.hiddenPaths {
+            clauses.append("NOT(path=? OR (path>=? COLLATE BINARY AND path<? COLLATE BINARY))")
+            strings += [path,path + "/",path + "0"]
         }
         return (clauses.joined(separator: " AND "), strings)
     }
@@ -314,6 +364,15 @@ public actor ScanIndex {
         return result.sorted { $0.bytes > $1.bytes }
     }
     private func escapeLike(_ s: String) -> String { s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "%", with: "\\%").replacingOccurrences(of: "_", with: "\\_") }
+    /// Shared name match for regenerable folders, used by both the rule and its suggestion.
+    private func regenerableNameSQL(_ strings: inout [String]) -> String {
+        let names = CleanupRule.regenerableNames
+        let exact = names.map { _ in "name=?" }.joined(separator: " OR ")
+        let prefixes = CleanupRule.regenerableNamePrefixes
+        let like = prefixes.map { _ in "name LIKE ? ESCAPE '\\'" }.joined(separator: " OR ")
+        strings += names + prefixes.map { escapeLike($0) + "%" }
+        return "(\(exact)\(prefixes.isEmpty ? "" : " OR \(like)"))"
+    }
     public func ancestorIdentities(for ids: [Int64]) -> [String: String] {
         guard !ids.isEmpty else { return [:] }
         let nodes = read("WITH RECURSIVE ancestry(id) AS (SELECT parent FROM nodes WHERE id IN (\(ids.map(String.init).joined(separator: ","))) UNION SELECT nodes.parent FROM nodes JOIN ancestry ON nodes.id=ancestry.id WHERE nodes.parent IS NOT NULL) SELECT nodes.* FROM nodes JOIN ancestry ON nodes.id=ancestry.id")

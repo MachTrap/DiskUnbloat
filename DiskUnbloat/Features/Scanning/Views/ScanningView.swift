@@ -5,6 +5,7 @@ struct ScanningView: View {
     let model: ScanViewModel
     let preparing: Bool
     let cancel: () -> Void
+    let issues: () -> Void
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
@@ -20,6 +21,7 @@ struct ScanningView: View {
                 Text((model.refreshNode?.url ?? model.root)?.lastPathComponent ?? "Selected disk").font(.title3).foregroundStyle(.secondary)
             }
             HStack(spacing: 28) {
+                if let percent = model.progressPercent { scanStat("Progress", "≈ \(percent)%") }
                 scanStat("Files", (max(0, (model.snapshot?.items ?? 0) - (model.snapshot?.folders ?? 0))).formatted())
                 scanStat("Folders", (model.snapshot?.folders ?? 0).formatted())
                 scanStat("Discovered", sizeText(model.snapshot?.bytes ?? 0))
@@ -27,6 +29,12 @@ struct ScanningView: View {
                     scanStat("Elapsed", Duration.seconds(Int(context.date.timeIntervalSince(model.startedAt ?? context.date))).formatted(.time(pattern: .minuteSecond)))
                 }
             }.padding(.vertical, 12)
+            if let percent = model.progressPercent {
+                VStack(spacing: 5) {
+                    ProgressView(value: Double(percent), total: 100).frame(width: compact ? 220 : 320)
+                    Text("Approximate share of this volume's used data read so far").font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
             VStack(spacing: 12) {
                 HStack(spacing: 18) {
                     ForEach(Array(ScanStage.allCases.enumerated()), id: \.element) { index, stage in
@@ -39,7 +47,12 @@ struct ScanningView: View {
                 }
                 Text(model.snapshot?.currentFolder ?? model.root?.path ?? "")
                     .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle).frame(maxWidth: 650)
-                if let errors = model.snapshot?.errors, errors > 0 { Label("\(errors) locations unavailable · results will be marked partial", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
+                if let errors = model.snapshot?.errors, errors > 0 {
+                    Button(action: issues) {
+                        Label(L10n.count("%lld locations unavailable · view list", errors), systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
+                    }.buttonStyle(.plain).accessibilityIdentifier("scanIssues")
+                }
             }
             if !preparing {
                 Button(model.cancellationRequested ? "Cancelling…" : "Cancel scan", action: cancel)

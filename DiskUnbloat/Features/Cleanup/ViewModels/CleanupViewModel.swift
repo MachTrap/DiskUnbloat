@@ -22,6 +22,11 @@ import DiskCore
         return nil
     }
 
+    /// Curated cache locations allowed through the managed-data protection for this session.
+    private func knownCacheRoots() -> [String] {
+        CleanupRule.allCases.flatMap { $0.roots(relativeTo: homePath) }.map(\.path)
+    }
+
     func reset(preservingReport: Bool = false) {
         basket = []
         if !preservingReport { results = [] }
@@ -29,8 +34,8 @@ import DiskCore
 
     func add(_ node: FileNode, root: URL) -> String? {
         if let reason = activityReason(node) { return reason }
-        if let reason = CleanupSafety.blockedReasonCode(node, root: root) { return L10n.text(reason.message) }
-        basket = CleanupPlan(root: root, items: basket + [node], mode: .trash).items
+        if let reason = CleanupSafety.blockedReasonCode(node, root: root, exemptingCacheRoots: knownCacheRoots()) { return L10n.text(reason.message) }
+        basket = CleanupPlan(root: root, items: basket + [node], mode: .trash, knownCacheRoots: knownCacheRoots()).items
         return nil
     }
 
@@ -69,7 +74,7 @@ import DiskCore
                 }
                 return nil
             }
-        })
+        }, knownCacheRoots: knownCacheRoots())
         results = refused + (await service.execute(plan))
         return results.contains(where: \.succeeded)
     }

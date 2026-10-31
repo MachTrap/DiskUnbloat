@@ -11,7 +11,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
 @MainActor @Observable final class ExplorerViewModel {
     private let settings: SettingsViewModel
     private let activity: any ApplicationActivityProviding
-    private let homePath: String?
+    let homePath: String?
     var candidateRule: CleanupRule = .large
     private let cacheRootPath: String?
     @ObservationIgnored private var index: ScanIndex?
@@ -60,6 +60,11 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var isLoading = false
     var fitRevision = 0
     var searchRequested = 0
+    /// Paths queued for deletion; they disappear from the map and browser until removed.
+    private(set) var hiddenPaths: [String] = []
+    /// Candidate paths the user excluded from deletion suggestions this session.
+    private(set) var excludedCandidatePaths: [String] = []
+    var isCandidateFilterActive: Bool { drawerTab == .candidates || suggestion != nil }
     var largeThresholdGB: Double { settings.largeGB }
     var candidateAgeDays: Int { candidateRule.isCache ? settings.cacheAgeDays : settings.ageDays }
     var hasFilters: Bool { !search.isEmpty || suggestion != nil || minimumGB > 0 || olderDays > 0 || !extensionFilter.isEmpty }
@@ -81,6 +86,35 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         breadcrumbs = []; back = []; forward = []; suggestion = nil; page = 0; totalRows = 0
         showFiles = false; showDetails = false; highlightedCategory = nil
         search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current; isLoading = false
+        hiddenPaths = []; excludedCandidatePaths = []
+    }
+
+    /// Hides queued deletion items everywhere the explorer queries, and drops their selections.
+    func updateHiddenPaths(_ paths: [String]) {
+        guard paths != hiddenPaths else { return }
+        hiddenPaths = paths
+        let hidden = paths
+        selectionIDs = selectionIDs.filter { id in
+            guard let node = nodesByID[id] else { return true }
+            return !hidden.contains { node.path == $0 || node.path.hasPrefix($0 + "/") }
+        }
+        sceneCache = [:]; sceneCacheOrder = []
+        scheduleRefresh()
+    }
+
+    func excludeCandidate(_ node: FileNode) {
+        guard !excludedCandidatePaths.contains(where: { node.path == $0 || node.path.hasPrefix($0 + "/") || $0.hasPrefix(node.path + "/") }) else { return }
+        excludedCandidatePaths.append(node.path)
+        scheduleRefresh()
+    }
+    func restoreCandidateExclusion(_ path: String) {
+        excludedCandidatePaths.removeAll { $0 == path }
+        scheduleRefresh()
+    }
+    func clearCandidateExclusions() {
+        guard !excludedCandidatePaths.isEmpty else { return }
+        excludedCandidatePaths = []
+        scheduleRefresh()
     }
 
     func attach(_ index: ScanIndex, options: ScanOptions) async {
@@ -135,8 +169,9 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         } else { q.parentID = current?.id }
         if drawerTab == .candidates || suggestion != nil {
             q.cleanupRule = drawerTab == .candidates ? candidateRule : suggestion?.rule; q.userHome = homePath; q.cacheAgeDays = settings.cacheAgeDays
-            q.excludedCandidatePaths = homePath.map { activity.blockedCachePaths(home: $0) } ?? []
+            q.excludedCandidatePaths = (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) + excludedCandidatePaths
         }
+        q.hiddenPaths = hiddenPaths
         q.search = search; q.minimumSize = Int64(max(0, minimumGB) * 1e9)
         q.olderThan = olderDays > 0 ? Date().addingTimeInterval(-Double(olderDays) * 86400) : nil
         q.fileExtension = extensionFilter; q.suggestion = nil; q.cacheRootPath = cacheRootPath

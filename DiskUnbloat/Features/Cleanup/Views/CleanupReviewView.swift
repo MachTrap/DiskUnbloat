@@ -12,8 +12,8 @@ struct CleanupReviewView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("A final look before letting go").font(.title2.bold())
-                    Text("\(model.basket.count) selections · \(sizeText(model.basket.reduce(0) { $0 + $1.displaySize })) estimated").foregroundStyle(.secondary)
+                    Text("Deletion queue").font(.title2.bold())
+                    Text(L10n.format("%lld items · %@ estimated", model.basket.count, sizeText(model.basket.reduce(0) { $0 + $1.displaySize }))).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Image(systemName: "tray.full").font(.largeTitle).foregroundStyle(.teal)
@@ -25,7 +25,7 @@ struct CleanupReviewView: View {
                         VStack(alignment: .leading, spacing: 3) { Text(node.name).fontWeight(.medium); Text(node.path).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) }
                         Spacer()
                         Text(sizeText(node.allocatedSize)).foregroundStyle(.secondary)
-                        Button { model.removeFromBasket(node) } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).help("Remove from review").disabled(model.cleaning)
+                        Button { model.removeFromBasket(node) } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).help("Remove from queue").disabled(model.cleaning)
                     }.padding(.vertical, 4)
                 }
                 if !model.results.isEmpty {

@@ -8,6 +8,7 @@ struct FileTable: View {
     let reveal: (FileNode) -> Void
     let addToBasket: (FileNode) -> Void
     var refreshFolder: (FileNode) -> Void = { _ in }
+    var excludeFromCandidates: ((FileNode) -> Void)? = nil
     var body: some View {
         Table(model.rows, selection: $model.selectionIDs) {
             TableColumn("Name") { node in
@@ -28,7 +29,8 @@ struct FileTable: View {
                 Button("Quick Look") { preview(node) }
                 Button("Reveal in Finder") { reveal(node) }
                 Divider()
-                Button("Add to Cleanup Review") { addToBasket(node) }.disabled(!canClean)
+                Button("Add to Deletion Queue") { addToBasket(node) }.disabled(!canClean)
+                if let excludeFromCandidates { Button("Exclude from candidates", systemImage: "minus.circle") { excludeFromCandidates(node) } }
             }
         } primaryAction: { ids in
             if let id = ids.first, let node = model.rows.first(where: { $0.id == id }) {

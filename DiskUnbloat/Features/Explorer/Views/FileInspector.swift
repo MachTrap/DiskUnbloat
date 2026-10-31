@@ -16,7 +16,7 @@ struct FileInspector: View {
                     Text("\(model.selectionIDs.count) selected").font(.title2.bold())
                     detail("Known size", sizeText(model.selectionBytes))
                     Text("Overlapping folder and file selections are counted once. Review paths before removing anything.").font(.caption).foregroundStyle(.secondary)
-                    Button("Add selections to review", systemImage: "tray.and.arrow.down") { model.normalizedSelection.forEach(addToBasket) }.disabled(!canClean)
+                    Button("Add selections to deletion queue", systemImage: "tray.and.arrow.down") { model.normalizedSelection.forEach(addToBasket) }.disabled(!canClean)
                     ForEach(Array(model.normalizedSelection.prefix(20))) { node in Text(node.name).font(.caption).lineLimit(1) }
                 } else if let node = model.selected {
                     Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill").font(.system(size: 48)).foregroundStyle(.teal.gradient).padding(.top, 12)
@@ -34,10 +34,10 @@ struct FileInspector: View {
                     Button("Quick Look", systemImage: "eye") { preview(node) }
                     Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { reveal(node) }
                     if model.canNavigate(node) { Button("Explore folder", systemImage: "folder") { model.navigate(node) } }
-                    if let root, let reason = CleanupSafety.blockedReason(node, root: root) {
+                    if let root, let reason = CleanupSafety.blockedReason(node, root: root, exemptingCacheRoots: CleanupRule.knownCacheRoots(home: model.homePath ?? "")) {
                         Label(L10n.text(reason), systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
                     } else {
-                        Button("Add to cleanup review", systemImage: "tray.and.arrow.down") { addToBasket(node) }
+                        Button("Add to deletion queue", systemImage: "tray.and.arrow.down") { addToBasket(node) }
                             .buttonStyle(.glass).disabled(!canClean).accessibilityIdentifier("addToReview")
                     }
                 } else {

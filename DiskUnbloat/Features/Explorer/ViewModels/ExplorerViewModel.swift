@@ -8,6 +8,31 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+/// Everything that affects the browser summary, rows, legend, and statistics for one state.
+/// Deliberately excludes the running-application cache exclusions, so candidate/suggestion
+/// results (which depend on them) are never cached.
+private struct ResultsKey: Hashable {
+    let revision: UInt64
+    let currentID: Int64
+    let metric: SizeMetric
+    let inspectPackages: Bool
+    let drawerTab: AnalysisTab
+    let scope: ExplorerScope
+    let search: String
+    let minimumGB: Double
+    let olderDays: Int
+    let extensionFilter: String
+    let hiddenPaths: [String]
+    let sortName: Bool
+    let ascending: Bool
+}
+private struct CachedResults {
+    let summary: SizeSummary
+    let rows: [FileNode]
+    let legend: [FileCategory]
+    let statistics: [CategorySummary]
+}
+
 @MainActor @Observable final class ExplorerViewModel {
     private let settings: SettingsViewModel
     private let activity: any ApplicationActivityProviding
@@ -23,6 +48,8 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     @ObservationIgnored private var nodesByID: [Int64: FileNode] = [:]
     @ObservationIgnored private var sceneCache: [String: MapScene] = [:]
     @ObservationIgnored private var sceneCacheOrder: [String] = []
+    @ObservationIgnored private var resultsCache: [ResultsKey: CachedResults] = [:]
+    @ObservationIgnored private var resultsCacheOrder: [ResultsKey] = []
     private var queryGeneration = 0
     private var options = ScanOptions()
     var drawerHeight: CGFloat = 190
@@ -85,7 +112,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
 
     func reset() {
         refreshTask?.cancel(); pageTask?.cancel(); queryGeneration += 1; index = nil; nodesByID = [:]
-        sceneCache = [:]; sceneCacheOrder = []
+        sceneCache = [:]; sceneCacheOrder = []; resultsCache = [:]; resultsCacheOrder = []
         rows = []; categories = []; legendCategories = []; drawerTab = .files; scene = MapScene(); current = nil; selectionIDs = []
         breadcrumbs = []; back = []; forward = []; suggestion = nil; page = 0; totalRows = 0
         showFiles = false; showDetails = false; highlightedCategory = nil
@@ -102,7 +129,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             guard let node = nodesByID[id] else { return true }
             return !hidden.contains { node.path == $0 || node.path.hasPrefix($0 + "/") }
         }
-        sceneCache = [:]; sceneCacheOrder = []
+        sceneCache = [:]; sceneCacheOrder = []; resultsCache = [:]; resultsCacheOrder = []
         scheduleRefresh()
     }
 
@@ -133,7 +160,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
 
     func restoreAfterRefresh() async {
         guard let index else { return }
-        sceneCache = [:]; sceneCacheOrder = []
+        sceneCache = [:]; sceneCacheOrder = []; resultsCache = [:]; resultsCacheOrder = []
         let oldSelection = selectionIDs
         let oldBreadcrumbs = breadcrumbs
         var focus = current.flatMap { _ in current }
@@ -196,32 +223,54 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         queryGeneration += 1; let generation = queryGeneration
         isLoading = true; page = 0
         let revision = await index.revision
-        var q = makeQuery(); let filtered = hasFilters
-        let browserSummary = await index.summary(q)
-        var statsQuery = q; statsQuery.parentID = nil; statsQuery.leafResults = true; statsQuery.knownSizesOnly = false; statsQuery.cleanupRule = suggestion?.rule
+        let browserQuery = makeQuery(); let filtered = hasFilters
+        var statsQuery = browserQuery; statsQuery.parentID = nil; statsQuery.leafResults = true; statsQuery.knownSizesOnly = false; statsQuery.cleanupRule = suggestion?.rule
         statsQuery.subtreePath = subtreeScope()
-        // Full category statistics are only rendered in the Types tab; the always-visible
-        // legend needs just the set of present file categories, a lighter distinct query.
-        let legend = await index.categoryList(statsQuery)
-        let statistics = drawerTab == .types ? await index.categorySummaries(statsQuery) : []
-        // Drawer mode must never change the map geometry.
-        let nodes = await index.query(q)
-        q.cleanupRule = suggestion?.rule; q.knownSizesOnly = false; q.parentID = hasFilters ? nil : current.id; q.leafResults = hasFilters
-        q.subtreePath = hasFilters ? subtreeScope() : nil
-        let key = "\(revision):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
-        let map: MapScene
-        if !filtered, let cached = sceneCache[key] { map = cached }
-        else { map = await index.mapScene(rootID: current.id, query: q, filtered: filtered) }
-        let finalRevision = await index.revision
-        guard !Task.isCancelled, finalRevision == revision, generation == queryGeneration, self.index === index else { return }
-        if !filtered {
-            sceneCache[key] = map; sceneCacheOrder.removeAll { $0 == key }; sceneCacheOrder.append(key)
-            while sceneCacheOrder.count > 4 { sceneCache.removeValue(forKey: sceneCacheOrder.removeFirst()) }
+        var mapQuery = browserQuery; mapQuery.cleanupRule = suggestion?.rule; mapQuery.knownSizesOnly = false; mapQuery.parentID = hasFilters ? nil : current.id; mapQuery.leafResults = hasFilters
+        mapQuery.subtreePath = hasFilters ? subtreeScope() : nil
+        let sceneKey = "\(revision):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
+        let cachedScene = filtered ? nil : sceneCache[sceneKey]
+        // Candidate/suggestion results depend on the dynamic set of running applications, so
+        // they are never cached; everything else is safe to reuse across navigation.
+        let cacheable = drawerTab != .candidates && suggestion == nil
+        let resultsKey = ResultsKey(revision: revision, currentID: current.id, metric: metric, inspectPackages: options.inspectPackages, drawerTab: drawerTab, scope: scope, search: search, minimumGB: minimumGB, olderDays: olderDays, extensionFilter: extensionFilter, hiddenPaths: hiddenPaths, sortName: sortName, ascending: ascending)
+        let cachedResults = cacheable ? resultsCache[resultsKey] : nil
+
+        let resolvedSummary: SizeSummary; let resolvedRows: [FileNode]; let resolvedLegend: [FileCategory]
+        let resolvedStatistics: [CategorySummary]; let resolvedScene: MapScene
+        if let cached = cachedResults, let cachedScene {
+            resolvedSummary = cached.summary; resolvedRows = cached.rows; resolvedLegend = cached.legend
+            resolvedStatistics = cached.statistics; resolvedScene = cachedScene
+        } else {
+            // One actor call produces a consistent snapshot of every result shown.
+            let snap = await index.explorerSnapshot(browser: browserQuery, stats: statsQuery, mapQuery: mapQuery, mapRootID: current.id, filtered: filtered, includeStatistics: drawerTab == .types, includeScene: cachedScene == nil)
+            guard !Task.isCancelled, snap.revision == revision, generation == queryGeneration, self.index === index else { return }
+            if let cached = cachedResults {
+                resolvedSummary = cached.summary; resolvedRows = cached.rows; resolvedLegend = cached.legend
+                resolvedStatistics = cached.statistics
+            } else {
+                resolvedSummary = snap.summary; resolvedRows = snap.rows; resolvedLegend = snap.legendCategories
+                resolvedStatistics = snap.statistics
+                if cacheable {
+                    resultsCache[resultsKey] = CachedResults(summary: resolvedSummary, rows: resolvedRows, legend: resolvedLegend, statistics: resolvedStatistics)
+                    resultsCacheOrder.removeAll { $0 == resultsKey }; resultsCacheOrder.append(resultsKey)
+                    while resultsCacheOrder.count > 8 { resultsCache.removeValue(forKey: resultsCacheOrder.removeFirst()) }
+                }
+            }
+            if let cachedScene {
+                resolvedScene = cachedScene
+            } else {
+                resolvedScene = snap.scene
+                if !filtered {
+                    sceneCache[sceneKey] = snap.scene; sceneCacheOrder.removeAll { $0 == sceneKey }; sceneCacheOrder.append(sceneKey)
+                    while sceneCacheOrder.count > 4 { sceneCache.removeValue(forKey: sceneCacheOrder.removeFirst()) }
+                }
+            }
         }
         let retainedSelection = selectedNodes
-        rows = nodes; scene = map; totalRows = browserSummary.itemCount; categories = statistics; legendCategories = legend
-        nodesByID = Dictionary(map.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        for n in nodes + retainedSelection { nodesByID[n.id] = n }
+        rows = resolvedRows; scene = resolvedScene; totalRows = resolvedSummary.itemCount; categories = resolvedStatistics; legendCategories = resolvedLegend
+        nodesByID = Dictionary(resolvedScene.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        for n in resolvedRows + retainedSelection { nodesByID[n.id] = n }
         selectionIDs.formIntersection(nodesByID.keys); isLoading = false
     }
 

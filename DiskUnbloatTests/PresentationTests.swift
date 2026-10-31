@@ -460,6 +460,9 @@ private actor ControlledScanner: ScanServing {
         model.explorer.drawerTab = .largest; await model.explorer.loadRows()
         #expect(model.explorer.scene == scene)
         #expect(model.explorer.rows.first?.name == "a.mp4")
+        // Category statistics materialize on the Types tab and cover every row in scope,
+        // independent of the drawer's page-limited ranking.
+        model.explorer.drawerTab = .types; await model.explorer.loadRows()
         #expect(model.explorer.categories.first?.category == .video)
         #expect(model.explorer.categories.first?.count == 1)
         await model.shutdown()

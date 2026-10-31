@@ -21,7 +21,7 @@ extension CleanupRule {
         case .downloads: L10n.text("Downloads older than your threshold may still contain important documents. Review each item.")
         case .archives: L10n.text("Old archives and installers may be needed for recovery or offline installation.")
         case .userCaches: L10n.text("Old cache data from ~/Library/Caches and known application cache locations, including Xcode build data, device support, simulators, and messenger caches. The most recent device support stays. Removal can disrupt applications and require re-downloading data.")
-        case .derivedData: L10n.text("Old Xcode build intermediates. Removal requires rebuilding; candidates are hidden while Xcode is running.")
+        case .derivedData: L10n.text("Old Xcode build intermediates. Removal requires rebuilding your projects.")
         case .swiftPM: L10n.text("Old cached Swift packages. Future builds may need to download dependencies again.")
         case .npm: L10n.text("Old npm package cache entries. Future installs may require network access.")
         case .pip: L10n.text("Old Python package downloads and wheels. Future installs may need to download them again.")

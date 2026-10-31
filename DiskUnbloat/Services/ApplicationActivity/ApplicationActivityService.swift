@@ -9,7 +9,9 @@ import DiskCore
     func blockedCachePaths(home: String) -> [String] {
         let identifiers = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
         var paths = identifiers.map { home + "/Library/Caches/" + $0 }
-        if identifiers.contains("com.apple.dt.Xcode") { paths.append(home + "/Library/Developer/Xcode/DerivedData") }
+        // Xcode Derived Data is intentionally not blocked here: it is regenerable build output
+        // (a curated cleanup target), so old entries stay removable while Xcode runs — worst
+        // case Xcode rebuilds them. Other running-app caches below remain protected.
         if identifiers.contains("com.microsoft.VSCodeInsiders") {
             paths += [home + "/Library/Application Support/Code - Insiders/WebStorage",
                       home + "/Library/Application Support/Code - Insiders/agent-host/sdk-cache",

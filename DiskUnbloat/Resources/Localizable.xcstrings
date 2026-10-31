@@ -3639,19 +3639,19 @@
         }
       }
     },
-    "Old Xcode build intermediates. Removal requires rebuilding; candidates are hidden while Xcode is running." : {
+    "Old Xcode build intermediates. Removal requires rebuilding your projects." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Old Xcode build intermediates. Removal requires rebuilding; candidates are hidden while Xcode is running."
+            "value" : "Old Xcode build intermediates. Removal requires rebuilding your projects."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Старые промежуточные файлы Xcode. После удаления нужна пересборка; кандидаты скрыты, пока Xcode запущен."
+            "value" : "Старые промежуточные файлы Xcode. После удаления нужна пересборка ваших проектов."
           }
         }
       }

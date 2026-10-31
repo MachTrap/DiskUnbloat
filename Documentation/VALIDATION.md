@@ -27,6 +27,14 @@ Hot-path optimizations to scanning, indexing, queries, layout, and cleanup norma
 
 All 36 core tests pass (including two new ones: plan dedup keeps topmost entries, and `categoryList` returns distinct file categories). Universal Release build and app/UI test compilation pass. The automated UI suite remains subject to the desktop-automation limitation below.
 
+## Explorer performance, navigation caching, and DerivedData cleanup — 2026-11-01
+
+- `ScanIndex.explorerSnapshot` computes the browser summary, page rows, legend categories, optional full category statistics, and optional map scene in **one actor call** (previously ~6), guaranteeing every shown result reflects one index revision. Browsing/map rows use a lighter column-projected reader that skips `searchName` and the raw accounting columns (identity/fingerprint are kept so cleanup validation still works).
+- `ExplorerViewModel` caches summary/rows/legend/statistics (keyed by revision + query state) alongside the scene cache, so navigating back to a previously visited folder — e.g. the root of a large scan — reuses results instead of re-scanning. Candidate/suggestion results are never cached because they depend on the dynamic set of running applications. Full category statistics run only on the Types tab.
+- **DerivedData:** removed the running-Xcode blocklist entry that hid and refused `~/Library/Developer/Xcode/DerivedData` cleanup. It is regenerable build output (a curated target), so old entries are now removable while Xcode runs (worst case Xcode rebuilds); other running-app caches remain protected. The rule explanation was updated in English and Russian.
+- `drawerRankingDoesNotChangeMapAndStatisticsUseAllRows` now checks the "statistics use all rows" invariant on the Types tab (where statistics materialize); the map-unchanged and largest-ranking assertions are unchanged.
+- All 36 core tests and 31 hosted tests pass. Universal Release build and test compilation pass. `Tools/audit-localization.py` validates 323 entries.
+
 ## Current map-first build
 
 The app now routes through explicit location, scanning, preparing-results, and explorer screens, with dedicated cancelled/failed outcomes. The map fills the results workspace; browser and details start closed. Source ownership and product invariants are documented in ARCHITECTURE.md and AGENTS.md.

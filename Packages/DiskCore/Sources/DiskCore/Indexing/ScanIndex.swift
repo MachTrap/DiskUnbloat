@@ -236,7 +236,7 @@ public actor ScanIndex {
     public func query(_ q: FileQuery) -> [FileNode] {
         let (whereSQL, strings) = predicate(q)
         let order = q.sortByName ? "name COLLATE NOCASE" : q.metric == .allocated ? "knownAllocated" : "knownLogical"
-        return read("SELECT * FROM nodes WHERE \(whereSQL) ORDER BY \(order) \(q.ascending ? "ASC" : "DESC"),id LIMIT \(max(1, min(q.limit, 10000))) OFFSET \(max(0, q.offset))", strings: strings)
+        return readRows("SELECT id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,fingerprint,insidePackage,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified FROM nodes WHERE \(whereSQL) ORDER BY \(order) \(q.ascending ? "ASC" : "DESC"),id LIMIT \(max(1, min(q.limit, 10000))) OFFSET \(max(0, q.offset))", strings: strings)
     }
     public func summary(_ q: FileQuery) -> SizeSummary {
         let (whereSQL, strings) = predicate(q)
@@ -412,5 +412,49 @@ public actor ScanIndex {
         while sqlite3_step(s) == SQLITE_ROW {
             result.append(FileNode(id: sqlite3_column_int64(s, 0), parentID: sqlite3_column_type(s, 1) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 1), path: string(s, 2), name: string(s, 3), isDirectory: sqlite3_column_int(s, 4) != 0, isPackage: sqlite3_column_int(s, 5) != 0, isSymbolicLink: sqlite3_column_int(s, 6) != 0, logicalSize: sqlite3_column_type(s, 7) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 7), allocatedSize: sqlite3_column_type(s, 8) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 8), modified: sqlite3_column_type(s, 9) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 9)), identity: string(s, 10), fingerprint: sqlite3_column_type(s, 13) == SQLITE_NULL ? nil : string(s, 13), packageAncestor: sqlite3_column_int(s, 11) != 0, knownLogicalSize: sqlite3_column_int64(s,15), knownAllocatedSize: sqlite3_column_int64(s,16), unknownLogicalCount: Int(sqlite3_column_int64(s,17)), unknownAllocatedCount: Int(sqlite3_column_int64(s,18)), latestContentModification: sqlite3_column_type(s,22) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s,22)), unknownModificationCount: Int(sqlite3_column_int64(s,23))))
         }; return result
+    }
+    /// Lightweight row reader for browsing and map queries: skips `searchName` and the raw
+    /// accounting columns that no `FileNode` reader consumes. Identity/fingerprint are kept
+    /// so cleanup validation still works on selected rows.
+    private func readRows(_ sql: String, strings: [String] = []) -> [FileNode] {
+        var s: OpaquePointer?; guard sqlite3_prepare_v2(db, sql, -1, &s, nil) == SQLITE_OK else { return [] }
+        defer { sqlite3_finalize(s) }
+        for (i, value) in strings.enumerated() { bind(value, to: Int32(i + 1), s) }
+        var result: [FileNode] = []
+        while sqlite3_step(s) == SQLITE_ROW {
+            result.append(FileNode(id: sqlite3_column_int64(s, 0), parentID: sqlite3_column_type(s, 1) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 1), path: string(s, 2), name: string(s, 3), isDirectory: sqlite3_column_int(s, 4) != 0, isPackage: sqlite3_column_int(s, 5) != 0, isSymbolicLink: sqlite3_column_int(s, 6) != 0, logicalSize: sqlite3_column_type(s, 7) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 7), allocatedSize: sqlite3_column_type(s, 8) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 8), modified: sqlite3_column_type(s, 9) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 9)), identity: string(s, 10), fingerprint: sqlite3_column_type(s, 11) == SQLITE_NULL ? nil : string(s, 11), packageAncestor: sqlite3_column_int(s, 12) != 0, knownLogicalSize: sqlite3_column_int64(s, 13), knownAllocatedSize: sqlite3_column_int64(s, 14), unknownLogicalCount: Int(sqlite3_column_int64(s, 15)), unknownAllocatedCount: Int(sqlite3_column_int64(s, 16)), latestContentModification: sqlite3_column_type(s, 17) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 17)), unknownModificationCount: Int(sqlite3_column_int64(s, 18))))
+        }; return result
+    }
+}
+
+/// A consistent snapshot of every result the explorer shows for one state, produced in a
+/// single actor call so the browser summary, rows, legend, statistics, and map all reflect
+/// the same index revision.
+public struct ExplorerSnapshot: Sendable {
+    public let revision: UInt64
+    public let summary: SizeSummary
+    public let rows: [FileNode]
+    public let legendCategories: [FileCategory]
+    public let statistics: [CategorySummary]
+    public let scene: MapScene
+    public init(revision: UInt64, summary: SizeSummary, rows: [FileNode], legendCategories: [FileCategory], statistics: [CategorySummary], scene: MapScene) {
+        self.revision = revision; self.summary = summary; self.rows = rows
+        self.legendCategories = legendCategories; self.statistics = statistics; self.scene = scene
+    }
+}
+
+extension ScanIndex {
+    /// Compute the browser summary, page rows, legend categories, optional full category
+    /// statistics, and an optional map scene in one atomic actor turn. `includeScene` and
+    /// `includeStatistics` let callers skip work they already have cached.
+    public func explorerSnapshot(browser: FileQuery, stats: FileQuery, mapQuery: FileQuery, mapRootID: Int64, filtered: Bool, includeStatistics: Bool, includeScene: Bool) -> ExplorerSnapshot {
+        ExplorerSnapshot(
+            revision: revision,
+            summary: summary(browser),
+            rows: query(browser),
+            legendCategories: categoryList(stats),
+            statistics: includeStatistics ? categorySummaries(stats) : [],
+            scene: includeScene ? mapScene(rootID: mapRootID, query: mapQuery, filtered: filtered) : MapScene(rootID: mapRootID)
+        )
     }
 }

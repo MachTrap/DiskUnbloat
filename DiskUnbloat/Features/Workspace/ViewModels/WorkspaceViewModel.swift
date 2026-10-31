@@ -61,36 +61,48 @@ enum WorkspacePhase: Equatable {
 
     func loadSample() {
         guard !isBusy else { return }
-        do { scan.pendingRoot = try SampleData.create(); startScan() }
+        do { beginScan(with: try SampleData.create()) }
         catch { message = error.localizedDescription }
     }
 
     func chooseLocation() {
         guard !isBusy else { return }
         do {
-            if let url = try authorization.choose() { scan.pendingRoot = url; startScan() }
+            if let url = try authorization.choose() { beginScan(with: url) }
         } catch { message = L10n.format("Couldn’t access the selected folder. %@", error.diagnosticDescription) }
     }
 
     func restore(_ location: SavedLocation) {
         guard !isBusy else { return }
-        restoringLocation = true
-        locationTask = Task {
-            defer { restoringLocation = false }
+        runRestoring {
             do {
-                let url = try await authorization.restore(location)
+                let url = try await self.authorization.restore(location)
                 guard !Task.isCancelled else { return }
-                scan.pendingRoot = url
-                restoringLocation = false
-                startScan()
+                self.restoringLocation = false
+                self.beginScan(with: url)
             } catch {
                 guard !Task.isCancelled else { return }
-                message = L10n.format("Choose the location again to renew access. %@", error.diagnosticDescription)
+                self.message = L10n.format("Choose the location again to renew access. %@", error.diagnosticDescription)
             }
         }
     }
 
     func startScan() { startScan(preservingCleanupReport: false) }
+
+    /// Queue a resolved URL as the scan root and start scanning it.
+    private func beginScan(with url: URL) {
+        scan.pendingRoot = url
+        startScan()
+    }
+
+    /// Run `body` as the restore task while flipping `restoringLocation` for its lifetime.
+    private func runRestoring(_ body: @escaping @Sendable @MainActor () async -> Void) {
+        restoringLocation = true
+        locationTask = Task {
+            defer { restoringLocation = false }
+            await body()
+        }
+    }
 
     private func startScan(preservingCleanupReport: Bool) {
         guard !cleanup.cleaning, !shuttingDown, !restoringLocation, let request = scan.prepare() else { return }
@@ -156,7 +168,7 @@ enum WorkspacePhase: Equatable {
         guard !isBusy else { message = L10n.text("A scan or cleanup is in progress. Try opening the folder again when it finishes."); return false }
         do {
             let url = try location.directory(from: urls)
-            do { scan.pendingRoot = try authorization.acceptSelection(url); startScan() }
+            do { beginScan(with: try authorization.acceptSelection(url)) }
             catch { chooseSuggested(url) }
             return true
         } catch {
@@ -177,21 +189,19 @@ enum WorkspacePhase: Equatable {
     func scanTarget(_ target: ScanTarget) {
         guard !isBusy else { return }
         guard target.grouped else {
-            if let url = authorization.authorizedURL(for: target.url) { scan.pendingRoot = url; startScan(); return }
+            if let url = authorization.authorizedURL(for: target.url) { beginScan(with: url); return }
             if let saved = authorization.locations.first(where: { target.url.path.isWithin($0.name) }) {
-                restoringLocation = true
-                locationTask = Task {
-                    defer { restoringLocation = false }
+                runRestoring {
                     do {
-                        _ = try await authorization.restore(saved)
+                        _ = try await self.authorization.restore(saved)
                         guard !Task.isCancelled else { return }
-                        if let url = authorization.authorizedURL(for: target.url) {
-                            scan.pendingRoot = url; restoringLocation = false; startScan(); return
+                        if let url = self.authorization.authorizedURL(for: target.url) {
+                            self.restoringLocation = false; self.beginScan(with: url); return
                         }
                     } catch { /* Renew through the system picker at the requested location. */ }
                     guard !Task.isCancelled else { return }
-                    restoringLocation = false
-                    chooseSuggested(target.url)
+                    self.restoringLocation = false
+                    self.chooseSuggested(target.url)
                 }
             } else { chooseSuggested(target.url) }
             return
@@ -200,15 +210,13 @@ enum WorkspacePhase: Equatable {
         let covered = target.roots.allSatisfy { authorization.authorizedURL(for: $0) != nil }
         if covered { startGrouped(target); return }
         if let saved = authorization.locations.first(where: { saved in target.roots.allSatisfy { $0.path.isWithin(saved.name) } }) {
-            restoringLocation = true
-            locationTask = Task {
-                defer { restoringLocation = false }
+            runRestoring {
                 var renewed = false
-                do { _ = try await authorization.restore(saved); renewed = true } catch { /* Renew through the system picker instead. */ }
+                do { _ = try await self.authorization.restore(saved); renewed = true } catch { /* Renew through the system picker instead. */ }
                 guard !Task.isCancelled else { return }
-                restoringLocation = false
-                if renewed, target.roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) { startGrouped(target) }
-                else { chooseGroup(target) }
+                self.restoringLocation = false
+                if renewed, target.roots.allSatisfy({ self.authorization.authorizedURL(for: $0) != nil }) { self.startGrouped(target) }
+                else { self.chooseGroup(target) }
             }
         } else { chooseGroup(target) }
     }

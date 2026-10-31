@@ -8,31 +8,6 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
-/// Everything that affects the browser summary, rows, legend, and statistics for one state.
-/// Deliberately excludes the running-application cache exclusions, so candidate/suggestion
-/// results (which depend on them) are never cached.
-private struct ResultsKey: Hashable {
-    let revision: UInt64
-    let currentID: Int64
-    let metric: SizeMetric
-    let inspectPackages: Bool
-    let drawerTab: AnalysisTab
-    let scope: ExplorerScope
-    let search: String
-    let minimumGB: Double
-    let olderDays: Int
-    let extensionFilter: String
-    let hiddenPaths: [String]
-    let sortName: Bool
-    let ascending: Bool
-}
-private struct CachedResults {
-    let summary: SizeSummary
-    let rows: [FileNode]
-    let legend: [FileCategory]
-    let statistics: [CategorySummary]
-}
-
 @MainActor @Observable final class ExplorerViewModel {
     private let settings: SettingsViewModel
     private let activity: any ApplicationActivityProviding
@@ -193,29 +168,21 @@ private struct CachedResults {
 
     /// Focused grouping roots span multiple real locations; their subtree scope covers the
     /// whole scan, because every scanned path lives under one of the listed roots.
-    private func subtreeScope() -> String? {
-        guard scope == .current, let current else { return nil }
-        return groupScan && current.isGroupRoot ? nil : current.path
-    }
-
-    private func makeQuery() -> FileQuery {
-        var q = FileQuery()
-        q.inspectPackages = options.inspectPackages; q.metric = metric
-        if hasFilters || drawerTab != .files {
-            q.leafResults = true
-            if scope == .current { q.subtreePath = subtreeScope() }
-        } else { q.parentID = current?.id }
+    /// Snapshot the query-relevant state. Candidate exclusions are resolved here (main actor)
+    /// so `ExplorerQueries` stays a plain value type.
+    private func makeQueries() -> ExplorerQueries {
+        let exclusions: [String]
         if drawerTab == .candidates || suggestion != nil {
-            q.cleanupRule = drawerTab == .candidates ? candidateRule : suggestion?.rule; q.userHome = homePath; q.cacheAgeDays = settings.cacheAgeDays
-            q.excludedCandidatePaths = (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) + excludedCandidatePaths
-        }
-        q.hiddenPaths = hiddenPaths
-        q.search = search; q.minimumSize = Int64(max(0, minimumGB) * 1e9)
-        q.olderThan = olderDays > 0 ? Date().addingTimeInterval(-Double(olderDays) * 86400) : nil
-        q.fileExtension = extensionFilter; q.suggestion = nil; q.cacheRootPath = cacheRootPath
-        q.largeThreshold = Int64(max(0.001, settings.largeGB) * 1e9); q.ageDays = settings.ageDays
-        q.sortByName = drawerTab == .largest ? false : sortName; q.ascending = drawerTab == .largest ? false : ascending; q.knownSizesOnly = drawerTab == .largest; q.limit = pageSize
-        return q
+            exclusions = (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) + excludedCandidatePaths
+        } else { exclusions = [] }
+        return ExplorerQueries(
+            current: current, metric: metric, options: options, drawerTab: drawerTab, scope: scope,
+            suggestion: suggestion, candidateRule: candidateRule, hiddenPaths: hiddenPaths,
+            excludedCandidatePaths: exclusions, search: search, minimumGB: minimumGB,
+            olderDays: olderDays, extensionFilter: extensionFilter, sortName: sortName, ascending: ascending,
+            cacheRootPath: cacheRootPath, homePath: homePath, cacheAgeDays: settings.cacheAgeDays,
+            ageDays: settings.ageDays, largeGB: settings.largeGB, groupScan: groupScan, pageSize: pageSize
+        )
     }
 
     func loadRows() async {
@@ -223,11 +190,10 @@ private struct CachedResults {
         queryGeneration += 1; let generation = queryGeneration
         isLoading = true; page = 0
         let revision = await index.revision
-        let browserQuery = makeQuery(); let filtered = hasFilters
-        var statsQuery = browserQuery; statsQuery.parentID = nil; statsQuery.leafResults = true; statsQuery.knownSizesOnly = false; statsQuery.cleanupRule = suggestion?.rule
-        statsQuery.subtreePath = subtreeScope()
-        var mapQuery = browserQuery; mapQuery.cleanupRule = suggestion?.rule; mapQuery.knownSizesOnly = false; mapQuery.parentID = hasFilters ? nil : current.id; mapQuery.leafResults = hasFilters
-        mapQuery.subtreePath = hasFilters ? subtreeScope() : nil
+        let queries = makeQueries()
+        let browserQuery = queries.browserQuery(); let filtered = queries.hasFilters
+        let statsQuery = queries.statsQuery(from: browserQuery)
+        let mapQuery = queries.mapQuery(from: browserQuery)
         let sceneKey = "\(revision):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
         let cachedScene = filtered ? nil : sceneCache[sceneKey]
         // Candidate/suggestion results depend on the dynamic set of running applications, so
@@ -281,7 +247,7 @@ private struct CachedResults {
         pageTask?.cancel()
         page = target
         let generation = queryGeneration
-        var q = makeQuery(); q.offset = target * pageSize
+        var q = makeQueries().browserQuery(); q.offset = target * pageSize
         pageTask = Task {
             let revision = await index.revision
             let nodes = await index.query(q)

@@ -45,6 +45,17 @@ Behavior-preserving refactors; all validation re-run and green.
 
 Validation: 36 core tests, 31 hosted tests, universal Release build, and test compilation all pass after Phases 1–2.
 
+## Phases 3–4 refactoring: single-source cache locations, workspace flows, ExplorerQueries — 2026-11-01
+
+Behavior-preserving refactors; all validation re-run and green.
+
+- **Single source of truth for known cache locations:** `LocationCatalog.cacheRoots` and `devToolRoots` now derive from `CleanupRule.userCaches` (plus `derivedData`/scan-only additions) instead of a parallel hardcoded list, so quick scans and the curated cleanup set cannot drift apart. `ApplicationActivityService`'s VS Code/Chrome blocklist paths also derive from `CleanupRule.userCaches`.
+- **Deduplication:** `CleanupViewModel` uses the shared `CleanupRule.knownCacheRoots(home:)` (removed the local re-implementation) and a single static `activityMessage(_:activity:home:)` used by both `activityReason` and the `execute` preflight.
+- **Workspace authorize flows:** added `beginScan(with:)` (replaces ~6 `scan.pendingRoot = url; startScan()` sites) and `runRestoring(_:)` (centralizes the `restoringLocation` flag + restore-task scaffolding across the three restore flows) in `WorkspaceViewModel`.
+- **ExplorerQueries:** extracted `makeQuery`, `subtreeScope`, the stats/map derivation, and the `ResultsKey`/`CachedResults` cache types into `Features/Explorer/ViewModels/ExplorerQueries.swift`. The view model now builds a value-type snapshot via `makeQueries()` and delegates query construction, keeping orchestration separate from query building. The Xcode project was regenerated so the new file joins the target.
+
+Validation: 36 core tests, 31 hosted tests, universal Release build, test compilation, and `Tools/audit-localization.py` (323 entries) all pass.
+
 ## Current map-first build
 
 The app now routes through explicit location, scanning, preparing-results, and explorer screens, with dedicated cancelled/failed outcomes. The map fills the results workspace; browser and details start closed. Source ownership and product invariants are documented in ARCHITECTURE.md and AGENTS.md.

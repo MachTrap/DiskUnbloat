@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import DiskCore
 
 struct ScanTarget: Identifiable {
     let id: String
@@ -31,30 +32,22 @@ struct LocationCatalog {
         }
         self.home = URL(fileURLWithPath: path ?? NSHomeDirectoryForUser(NSUserName()) ?? NSHomeDirectory(), isDirectory: true)
     }
-    /// Known cache locations in the real home folder; hashed Telegram group container is
-    /// part of the curated cleanup rule, so quick scans keep the same exact set.
+    /// Known cache locations in the real home folder, derived from the curated cleanup rule so
+    /// quick scans and cleanup never drift apart. Device-support/simulator trees are excluded
+    /// here because they group under dev tools.
     private var cacheRoots: [URL] {
-        [
-            home.appendingPathComponent("Library/Caches"),
-            home.appendingPathComponent("Library/Developer/Xcode/DerivedData"),
-            home.appendingPathComponent("Library/Application Support/Unreal Tournament/Cache"),
-            home.appendingPathComponent("Library/Application Support/Google/Chrome/OptGuideOnDeviceModel"),
-            home.appendingPathComponent("Library/Application Support/Code - Insiders/WebStorage"),
-            home.appendingPathComponent("Library/Application Support/Code - Insiders/agent-host/sdk-cache"),
-            home.appendingPathComponent("Library/Application Support/Code - Insiders/CachedExtensionVSIXs"),
-            home.appendingPathComponent("Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram"),
-            home.appendingPathComponent(".cache/uv"),
-            home.appendingPathComponent(".npm/_cacache"),
-            home.appendingPathComponent(".gradle/caches")
-        ]
+        CleanupRule.userCaches.roots(relativeTo: home.path)
+            .filter { $0.candidate != .childrenKeepingNewest }
+            .map { URL(fileURLWithPath: $0.path) }
     }
-    /// Locations that hold heavy developer artifacts: simulators, device support records,
-    /// SDKs, container/VM disk images, and local model stores. Missing ones are skipped.
+    /// Locations that hold heavy developer artifacts. The device-support/simulator trees and
+    /// DerivedData come from the cleanup rules; the rest are scan-only (not cleanup candidates).
     private var devToolRoots: [URL] {
-        [
-            home.appendingPathComponent("Library/Developer/Xcode/iOS DeviceSupport"),
-            home.appendingPathComponent("Library/Developer/CoreSimulator/Devices"),
-            home.appendingPathComponent("Library/Developer/Xcode/DerivedData"),
+        var urls = CleanupRule.userCaches.roots(relativeTo: home.path)
+            .filter { $0.candidate == .childrenKeepingNewest }
+            .map { URL(fileURLWithPath: $0.path) }
+        urls.append(home.appendingPathComponent("Library/Developer/Xcode/DerivedData"))
+        urls += [
             home.appendingPathComponent("Library/Android/sdk"),
             home.appendingPathComponent(".android/avd"),
             home.appendingPathComponent("Library/Containers/com.docker.docker"),
@@ -65,6 +58,7 @@ struct LocationCatalog {
             home.appendingPathComponent(".cache/huggingface"),
             home.appendingPathComponent(".cache/lm-studio")
         ]
+        return urls
     }
     var targets: [ScanTarget] {
         [

@@ -15,16 +15,17 @@ import DiskCore
         self.service = service; self.homePath = homePath; self.activity = activity
     }
 
-    private func activityReason(_ node: FileNode) -> String? {
-        if activity.blockedCachePaths(home: homePath).contains(where: { node.path.overlaps($0) }) {
+    /// Refusal message when a node overlaps a running application's active cache. Static so the
+    /// `execute` preflight (a `@Sendable` closure) can reuse it without capturing `self`.
+    private static func activityMessage(_ node: FileNode, activity: any ApplicationActivityProviding, home: String) -> String? {
+        if activity.blockedCachePaths(home: home).contains(where: { node.path.overlaps($0) }) {
             return L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again.")
         }
         return nil
     }
 
-    /// Curated cache locations allowed through the managed-data protection for this session.
-    private func knownCacheRoots() -> [String] {
-        CleanupRule.allCases.flatMap { $0.roots(relativeTo: homePath) }.map(\.path)
+    private func activityReason(_ node: FileNode) -> String? {
+        Self.activityMessage(node, activity: activity, home: homePath)
     }
 
     func reset(preservingReport: Bool = false) {
@@ -37,8 +38,8 @@ import DiskCore
     func add(_ node: FileNode, roots: [URL]) -> String? {
         guard !roots.isEmpty else { return L10n.text(CleanupReason.outsideScope.message) }
         if let reason = activityReason(node) { return reason }
-        if let reason = CleanupSafety.blockedReasonCode(node, roots: roots, exemptingCacheRoots: knownCacheRoots()) { return L10n.text(reason.message) }
-        basket = CleanupPlan(roots: roots, items: basket + [node], mode: .trash, knownCacheRoots: knownCacheRoots()).items
+        if let reason = CleanupSafety.blockedReasonCode(node, roots: roots, exemptingCacheRoots: CleanupRule.knownCacheRoots(home: homePath)) { return L10n.text(reason.message) }
+        basket = CleanupPlan(roots: roots, items: basket + [node], mode: .trash, knownCacheRoots: CleanupRule.knownCacheRoots(home: homePath)).items
         return nil
     }
 
@@ -76,13 +77,8 @@ import DiskCore
         let ancestors = await index.ancestorIdentities(for: items.map(\.id))
         let activity = self.activity; let home = homePath
         let plan = CleanupPlan(roots: roots, items: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { node in
-            await MainActor.run {
-                if activity.blockedCachePaths(home: home).contains(where: { node.path.overlaps($0) }) {
-                    return L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again.")
-                }
-                return nil
-            }
-        }, knownCacheRoots: knownCacheRoots())
+            await MainActor.run { CleanupViewModel.activityMessage(node, activity: activity, home: home) }
+        }, knownCacheRoots: CleanupRule.knownCacheRoots(home: homePath))
         results = refused + (await service.execute(plan))
         return results.contains(where: \.succeeded)
     }

@@ -25,6 +25,9 @@ public actor ScanIndex {
         guard sqlite3_exec(handle, schema, nil, nil, nil) == SQLITE_OK else { sqlite3_close(handle); throw IndexError.database }
     }
     public enum IndexError: Error { case database }
+    // A fixed locale keeps search folding deterministic and cheaper than the current locale.
+    private static let searchLocale = Locale(identifier: "en_US_POSIX")
+    private func folded(_ string: String) -> String { string.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Self.searchLocale) }
     public func close() { if let db { sqlite3_close(db); self.db = nil } }
     private func exec(_ sql: String) throws {
         guard sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK else { throw IndexError.database }
@@ -40,7 +43,7 @@ public actor ScanIndex {
         try exec("BEGIN TRANSACTION")
         do {
             var stmt: OpaquePointer?
-            guard sqlite3_prepare_v2(db, "INSERT INTO nodes(id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,insidePackage,fingerprint,searchName,knownLogical,knownAllocated,unknownLogical,unknownAllocated) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", -1, &stmt, nil) == SQLITE_OK else { throw IndexError.database }
+            guard sqlite3_prepare_v2(db, "INSERT INTO nodes(id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,insidePackage,fingerprint,searchName,knownLogical,knownAllocated,unknownLogical,unknownAllocated,category,rawLogical,rawAllocated,latestModified,unknownModified) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", -1, &stmt, nil) == SQLITE_OK else { throw IndexError.database }
             defer { sqlite3_finalize(stmt) }
             for n in nodes {
                 sqlite3_reset(stmt); sqlite3_clear_bindings(stmt)
@@ -53,18 +56,15 @@ public actor ScanIndex {
                 if let d = n.modified { sqlite3_bind_double(stmt, 10, d.timeIntervalSince1970) }
                 bind(n.identity, to: 11, stmt); sqlite3_bind_int(stmt, 12, n.packageAncestor ? 1 : 0)
                 if let fingerprint = n.fingerprint { bind(fingerprint, to: 13, stmt) }
-                bind(n.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current), to: 14, stmt)
+                bind(folded(n.name), to: 14, stmt)
                 sqlite3_bind_int64(stmt, 15, n.knownLogicalSize); sqlite3_bind_int64(stmt, 16, n.knownAllocatedSize)
                 sqlite3_bind_int64(stmt, 17, Int64(n.unknownLogicalCount)); sqlite3_bind_int64(stmt, 18, Int64(n.unknownAllocatedCount))
+                bind(n.category.rawValue, to: 19, stmt)
+                if let s = n.logicalSize { sqlite3_bind_int64(stmt, 20, s) }
+                if let s = n.allocatedSize { sqlite3_bind_int64(stmt, 21, s) }
+                if let d = n.modified { sqlite3_bind_double(stmt, 22, d.timeIntervalSince1970) }
+                sqlite3_bind_int(stmt, 23, n.modified == nil ? 1 : 0)
                 guard sqlite3_step(stmt) == SQLITE_DONE else { throw IndexError.database }
-            }
-            try exec("UPDATE nodes SET rawLogical=logical,rawAllocated=allocated,latestModified=modified,unknownModified=CASE WHEN modified IS NULL THEN 1 ELSE 0 END WHERE category IS NULL")
-            var classify: OpaquePointer?
-            sqlite3_prepare_v2(db, "UPDATE nodes SET category=? WHERE id=?", -1, &classify, nil)
-            defer { sqlite3_finalize(classify) }
-            for n in nodes {
-                sqlite3_reset(classify); bind(n.category.rawValue, to: 1, classify); sqlite3_bind_int64(classify, 2, n.id)
-                guard sqlite3_step(classify) == SQLITE_DONE else { throw IndexError.database }
             }
             try exec("UPDATE metadata SET highWater=MAX(highWater,(SELECT COALESCE(MAX(id),0) FROM nodes))")
             try exec("COMMIT")
@@ -138,7 +138,7 @@ public actor ScanIndex {
             strings.append(path == "/" ? "0" : path + "0")
         }
         if let p = q.parentID { clauses.append("parent=\(p)") }
-        if !q.search.isEmpty { clauses.append("instr(searchName,?)>0"); strings.append(q.search.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)) }
+        if !q.search.isEmpty { clauses.append("instr(searchName,?)>0"); strings.append(folded(q.search)) }
         if q.minimumSize > 0 { clauses.append("\(q.metric == .allocated ? "knownAllocated" : "knownLogical")>=\(q.minimumSize)") }
         if let date = q.olderThan { clauses.append("modified<\(date.timeIntervalSince1970)") }
         if !q.fileExtension.isEmpty { clauses.append("lower(path) LIKE ? ESCAPE '\\'"); strings.append("%." + escapeLike(q.fileExtension.lowercased())) }
@@ -364,6 +364,21 @@ public actor ScanIndex {
         }
         sqlite3_finalize(marker)
         return result.sorted { $0.bytes > $1.bytes }
+    }
+    /// Distinct file categories present in the query scope. Lighter than the full
+    /// `categorySummaries` aggregation; used by the always-visible legend.
+    public func categoryList(_ query: FileQuery) -> [FileCategory] {
+        var q = query; q.leafResults = true; q.parentID = nil
+        let (predicate, strings) = predicate(q)
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, "SELECT DISTINCT category FROM nodes WHERE \(predicate)", -1, &stmt, nil) == SQLITE_OK else { return [] }
+        defer { sqlite3_finalize(stmt) }
+        for (i, value) in strings.enumerated() { bind(value, to: Int32(i + 1), stmt) }
+        var result: [FileCategory] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let category = FileCategory(rawValue: string(stmt, 0)) { result.append(category) }
+        }
+        return result
     }
     private func escapeLike(_ s: String) -> String { s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "%", with: "\\%").replacingOccurrences(of: "_", with: "\\_") }
     /// Shared name match for regenerable folders, used by both the rule and its suggestion.

@@ -13,6 +13,20 @@ Converted `DiskUnbloat.xcodeproj/project.pbxproj` to the Xcode 27.2 JSON project
 - Owner signing/team/bundle overrides are preserved by the generator. No `DEVELOPMENT_TEAM` was set at migration time, so none carried over; the preservation path remains and reads overrides back from the existing `project.xcproj`.
 - The automated UI suite was not re-run; the desktop-automation limitation recorded below still applies.
 
+## Performance optimization pass — 2026-11-01
+
+Hot-path optimizations to scanning, indexing, queries, layout, and cleanup normalization.
+
+- **Insert path:** `ScanIndex.insert` now writes `category`, `rawLogical`, `rawAllocated`, `latestModified`, and `unknownModified` in the single INSERT statement, removing a per-node classification `UPDATE` loop and a per-batch `UPDATE … WHERE <nullable column> IS NULL` that forced a full table scan every batch (an O(n²) hotspot). Synthetic 1M-entry benchmark insert dropped **12.87 s → 9.68 s (~25%)**; aggregate and category queries were unchanged within noise.
+- **Enumeration:** the scan no longer requests `totalFileAllocatedSize` or `fileSize`; sizes come from `lstat` (`st_size`, `st_blocks * 512`). "On disk" therefore reflects POSIX block allocation (what `du` reports) instead of `totalFileAllocatedSize`, which also accounted for inode/xattr/fork overhead. This removes the most expensive per-file metadata read; it is not exercised by the synthetic benchmark, so the speedup is only visible on real enumeration.
+- **Batch size** raised 512 → 2048 (fewer transactions per scan).
+- **Search folding** now uses a fixed `en_US_POSIX` locale (deterministic, cheaper) for both insert and query.
+- **Category stats are lazy:** the full `categorySummaries` aggregation only runs in the Types tab; the always-visible legend uses a new lighter `ScanIndex.categoryList` (`SELECT DISTINCT category`).
+- **Cleanup plan normalization** is now O(n log n) instead of O(n²).
+- **Treemap layout** runs off the main actor and precomputes entry sizes.
+
+All 36 core tests pass (including two new ones: plan dedup keeps topmost entries, and `categoryList` returns distinct file categories). Universal Release build and app/UI test compilation pass. The automated UI suite remains subject to the desktop-automation limitation below.
+
 ## Current map-first build
 
 The app now routes through explicit location, scanning, preparing-results, and explorer screens, with dedicated cancelled/failed outcomes. The map fills the results workspace; browser and details start closed. Source ownership and product invariants are documented in ARCHITECTURE.md and AGENTS.md.

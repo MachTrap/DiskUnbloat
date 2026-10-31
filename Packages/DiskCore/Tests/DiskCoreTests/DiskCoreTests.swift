@@ -628,3 +628,27 @@ private actor CleanupGate {
     #expect(CleanupSafety.blockedReasonCode(node("/Users/g/Downloads/other", false), roots: [URL(fileURLWithPath: "/")]) == nil)
     #expect(CleanupSafety.blockedReasonCode(node(ScanGroup.path, true), roots: [first, second]) == .outsideScope)
 }
+
+@Test func cleanupPlanDedupKeepsTopmostOnly() {
+    func node(_ path: String) -> FileNode {
+        FileNode(id: 1, parentID: 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: false, logicalSize: 10, allocatedSize: 10, modified: nil, identity: path)
+    }
+    // A descendant must be dropped even when its ancestor is not the last kept path,
+    // and independent roots must all survive.
+    let plan = CleanupPlan(root: URL(fileURLWithPath: "/"), items: [node("/z"), node("/a/b/c"), node("/a/b"), node("/a/c"), node("/a")], mode: .trash)
+    #expect(plan.items.map(\.path) == ["/a", "/z"])
+}
+
+@Test func categoryListReturnsDistinctFileCategories() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    let root = FileNode(id: 1, parentID: nil, path: "/cats", name: "cats", isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "root")
+    try await index.insert([root])
+    let files: [(Int64, String)] = [(2, "a.mp4"), (3, "b.mp4"), (4, "c.pdf"), (5, "d.zip"), (6, "e.unknown")]
+    try await index.insert(files.map { FileNode(id: $0.0, parentID: 1, path: "/cats/\($0.1)", name: $0.1, isDirectory: false, logicalSize: 10, allocatedSize: 10, modified: nil, identity: "\($0.0)") })
+    try await index.aggregate()
+    var q = FileQuery(); q.subtreePath = "/cats"
+    let expected: Set<FileCategory> = [.video, .documents, .archives, .other]
+    #expect(Set(await index.categoryList(q)) == expected)
+    await destroy(index)
+}

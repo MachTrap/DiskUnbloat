@@ -93,7 +93,11 @@ struct TreemapView: View {
             }
             .task(id: LayoutKey(scene: scene, size: geometry.size, revision: fitRevision)) {
                 let size = geometry.size
-                let newTiles = await NestedTreemap.layout(scene, in: CGRect(origin: .zero, size: size))
+                // Treemap layout is CPU-bound; run it off the main actor so dense maps
+                // don't hitch the UI during navigation, resize, and filter changes.
+                let newTiles = await Task.detached(priority: .userInitiated) {
+                    NestedTreemap.layoutSync(scene, in: CGRect(origin: .zero, size: size))
+                }.value
                 guard !Task.isCancelled else { return }
                 if previousRoot != nil, previousRoot != scene.rootID, !reduceMotion, !tiles.isEmpty {
                     let renderer = ImageRenderer(content: MapDrawing(tiles: tiles, highlighted: highlighted, asynchronous: false).environment(\.colorScheme, scheme).frame(width: size.width, height: size.height))

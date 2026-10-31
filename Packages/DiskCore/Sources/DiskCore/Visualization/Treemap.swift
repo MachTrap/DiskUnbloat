@@ -11,14 +11,17 @@ public enum Treemap {
     @concurrent public static func layoutAsync(_ nodes: [FileNode], in bounds: CGRect, metric: SizeMetric = .allocated) async -> [MapTile] { layout(nodes, in: bounds, metric: metric) }
     public static func layout(_ nodes: [FileNode], in bounds: CGRect, metric: SizeMetric = .allocated, minimumArea: Double = 36) -> [MapTile] {
         guard bounds.width > 0, bounds.height > 0 else { return [] }
-        let positive = nodes.filter { $0.size(for: metric) ?? 0 > 0 }.sorted { ($0.size(for: metric) ?? 0) > ($1.size(for: metric) ?? 0) }
-        let total = positive.reduce(0.0) { $0 + Double($1.size(for: metric) ?? 0) }
+        let sized = nodes.compactMap { node -> (FileNode, Double)? in
+            let size = Double(node.size(for: metric) ?? 0)
+            return size > 0 ? (node, size) : nil
+        }.sorted { $0.1 > $1.1 }
+        let total = sized.reduce(0.0) { $0 + $1.1 }
         guard total > 0 else { return [] }
         let scale = bounds.width * bounds.height / total
         var entries: [(FileNode?, Double, Int)] = []; var tiny = 0.0; var tinyCount = 0
-        for n in positive {
-            let area = Double(n.size(for: metric) ?? 0) * scale
-            if area < minimumArea { tiny += area; tinyCount += 1 } else { entries.append((n, area, 1)) }
+        for (node, size) in sized {
+            let area = size * scale
+            if area < minimumArea { tiny += area; tinyCount += 1 } else { entries.append((node, area, 1)) }
         }
         if tiny > 0 { entries.append((nil, tiny, tinyCount)) }
         var remaining = bounds; var row: [(FileNode?, Double, Int)] = []; var result: [MapTile] = []

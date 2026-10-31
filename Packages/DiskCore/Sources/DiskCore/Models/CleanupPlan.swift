@@ -20,9 +20,15 @@ public struct CleanupPlan: Sendable {
         self.mode = mode
         self.ancestorIdentities = ancestorIdentities
         self.knownCacheRoots = knownCacheRoots
-        let sorted = items.sorted { $0.path.count < $1.path.count }
+        let sorted = items.sorted { $0.path < $1.path }
         var normalized: [FileNode] = []
-        for item in sorted where !normalized.contains(where: { item.path == $0.path || item.path.hasPrefix($0.path + "/") }) { normalized.append(item) }
+        var ancestor: String?
+        for item in sorted {
+            // Lexical order visits a directory's descendants before the next sibling, so the
+            // last kept path is the only possible ancestor of the next item.
+            if let ancestor, item.path == ancestor || item.path.hasPrefix(ancestor + "/") { continue }
+            normalized.append(item); ancestor = item.path
+        }
         self.items = normalized
     }
 }

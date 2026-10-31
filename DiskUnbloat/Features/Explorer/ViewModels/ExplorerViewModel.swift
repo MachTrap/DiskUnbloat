@@ -28,6 +28,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var drawerHeight: CGFloat = 190
     var drawerTab: AnalysisTab = .files
     var categories: [CategorySummary] = []
+    private(set) var legendCategories: [FileCategory] = []
     var rows: [FileNode] = []
     var scene = MapScene()
     var selectionIDs: Set<Int64> = [] { didSet { if selectionIDs.isEmpty { showDetails = false } } }
@@ -73,8 +74,8 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var hasFilters: Bool { !search.isEmpty || suggestion != nil || minimumGB > 0 || olderDays > 0 || !extensionFilter.isEmpty }
     var pageCount: Int { max(1, (totalRows + pageSize - 1) / pageSize) }
     var availableCategories: [FileCategory] {
-        let categories = Set(self.categories.map(\.category))
-        return FileCategory.allCases.filter { categories.contains($0) }
+        let present = Set(legendCategories)
+        return FileCategory.allCases.filter { present.contains($0) }
     }
 
     init(settings: SettingsViewModel, userCacheRoot: URL? = nil, activity: any ApplicationActivityProviding = ApplicationActivityService()) {
@@ -85,7 +86,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     func reset() {
         refreshTask?.cancel(); pageTask?.cancel(); queryGeneration += 1; index = nil; nodesByID = [:]
         sceneCache = [:]; sceneCacheOrder = []
-        rows = []; categories = []; drawerTab = .files; scene = MapScene(); current = nil; selectionIDs = []
+        rows = []; categories = []; legendCategories = []; drawerTab = .files; scene = MapScene(); current = nil; selectionIDs = []
         breadcrumbs = []; back = []; forward = []; suggestion = nil; page = 0; totalRows = 0
         showFiles = false; showDetails = false; highlightedCategory = nil
         search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current; isLoading = false
@@ -199,7 +200,10 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         let browserSummary = await index.summary(q)
         var statsQuery = q; statsQuery.parentID = nil; statsQuery.leafResults = true; statsQuery.knownSizesOnly = false; statsQuery.cleanupRule = suggestion?.rule
         statsQuery.subtreePath = subtreeScope()
-        let statistics = await index.categorySummaries(statsQuery)
+        // Full category statistics are only rendered in the Types tab; the always-visible
+        // legend needs just the set of present file categories, a lighter distinct query.
+        let legend = await index.categoryList(statsQuery)
+        let statistics = drawerTab == .types ? await index.categorySummaries(statsQuery) : []
         // Drawer mode must never change the map geometry.
         let nodes = await index.query(q)
         q.cleanupRule = suggestion?.rule; q.knownSizesOnly = false; q.parentID = hasFilters ? nil : current.id; q.leafResults = hasFilters
@@ -215,7 +219,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             while sceneCacheOrder.count > 4 { sceneCache.removeValue(forKey: sceneCacheOrder.removeFirst()) }
         }
         let retainedSelection = selectedNodes
-        rows = nodes; scene = map; totalRows = browserSummary.itemCount; categories = statistics
+        rows = nodes; scene = map; totalRows = browserSummary.itemCount; categories = statistics; legendCategories = legend
         nodesByID = Dictionary(map.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for n in nodes + retainedSelection { nodesByID[n.id] = n }
         selectionIDs.formIntersection(nodesByID.keys); isLoading = false

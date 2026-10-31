@@ -25,7 +25,7 @@ private final class EnumerationWorker: @unchecked Sendable {
     private var remainingRoots: [URL] = []
     private var wrapperID: Int64 = 0
     private var rootActive = false
-    private let keys: [URLResourceKey] = [.isPackageKey, .fileSizeKey, .totalFileAllocatedSizeKey, .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey]
+    private let keys: [URLResourceKey] = [.isPackageKey, .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey]
     init(_ request: ScanRequest) { self.request = request; self.excludedPaths = request.options.exclusions.map { canonicalURL(URL(fileURLWithPath: $0)).path } }
     func next() async -> WorkerBatch {
         await withCheckedContinuation { continuation in
@@ -35,7 +35,10 @@ private final class EnumerationWorker: @unchecked Sendable {
     private func makeNode(_ url: URL, parent: Int64?, insidePackage: Bool) throws -> FileNode {
         let identity = try FileIdentity.read(url)
         let values = try url.resourceValues(forKeys: Set(keys))
-        let node = FileNode(id: nextID, parentID: parent, path: url.path, name: url.lastPathComponent.isEmpty ? url.path : url.lastPathComponent, isDirectory: identity.directory, isPackage: values.isPackage ?? false, isSymbolicLink: identity.link, logicalSize: identity.directory ? 0 : (identity.link ? identity.size : values.fileSize.map(Int64.init)), allocatedSize: identity.directory ? 0 : (identity.link ? identity.allocated : values.totalFileAllocatedSize.map(Int64.init)), modified: identity.modified, identity: identity.identity, fingerprint: identity.fingerprint, packageAncestor: insidePackage)
+        // lstat already supplies size and allocated (st_blocks * 512); resource values only
+        // provide the package/ubiquitous flags lstat cannot. Skipping totalFileAllocatedSize
+        // avoids the expensive allocation-accounting read per file.
+        let node = FileNode(id: nextID, parentID: parent, path: url.path, name: url.lastPathComponent.isEmpty ? url.path : url.lastPathComponent, isDirectory: identity.directory, isPackage: values.isPackage ?? false, isSymbolicLink: identity.link, logicalSize: identity.directory ? 0 : identity.size, allocatedSize: identity.directory ? 0 : identity.allocated, modified: identity.modified, identity: identity.identity, fingerprint: identity.fingerprint, packageAncestor: insidePackage)
         if !identity.directory && (identity.links <= 1 || seenHardLinks.insert(identity.identity).inserted) { pendingBytes += node.displaySize }
         nextID += 1; return node
     }
@@ -85,7 +88,7 @@ private final class EnumerationWorker: @unchecked Sendable {
             beginRoot(request.root, parentID: wrapperID == 0 ? nil : wrapperID, into: &batch)
         }
         let start = Date()
-        while batch.nodes.count < 512 && Date().timeIntervalSince(start) < 0.1 {
+        while batch.nodes.count < 2048 && Date().timeIntervalSince(start) < 0.1 {
             guard let url = enumerator?.nextObject() as? URL else { batch.done = true; break }
             if excludedPaths.contains(where: { url.path == $0 || url.path.hasPrefix($0 + "/") }) { enumerator?.skipDescendants(); continue }
             while parents.count > 1 && url.deletingLastPathComponent().path != parents.last?.path { parents.removeLast() }

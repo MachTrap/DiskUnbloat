@@ -9,29 +9,33 @@ extension ScanIndex {
             guard sqlite3_prepare_v2(db, "INSERT INTO nodes(id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,insidePackage,fingerprint,searchName,knownLogical,knownAllocated,unknownLogical,unknownAllocated,category,rawLogical,rawAllocated,latestModified,unknownModified) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", -1, &stmt, nil) == SQLITE_OK else { throw IndexError.database }
             defer { sqlite3_finalize(stmt) }
             for n in nodes {
-                sqlite3_reset(stmt); sqlite3_clear_bindings(stmt)
-                sqlite3_bind_int64(stmt, 1, n.id)
-                if let p = n.parentID { sqlite3_bind_int64(stmt, 2, p) }
-                bind(n.path, to: 3, stmt); bind(n.name, to: 4, stmt)
-                sqlite3_bind_int(stmt, 5, n.isDirectory ? 1 : 0); sqlite3_bind_int(stmt, 6, n.isPackage ? 1 : 0); sqlite3_bind_int(stmt, 7, n.isSymbolicLink ? 1 : 0)
-                if let s = n.logicalSize { sqlite3_bind_int64(stmt, 8, s) }
-                if let s = n.allocatedSize { sqlite3_bind_int64(stmt, 9, s) }
-                if let d = n.modified { sqlite3_bind_double(stmt, 10, d.timeIntervalSince1970) }
-                bind(n.identity, to: 11, stmt); sqlite3_bind_int(stmt, 12, n.packageAncestor ? 1 : 0)
-                if let fingerprint = n.fingerprint { bind(fingerprint, to: 13, stmt) }
-                bind(folded(n.name), to: 14, stmt)
-                sqlite3_bind_int64(stmt, 15, n.knownLogicalSize); sqlite3_bind_int64(stmt, 16, n.knownAllocatedSize)
-                sqlite3_bind_int64(stmt, 17, Int64(n.unknownLogicalCount)); sqlite3_bind_int64(stmt, 18, Int64(n.unknownAllocatedCount))
-                bind(n.category.rawValue, to: 19, stmt)
-                if let s = n.logicalSize { sqlite3_bind_int64(stmt, 20, s) }
-                if let s = n.allocatedSize { sqlite3_bind_int64(stmt, 21, s) }
-                if let d = n.modified { sqlite3_bind_double(stmt, 22, d.timeIntervalSince1970) }
-                sqlite3_bind_int(stmt, 23, n.modified == nil ? 1 : 0)
+                bindRow(n, to: stmt)
                 guard sqlite3_step(stmt) == SQLITE_DONE else { throw IndexError.database }
             }
             try exec("UPDATE metadata SET highWater=MAX(highWater,(SELECT COALESCE(MAX(id),0) FROM nodes))")
             try exec("COMMIT")
         } catch { try? exec("ROLLBACK"); throw error }
+    }
+    /// Reset the prepared statement and bind one node's columns (leaves NULL for nil fields).
+    private func bindRow(_ n: FileNode, to stmt: OpaquePointer?) {
+        sqlite3_reset(stmt); sqlite3_clear_bindings(stmt)
+        sqlite3_bind_int64(stmt, 1, n.id)
+        if let p = n.parentID { sqlite3_bind_int64(stmt, 2, p) }
+        bind(n.path, to: 3, stmt); bind(n.name, to: 4, stmt)
+        sqlite3_bind_int(stmt, 5, n.isDirectory ? 1 : 0); sqlite3_bind_int(stmt, 6, n.isPackage ? 1 : 0); sqlite3_bind_int(stmt, 7, n.isSymbolicLink ? 1 : 0)
+        if let s = n.logicalSize { sqlite3_bind_int64(stmt, 8, s) }
+        if let s = n.allocatedSize { sqlite3_bind_int64(stmt, 9, s) }
+        if let d = n.modified { sqlite3_bind_double(stmt, 10, d.timeIntervalSince1970) }
+        bind(n.identity, to: 11, stmt); sqlite3_bind_int(stmt, 12, n.packageAncestor ? 1 : 0)
+        if let fingerprint = n.fingerprint { bind(fingerprint, to: 13, stmt) }
+        bind(folded(n.name), to: 14, stmt)
+        sqlite3_bind_int64(stmt, 15, n.knownLogicalSize); sqlite3_bind_int64(stmt, 16, n.knownAllocatedSize)
+        sqlite3_bind_int64(stmt, 17, Int64(n.unknownLogicalCount)); sqlite3_bind_int64(stmt, 18, Int64(n.unknownAllocatedCount))
+        bind(n.category.rawValue, to: 19, stmt)
+        if let s = n.logicalSize { sqlite3_bind_int64(stmt, 20, s) }
+        if let s = n.allocatedSize { sqlite3_bind_int64(stmt, 21, s) }
+        if let d = n.modified { sqlite3_bind_double(stmt, 22, d.timeIntervalSince1970) }
+        sqlite3_bind_int(stmt, 23, n.modified == nil ? 1 : 0)
     }
     public func issue(path: String, message: String) {
         var s: OpaquePointer?; sqlite3_prepare_v2(db, "INSERT INTO issues VALUES(?,?)", -1, &s, nil)

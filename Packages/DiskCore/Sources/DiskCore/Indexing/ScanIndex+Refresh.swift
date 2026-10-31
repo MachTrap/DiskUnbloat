@@ -13,8 +13,9 @@ extension ScanIndex {
         }
     }
 
-    /// The staging connection must be closed before attachment. No suspension occurs during commit.
-    public func replaceBranch(_ request: BranchRefreshRequest, stagingURL: URL) throws -> BranchRefreshResult {
+    /// Re-fetch and re-validate the target branch immediately before committing a refresh: index
+    /// identity, filesystem identity, and every ancestor's identity. Synchronous — no suspension.
+    private func validateForRefresh(_ request: BranchRefreshRequest) throws -> FileNode {
         guard let original = node(request.nodeID), original.identity == request.identity,
               try FileIdentity.read(original.url).identity == request.identity else { throw RefreshError.changedFolder }
         try validateBranch(request)
@@ -25,6 +26,12 @@ extension ScanIndex {
             guard identity.identity == current.identity, !identity.link else { throw RefreshError.changedFolder }
             ancestor = current.parentID.flatMap { node($0) }
         }
+        return original
+    }
+
+    /// The staging connection must be closed before attachment. No suspension occurs during commit.
+    public func replaceBranch(_ request: BranchRefreshRequest, stagingURL: URL) throws -> BranchRefreshResult {
+        let original = try validateForRefresh(request)
         var attach: OpaquePointer?
         guard sqlite3_prepare_v2(db, "ATTACH DATABASE ? AS incoming", -1, &attach, nil) == SQLITE_OK else { throw IndexError.database }
         bind(stagingURL.path, to: 1, attach)

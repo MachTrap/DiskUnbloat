@@ -15,10 +15,15 @@ import DiskCore
         // App-owned cache paths (VS Code, Chrome) are derived from the curated cleanup rule so
         // the blocklist can never drift from the known cache locations.
         let userCaches = CleanupRule.userCaches.roots(relativeTo: home).map(\.path)
-        if identifiers.contains("com.microsoft.VSCodeInsiders") {
-            paths += userCaches.filter { $0.contains("/Code - Insiders/") }
+        // Curated caches of third-party apps that live outside ~/Library/Caches/<id>, keyed by
+        // their owning bundle ID; paths resolve from the cleanup rule so they can't drift.
+        let appOwnedCaches: [(owner: String, marker: String)] = [
+            ("com.microsoft.VSCodeInsiders", "/Code - Insiders/"),
+            ("com.google.Chrome", "/Google/Chrome/"),
+        ]
+        for entry in appOwnedCaches where identifiers.contains(entry.owner) {
+            paths += userCaches.filter { $0.contains(entry.marker) }
         }
-        if identifiers.contains("com.google.Chrome") { paths += userCaches.filter { $0.contains("/Google/Chrome/") } }
         if let identifier = Bundle.main.bundleIdentifier { paths.append(home + "/Library/Caches/" + identifier) }
         if let cache = FileManager.default.urls(for: .cachesDirectory,in: .userDomainMask).first { paths.append(cache.appendingPathComponent("Scans").path) }
         paths += [home + "/Library/Caches/com.diskunbloat.app", home + "/Library/Caches/com.apple.CloudKit", home + "/Library/Caches/CloudKit"]

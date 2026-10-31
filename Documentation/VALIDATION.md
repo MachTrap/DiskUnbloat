@@ -56,6 +56,18 @@ Behavior-preserving refactors; all validation re-run and green.
 
 Validation: 36 core tests, 31 hosted tests, universal Release build, test compilation, and `Tools/audit-localization.py` (323 entries) all pass.
 
+## Phase 5 refactoring: readability polish and test split — 2026-11-01
+
+Final low-risk polish; all validation re-run and green.
+
+- **`CleanupSafety.isManagedData`** rewritten from a nine-term one-liner into grouped early returns (exact roots → tree-directory suffixes → managed-tree contents with the scoped container-Caches exception), preserving the exact short-circuit semantics.
+- **`ApplicationActivityService`** VS Code/Chrome blocklist is now a data table of `(owner bundle ID, path marker)` instead of an if-chain.
+- **`ScanIndex.insert`** per-row column binding extracted into `bindRow(_:to:)`.
+- **`ScanIndex.replaceBranch`** pre-commit validation extracted into `validateForRefresh(_:)` (returns the validated root, synchronous — no suspension), so the commit path reads as validation → attach → transaction. The transaction body itself was deliberately left intact (correctness-critical).
+- **Test split:** `PresentationTests.swift` (697 lines) split into one file per suite plus `PresentationTestSupport.swift` for the shared test doubles (`RecordingCleanupService`, `ControlledScanner`, …) now visible across suite files. `generate-project.py` discovers test sources recursively (backward-compatible: a single test file yields identical output).
+
+Validation: 36 core tests, 31 hosted tests across 10 suites, universal Release build, test compilation, `Tools/audit-localization.py` (323 entries), and generator idempotency all pass.
+
 ## Current map-first build
 
 The app now routes through explicit location, scanning, preparing-results, and explorer screens, with dedicated cancelled/failed outcomes. The map fills the results workspace; browser and details start closed. Source ownership and product invariants are documented in ARCHITECTURE.md and AGENTS.md.

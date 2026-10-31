@@ -255,11 +255,14 @@ def build_project(existing):
         'files': [
             app_tree(),
             products_group(),
+            # Test sources are flat directories; discovered recursively like app sources.
             {'kind': 'group', 'path': 'DiskUnbloatUITests', 'children': [
-                file_node('DiskUnbloatUITests.swift', ['DiskUnbloatUITests/compile-sources']),
+                file_node(f.name, ['DiskUnbloatUITests/compile-sources'])
+                for f in sorted((root / 'DiskUnbloatUITests').rglob('*.swift'))
             ]},
             {'kind': 'group', 'path': 'DiskUnbloatTests', 'children': [
-                file_node('PresentationTests.swift', ['DiskUnbloatTests/compile-sources']),
+                file_node(f.name, ['DiskUnbloatTests/compile-sources'])
+                for f in sorted((root / 'DiskUnbloatTests').rglob('*.swift'))
             ]},
         ],
         'targets': targets(existing),

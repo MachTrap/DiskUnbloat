@@ -24,7 +24,16 @@ public enum CleanupSafety {
         return nil
     }
     private static func isManagedData(_ path: String) -> Bool {
-        path == "/Users" || path == "/Volumes" || path.hasSuffix("/Library") || (path.contains("/Library/Containers/") && !path.contains("/Data/Library/Caches/")) || path.hasSuffix("/Library/Containers") || path.contains("/Library/Group Containers/") || path.hasSuffix("/Library/Group Containers") || path.contains("/Library/Application Support/") || path.hasSuffix("/Library/Application Support")
+        // Exact volume/user roots, plus the Library root itself.
+        if path == "/Users" || path == "/Volumes" || path.hasSuffix("/Library") { return true }
+        // Managed application-data trees: their contents are protected, except data macOS
+        // re-creates under a container's Caches directory.
+        let inContainers = path.contains("/Library/Containers/")
+        if inContainers && !path.contains("/Data/Library/Caches/") { return true }
+        if path.hasSuffix("/Library/Containers") { return true }
+        if path.contains("/Library/Group Containers/") || path.hasSuffix("/Library/Group Containers") { return true }
+        if path.contains("/Library/Application Support/") || path.hasSuffix("/Library/Application Support") { return true }
+        return false
     }
 }
 

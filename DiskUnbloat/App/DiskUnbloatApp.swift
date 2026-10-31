@@ -6,10 +6,9 @@ import SwiftUI
     var body: some Scene {
         WindowGroup {
             WorkspaceView(model: model)
-                .frame(minWidth: 960, minHeight: 640)
                 .onAppear { delegate.model = model }
         }
-        .defaultSize(width: 1280, height: 840)
+        .defaultSize(width: 660, height: 640)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Choose Location…", systemImage: "folder.badge.plus") { model.chooseLocation() }.keyboardShortcut("o")

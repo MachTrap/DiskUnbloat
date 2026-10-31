@@ -164,3 +164,7 @@ Feature batch: compact chooser card; live listing of unreachable scan locations;
 - Live issues during scans were verified in hosted tests at the model level only; grant-denied folders were not exercised against real TCC prompts in this session.
 - Curated-cache deletions were verified against fixtures, never against real user data. The Telegram group container, editor, and browser cache locations require a hands-on review pass before relying on their suggestions (they are review-only, Trash-first).
 - The hover card swaps corners relative to the hovered tile quadrant; it was code-reviewed and exercised in previews, but not verified with VoiceOver or on dense 10k-tile scenes.
+
+### Phase-aware window sizing
+
+The window now follows the scene: a 660 × 640 frame (content minimum 600 × 560) for chooser, scan, and preparing screens, and the remembered last full size (960 × 640 at minimum) for exploration, cancelled, and failed outcomes. The old fixed 960 × 640 SwiftUI minimum frame was replaced by per-phase `contentMinSize`; the issues sheet became size-adaptive. Build, core/app tests, and the localization audit pass. Animated resizing honors Reduce Motion and re-centers the change on the window's current center, clamped to the visible frame. Not yet exercised on real hardware: fullscreen transitions, multi-display clamping, state-restored oversized frames, dense-window interplay during rescan, and the automated UI suite (same desktop-automation limitation as above).

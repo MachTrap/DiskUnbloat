@@ -141,6 +141,21 @@ import DiskCore
         #expect(model.rows.map(\.name) == ["AppOld"])
         await discard(index)
     }
+
+    @Test func windowSizeTargetsFollowPhases() {
+        // Chooser and scan are compact; results and outcomes want the full window.
+        #expect(WindowLayout.isCompact(.choosing) && WindowLayout.isCompact(.scanning) && WindowLayout.isCompact(.preparingResults))
+        #expect(!WindowLayout.isCompact(.exploring) && !WindowLayout.isCompact(.cancelled) && !WindowLayout.isCompact(.failed("no access")))
+        for size in [WindowLayout.compactSize, WindowLayout.compactMinimum] {
+            #expect(size.width < WindowLayout.fullMinimum.width && size.height <= WindowLayout.fullMinimum.height)
+        }
+        // Restoring grows to the remembered size, the scan-time frame (user may have enlarged),
+        // or the 960 × 640 minimum — whichever is largest.
+        #expect(WindowLayout.restoredSize(remembered: .zero, current: WindowLayout.compactSize) == WindowLayout.fullMinimum)
+        #expect(WindowLayout.restoredSize(remembered: CGSize(width: 1200, height: 800), current: WindowLayout.compactSize) == CGSize(width: 1200, height: 800))
+        #expect(WindowLayout.restoredSize(remembered: CGSize(width: 1200, height: 800), current: CGSize(width: 1400, height: 900)) == CGSize(width: 1400, height: 900))
+        #expect(WindowLayout.restoredSize(remembered: CGSize(width: 800, height: 500), current: WindowLayout.compactSize) == WindowLayout.fullMinimum)
+    }
 }
 
 private actor RecordingCleanupService: CleanupServing {

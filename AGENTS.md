@@ -24,7 +24,7 @@ Preserve cleanup protections, identity/fingerprint/ancestry validation, explicit
 
 ## Project maintenance and verification
 
-After adding or moving app Swift files, update matching Xcode groups and build membership. `python3 Tools/generate-project.py` recursively regenerates the checked-in project; preserve any owner-configured signing/team/bundle settings when editing or running the generator. Resource and entitlement paths must remain correct. SwiftPM discovers nested core files automatically.
+After adding or moving app Swift files, update matching Xcode groups and build membership. `python3 Tools/generate-project.py` recursively regenerates the checked-in project (`DiskUnbloat.xcodeproj/project.xcproj`, the Xcode 27 JSON format, which requires Xcode 27 or later and is canonicalized with Apple's `xcprojformatter`); preserve any owner-configured signing/team/bundle settings when editing or running the generator. The file uses JSON5-style trailing commas, so scripts that read it must use a JSON5-tolerant parser, not plain `json.loads` or `jq`. Resource and entitlement paths must remain correct. SwiftPM discovers nested core files automatically.
 
 Run `swift test --package-path Packages/DiskCore`, a generic macOS Release build, and relevant app/UI test compilation after structural changes. Add tests for changed behavior, especially asynchronous session replacement and cleanup. Never perform destructive tests on user-selected files; use unique generated fixtures. Record unrun or environment-blocked validation honestly in `Documentation/VALIDATION.md`.
 

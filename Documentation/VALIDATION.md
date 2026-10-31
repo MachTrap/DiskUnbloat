@@ -1,6 +1,17 @@
-# Validation — October 31, 2026
+# Validation — November 1, 2026
 
-Toolchain: Xcode 26.6, Apple Swift 6.3.3, macOS 26 deployment target, Apple Silicon execution host.
+Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
+
+## Xcode JSON project format migration — 2026-11-01
+
+Converted `DiskUnbloat.xcodeproj/project.pbxproj` to the Xcode 27.2 JSON project format (`project.xcproj`) and rewrote `Tools/generate-project.py` to emit that format directly. The project model is unchanged: only the on-disk representation moved from the NeXTSTEP property list to a hierarchical, diff-friendly JSON document. Requires Xcode 27 or later (Xcode 26 cannot open it). The shared scheme, `Package.resolved`, and resource/entitlement paths are unchanged.
+
+- `xcodebuild -project DiskUnbloat.xcodeproj -convert-project "Xcode Project"` and `python3 Tools/generate-project.py` produce byte-identical `project.xcproj`; the generator is idempotent across runs. Output is canonicalized with Apple's `xcprojformatter`.
+- `swift test --package-path Packages/DiskCore`: 34 tests pass.
+- Universal macOS Release build (`-destination 'generic/platform=macOS'`, `CODE_SIGNING_ALLOWED=NO`): succeeds.
+- App/UI test-bundle compilation (`build-for-testing`): succeeds; both hosted unit tests and the UI test target build against the converted project.
+- Owner signing/team/bundle overrides are preserved by the generator. No `DEVELOPMENT_TEAM` was set at migration time, so none carried over; the preservation path remains and reads overrides back from the existing `project.xcproj`.
+- The automated UI suite was not re-run; the desktop-automation limitation recorded below still applies.
 
 ## Current map-first build
 

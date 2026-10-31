@@ -46,7 +46,7 @@ swift run -c release --package-path Packages/DiskCore DiskBenchmark 1000000
 
 UI automation requires a logged-in desktop session with Xcode authorized for automation. Use the native architecture for local tests; generic Release builds produce both arm64 and x86_64 slices.
 
-The project is checked in and opens directly without generators. `Tools/generate-project.py` can reproduce its structure using Python's standard library. Icon generation uses AppKit via `Tools/generate-icon.swift`; the master and all required macOS icon sizes are included. SwiftUI previews live in `DiskUnbloat/PreviewContent/Previews.swift`.
+The project is checked in and opens directly without generators; it uses the Xcode 27 JSON project format (`project.xcproj`) and therefore requires Xcode 27 or later. `Tools/generate-project.py` can reproduce its structure using Python's standard library. Icon generation uses AppKit via `Tools/generate-icon.swift`; the master and all required macOS icon sizes are included. SwiftUI previews live in `DiskUnbloat/PreviewContent/Previews.swift`.
 
 See [architecture](Documentation/ARCHITECTURE.md) and [validation results](Documentation/VALIDATION.md).
 

@@ -55,7 +55,7 @@ Packages/DiskCore/Sources/DiskCore/
 └── Visualization/               # Pure treemap layout
 ```
 
-Folders on disk and Xcode navigator groups match. SwiftPM recursively discovers the core sources. `Tools/generate-project.py` recursively discovers app Swift sources and creates matching groups; run it after adding/moving app source files, then inspect the project diff. The generator preserves existing signing/team/bundle overrides when regenerating source membership. Preserve that behavior when editing it.
+Folders on disk and Xcode navigator groups match. SwiftPM recursively discovers the core sources. `Tools/generate-project.py` recursively discovers app Swift sources and creates matching groups in `project.xcproj` (the Xcode 27 JSON project format); run it after adding/moving app source files, then inspect the project diff. The generator preserves existing signing/team/bundle overrides when regenerating source membership. Preserve that behavior when editing it.
 
 ### Rules for future features
 

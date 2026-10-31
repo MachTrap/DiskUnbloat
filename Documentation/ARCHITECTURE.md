@@ -1,0 +1,132 @@
+# Architecture
+
+## MVVM with feature-based organization
+
+The app uses **MVVM (Model–View–ViewModel) with a separate core/service layer**, implemented with SwiftUI Observation. It does not use MVC, MVP, TCA, or a global application state store.
+
+- **Views** render state and forward user intent. Local `@State` is appropriate for transient UI details such as confirmation visibility, hover state, and cached drawing geometry.
+- **View models** are `@MainActor @Observable` reference types named `…ViewModel`. They own presentation state, translate intent into service calls, and expose results for SwiftUI. They do not implement disk enumeration, SQL, or destructive filesystem operations.
+- **Models** are the `Sendable` value types in `DiskCore`, including `FileNode`, `ScanRequest`, and `CleanupPlan`. They do not import SwiftUI or AppKit.
+- **Core/services** own filesystem work, indexing, domain rules, and OS integrations. Actor isolation protects mutable core state. App-only adapters own security-scoped access, temporary scan storage, and Finder presentation.
+
+The dependency direction is **View → ViewModel → Service/Core → value results → ViewModel → View**. `DiskCore` never imports the app target. The app entry point creates the workspace and injects its services; feature views receive their own view model and explicit action closures for cross-feature commands.
+
+### Presentation ownership
+
+| Owner | Responsibility |
+| --- | --- |
+| `WorkspaceViewModel` | Owns explicit screen phases, composes child models, coordinates scan/cleanup lifetimes, authorization handoff, shutdown, shared errors and Quick Look |
+| `LocationSelectionViewModel` | Quick-target catalog, options presentation, developer-group visibility, and folder-drop validation |
+| `ScanViewModel` | Scan configuration, pending/current location, real scan stages, progress, issues, index lifecycle and cancellation |
+| `ExplorerViewModel` | Separate bounded map scenes and paginated browser queries, filters, scope, multiselection, four-scene cache, full-scope category summaries, analysis drawer state, folder history, breadcrumbs, optional-panel state; rejects stale sessions |
+| `CleanupViewModel` | Review basket, normalization, operation state and results; delegates mutations to `CleanupServing` |
+| `SettingsViewModel` | Suggestion preferences and their local persistence; the explorer reads the explicitly injected shared instance |
+
+The workspace is an orchestration boundary, not a place to accumulate feature state. Do not add forwarding properties there solely to hide a child's ownership. `FileTable`, `FileInspector`, `ScanOptionsView`, `CleanupReviewView`, and `SettingsView` consume focused models rather than the whole workspace. The workspace shell composes those features and owns their routing.
+
+### Source layout
+
+```text
+DiskUnbloat/
+├── App/                         # Entry point, app delegate, entitlements
+├── Features/
+│   ├── Workspace/{Views,ViewModels}/
+│   ├── LocationSelection/{Models,Views,ViewModels}/
+│   ├── Scanning/{Views,ViewModels}/
+│   ├── Explorer/{Views,ViewModels}/
+│   ├── Cleanup/{Views,ViewModels}/
+│   └── Settings/{Views,ViewModels}/
+├── Services/
+│   ├── Authorization/           # Security-scoped grants and bookmarks
+│   ├── ApplicationActivity/     # Running-app cache ownership adapter
+│   ├── MapNavigation/           # Window-local native input adapter
+│   ├── FilePresentation/        # Finder adapter
+│   └── ScanStorage/             # App-container temporary index storage
+├── Shared/{Formatting,Localization,Styling}/ # Shared presentation helpers
+├── Resources/                   # Asset catalog and privacy manifest
+└── PreviewContent/              # SwiftUI previews and generated sample data
+Packages/DiskCore/Sources/DiskCore/
+├── Models/                      # Shared domain inputs and results
+├── Scanning/                    # Scan coordination and enumeration
+├── Indexing/                    # SQLite implementation
+├── Cleanup/                     # Safety policy and mutation service
+├── Suggestions/                 # Suggestion definitions
+├── FileSystem/                  # Canonical paths and filesystem identity
+└── Visualization/               # Pure treemap layout
+```
+
+Folders on disk and Xcode navigator groups match. SwiftPM recursively discovers the core sources. `Tools/generate-project.py` recursively discovers app Swift sources and creates matching groups; run it after adding/moving app source files, then inspect the project diff. The generator preserves existing signing/team/bundle overrides when regenerating source membership. Preserve that behavior when editing it.
+
+### Rules for future features
+
+1. Add product behavior under `Features/<Feature>/Views` and `ViewModels`. Give a feature its own view model only when it has presentation state or behavior; simple reusable views need no empty model.
+2. Put platform-independent domain logic and shared value contracts in the appropriate `DiskCore` subsystem. Put AppKit, bookmark, and app-container adapters under app `Services`. Keep feature-only helpers beside their feature; use `Shared` only for actual cross-feature presentation reuse.
+3. Inject services at construction. Prefer small capability protocols such as `ScanServing`, `CleanupServing`, and `FilePresenting`; do not introduce a service locator, singleton feature models, or hidden sibling-model mutations. Cross-feature workflows go through explicit callbacks or the workspace.
+4. Keep observable UI state main-actor isolated. Keep enumeration on its dedicated queue, SQLite state inside its actor, and expensive layout off the main actor. Cross-boundary data must be `Sendable`; do not suppress concurrency diagnostics to make a build pass.
+5. Give tasks an owner, cancellation policy, and shutdown behavior. Invalidate pending queries when a session changes and check session identity after suspension. Wait for cleanup before closing its index or releasing grants.
+6. Keep cleanup safety and filesystem accounting in core, even when a feature offers a new entry point. Preserve explicit confirmation, no Trash-to-delete fallback, protection rules, and unknown/partial scan semantics.
+7. Keep previews/sample fixtures in `PreviewContent`; keep shipping resources in `Resources`. Preserve accessibility identifiers when reorganizing views.
+8. Add behavior tests at the layer that owns the change, run core tests, verify a universal Release build, and compile relevant app/UI test targets. Document environment-blocked checks as unverified.
+9. Update this ownership map, README links, project generator, and repository guidance when a feature changes the architectural boundaries.
+
+## Module and concurrency boundaries
+
+`DiskUnbloat` owns SwiftUI views, main-actor presentation state, bookmarks, Quick Look, and Finder integration. Standard macOS controls provide native materials, toolbar glass, focus, and accessibility; the map uses a clear data surface instead of stacked glass effects.
+
+`DiskCore` contains Sendable value models, the scanner, SQLite actor, cleanup service, suggestion queries, and a pure squarified treemap layout. SQLite is the system library, not a downloaded dependency. Swift 6 language mode enables complete concurrency checking. Default isolation is not globally changed to MainActor; presentation classes declare it explicitly. CPU map layout uses `@concurrent` and the view's cancellable `.task` lifecycle.
+
+## Scanning and storage
+
+A single dedicated utility queue owns each Foundation directory enumerator. Requests for the next batch cross the queue using checked continuations; no task is created per file. Batches contain at most 512 nodes, with a roughly 100 ms enumeration time budget between entries. A slow individual network filesystem operation can still block that worker until macOS returns it; cancellation is cooperative, never represented as instantaneous network I/O interruption.
+
+The worker's `@unchecked Sendable` is limited to one private class. Its invariant is that all mutable enumeration state and error callbacks are used exclusively on its private serial queue. Follow-up: replace this bridge with a compiler-checked queue-backed executor when Foundation enumeration supports a suitable isolation contract; preserve serial confinement in any refactor.
+
+The scan coordinator publishes at most five progress updates per second and retains a cancellation handle. Cancellation finishes the current batch, aggregates the partial index, and emits a final partial snapshot. The UI does not cancel its stream consumer prematurely. Inaccessible directories make their aggregate and root totals unknown. Discovered-byte progress is a subtotal, not a volume usage claim.
+
+SQLite WAL transactions batch inserts; parent, known-size, and binary path indexes support bounded queries. Path-depth ordering permits bottom-up aggregation even when refreshed nodes retain old IDs. Raw sizes and indexed file categories are retained separately from counted sizes; initial aggregation assigns each hard-link identity one counted owner. Complete sizes remain nullable; known logical/allocated subtotals and unknown counts propagate separately so inaccessible descendants do not erase measurable bytes.
+
+The explorer builds an immutable `MapScene` independently of the browser. Scene loading is breadth-first, capped at 10,000 entries, 256 direct entries per loaded branch, and three visible folder levels. Any omitted siblings are represented by an aggregate with exact combined known bytes and count. When the scene budget is exhausted, already-present folders remain atomic; their bytes are never dropped. Pixel-level aggregation further combines tiny entries. Folder frames are containment, not additional storage, so nested parent/child sizes are not summed for the root summary. Clicking an aggregate opens its owner's browser scope.
+
+The browser uses 250-item pages with explicit totals. Filters use nonoverlapping file/package leaves, and current-subtree scope uses a case-sensitive indexed path range. The category legend only dims drawing and never changes the scene. Classification uses file extensions/metadata without reading contents. Map geometry is calculated off the main actor, and base Canvas drawing is isolated from hover/selection overlays. Focus transitions use a cached image rather than querying SQLite per animation frame. Four unfiltered scenes are cached per session. Only scene entries, visible browser rows, grouped statistics, explicit user selections, geometry and navigation IDs are held by presentation models; the filesystem hard-link identity set grows only with multiply-linked files.
+
+`WorkspacePhase` drives choosing, scanning, preparing results, exploring, cancelled, and failed screens. Never infer screen routing from a progress snapshot. Scan setup options are a popover; picking an authorized target starts immediately. Reading, aggregation, and map preparation are real stages. Decorative mosaic animation uses a paused TimelineView plus native phase animation; it does not stand in for a progress fraction. Cancelled results require explicit opt-in, and cleanup remains disabled. Secondary explorer panels are closed by default; the browser is a resizable drawer and details are shown only on request. A narrow window uses a details popover. The minimum window is 960 × 640; scanning uses a compact layout below 720 points high.
+
+Indexes live under process/session-specific directories in the app's Caches/Scans directory. They close and are deleted on replacement and orderly termination. Startup purges only directories whose owning process is gone, retaining entries when process inspection is denied; it never removes another live scan's index. Bookmarks and user preferences persist in local UserDefaults. Bookmark creation runs on a dedicated utility queue and must never block accepting a picker-granted location or delay scan setup. A save/refresh failure produces a nonfatal notice; the current session remains usable. Bookmark resolution also runs off the main actor, and revoked saved access requires choosing the location again. Only successful security-scope starts are balanced with stops. No scan history is retained.
+
+## Filesystem semantics
+
+ScanRequest retains the exact picker/bookmark URL, including its security-scope association; never rebuild the authorization URL from a path. The enumeration worker separately canonicalizes the indexing path using realpath because Foundation can expose both /var and /private/var aliases. Symbolic links are recorded with lstat and never traversed. Hidden entries are included unless excluded. Packages are always enumerated for accounting but presented atomically by default. Cloud-only iCloud directories are left unenumerated and marked incomplete; file contents are never opened by the scanner.
+
+Logical and allocated sizes are distinct; missing values remain unknown. Hard links contribute once within the selected scope, so another link may show zero counted bytes. APFS clones can share extents without sharing inode identity; clone/snapshot/purgeable accounting is not represented as exact reclaimable space. Directory timestamps describe the directory itself, not its descendants' usage. No access-date based claim of “unused” is made.
+
+## Reference influences
+
+[SpaceMap](https://github.com/renkagod/spacemap) informed nested folder frames, type-based colors, and aggregate tiles. [Cleaner](https://github.com/ciro-maciel/cleaner/blob/main/rules.json) informed explained developer-cache targets. The [SwiftUI collection](https://github.com/onmyway133/awesome-swiftui) supplied animation/UI examples to assess. The app uses its own SwiftUI Canvas implementation, no copied illustration assets, no third-party animation dependency, no privileged helper, and no system-cleaner subsystem.
+
+## Cleanup
+
+The review basket removes duplicate and overlapping selections. Roots, system trees, managed application data, and package internals are blocked. Whole ordinary user-owned packages outside protected trees can be reviewed. Cache candidates always carry an explanation of application disruption risk.
+
+Before each serial operation, cleanup verifies lexical scope, canonical parent ancestry, indexed ancestor identities, leaf identity, ctime/size/mode fingerprint, and parent write access. A changed item is skipped. Trash uses FileManager's Trash operation and never falls back to permanent deletion. FileManager performs explicit permanent deletion only after the separate UI confirmation. A full rescan after successful cleanup recalculates links and all aggregates. Folder refresh is a separate transactional operation with reviewed-basket invalidation.
+
+These are point-in-time checks. Foundation does not provide an atomic “delete this exact scanned inode and all its unchanged descendants” transaction. Concurrent filesystem changes can occur after validation, and selected folders include their current contents. Do not describe this as protection against a hostile process racing filesystem mutations. The app must not be marketed as an automatic cleaner or secure eraser.
+
+## Focused refresh and storage analysis
+
+`ScanViewModel` retains the live index while a folder refresh enumerates into a separate staging database under the same session store. It derives the child request from the original authorized URL and reuses the scan's original options. Refresh validates indexed ancestry before enumeration and again before commit. Cancel/failure discards staging and offers the previous map; the short atomic commit is not cancellable. A partial refresh replaces stale children with the known current subtree and explicit incomplete metadata.
+
+`ScanIndex.replaceBranch` attaches the closed staging database and performs one SQLite transaction. IDs survive only for matching path plus filesystem identity; a high-water counter prevents reuse of deleted IDs. It recalculates counted bytes for affected identity groups across the full index and aggregates refreshed directories and affected ancestors in depth order. It transfers branch issues and increments the index revision atomically. Other branches retain their original snapshot semantics; refresh makes no claim that the entire filesystem is current.
+
+`ExplorerViewModel` owns drawer tab/height, filters, selection, statistics, and navigation restoration. It invalidates pending tasks before refresh, keys scenes by index revision, restores surviving IDs/history, and falls back to a surviving ancestor. The workspace removes overlapping basket entries, including selected ancestors, so updated contents require review. Session storage deletes only the discarded database and its sidecars, never a live sibling staging/main index.
+
+`AnalysisDrawerView` renders Files/Largest/Types/Candidates without owning filesystem logic. Largest uses 250-item leaf/package pages; unknown sizes are excluded visibly. Types groups the complete scoped SQLite query, including unknown-folder markers, rather than the map's bounded scene. Both honor metric, scope, and explicit filters. Switching tabs does not change map geometry. Category highlighting only dims the map.
+
+`CleanupRule` has stable bundled identifiers. Candidate SQL evaluates size, exact home-relative roots, descendant modification maxima, completeness, and exclusions. Cache entries are disjoint direct children of the rule root; scans starting deeper use leaf candidates. Large files default to 1 GB, downloads/archives to 180 days, caches to 30 days. Missing dates/incomplete sizes cannot establish age-based eligibility. App-only `ApplicationActivityProviding` identifies running bundle-owned caches and Xcode Derived Data; it cannot establish that arbitrary command-line tools are idle. Known active/protected caches are excluded at query/review time and checked again before each serial mutation through an injected async preflight. `CleanupReason` provides typed protection reasons; UI strings remain presentation concerns.
+
+`MapNavigationAdapter` confines AppKit event monitoring to the active map/window. It recognizes horizontal trackpad movement and extra mouse buttons, ignores momentum and vertical/diagonal scrolling, and removes its monitor on detachment. SwiftUI's completed magnification gesture focuses a folder at 1.15 or navigates upward at 0.85. No global monitor or accessibility entitlement is used.
+
+`AppDelegate` buffers native open-file events until workspace attachment, then routes them through the same single-directory authorization flow. Info.plist registers folders/volumes as alternate Viewer types. Busy requests report an error rather than queuing a surprise scan. Knowing a path still does not grant access; insufficient access routes through the system picker.
+
+A successful child-branch refresh does not make a previously cancelled whole scan complete or enable its cleanup. Only a completed scan of the original root can do that.
+
+English and Russian shipping strings live in `Resources/Localizable.xcstrings`, with explicit Russian plural categories. `Shared/Localization` maps stable domain values to display strings; `DiskCore` remains independent of SwiftUI/AppKit and localization bundles. Filenames, paths, bookmarks, enum identifiers, and SQL values are never translated. Follow macOS app-language preferences; do not add a second language setting. Run `Tools/audit-localization.py` after changing UI text, optionally passing compiler-generated stringsdata to verify extraction coverage.

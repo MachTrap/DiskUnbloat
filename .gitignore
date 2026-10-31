@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+DerivedData/
+.derivedData/
+.derivedData-*/
+*.xcresult
+*.xcov
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Local build artifacts & scratch output
+.build/
+.build-cache/
+.artifacts/
+build/
+DerivedData/
+
+# SwiftPM local caches (source lives in ./Packages, never ignore that)
+.packages/
+.swiftpm/build/
+.swiftpm/cache/
+.swiftpm/checkouts/
+.swiftpm/repositories/
+.swiftpm/xcode/xcuserdata/
+.swiftpm/xcode/package.xcworkspace/xcshareddata/*.xcsettings
+
+# Profiling / instrumentation output
+*.profraw
+*.xctimeline

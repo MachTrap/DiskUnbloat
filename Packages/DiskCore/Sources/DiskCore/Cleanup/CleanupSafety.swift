@@ -1,0 +1,36 @@
+import Foundation
+
+public enum CleanupSafety {
+    public static func blockedReason(_ node: FileNode, root: URL) -> String? { blockedReasonCode(node, root: root)?.message }
+    public static func blockedReasonCode(_ node: FileNode, root: URL) -> CleanupReason? {
+        let path = node.path
+        let rootPath = canonicalURL(root).path
+        if path == rootPath || path == "/" { return .scanRoot }
+        if !path.hasPrefix(rootPath == "/" ? "/" : rootPath + "/") { return .outsideScope }
+        if path == "/Users" || path == "/Volumes" || path.hasSuffix("/Library") || (path.contains("/Library/Containers/") && !path.contains("/Data/Library/Caches/")) || path.hasSuffix("/Library/Containers") || path.contains("/Library/Group Containers/") || path.hasSuffix("/Library/Group Containers") || path.contains("/Library/Application Support/") || path.hasSuffix("/Library/Application Support") { return .managedData }
+        if node.packageAncestor { return .packageContents }
+        let protected = ["/System", "/Library", "/bin", "/sbin", "/usr", "/dev", "/etc", "/var", "/private/etc", "/private/var/db", "/private/var/root", "/private/var/vm", "/private/var/log", "/Applications", "/System/Volumes/Data/System", "/System/Volumes/Data/Library"]
+        if protected.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) { return .systemManaged }
+        if let values = try? node.url.resourceValues(forKeys: [.isVolumeKey]), values.isVolume == true { return .volumeRoot }
+        return nil
+    }
+}
+
+public enum CleanupReason: String, Sendable {
+    case scanRoot
+    case outsideScope
+    case managedData
+    case packageContents
+    case systemManaged
+    case volumeRoot
+    public var message: String {
+        switch self {
+        case .scanRoot: "Scan roots and volume roots cannot be removed."
+        case .outsideScope: "Item is outside the authorized scan location."
+        case .managedData: "This location contains managed application or user data and is protected from cleanup."
+        case .packageContents: "Individual package contents cannot be removed. Review the whole package instead."
+        case .systemManaged: "This is a protected system-managed location."
+        case .volumeRoot: "Volume roots cannot be removed."
+        }
+    }
+}

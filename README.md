@@ -1,0 +1,57 @@
+# DiskUnbloat
+
+A native macOS 26+ storage explorer built with Swift 6.3, SwiftUI, Observation, and a local SQLite index. No third-party runtime dependencies, accounts, analytics, or uploads.
+
+Open **DiskUnbloat.xcodeproj**, select the **DiskUnbloat** scheme, choose your signing team, and Run. The app has three focused stages:
+
+1. **Choose:** pick or drop one folder/disk, use a recent location, or choose Home, Downloads, user caches, or developer caches. Expand **Scan options** before selecting a location to change hidden-file inclusion, package inspection, exclusions, and volume traversal. Scanning starts immediately after authorization.
+2. **Scan:** watch the animated mosaic, actual stages, file/folder counts, known bytes, elapsed time, and current folder. There is no invented percentage. Cancelled scans offer an explicit partial-map option with cleanup disabled.
+3. **Explore:** the nested treemap fills the window. Folder frames contain file tiles, colors identify file types, and the legend highlights a type without rearranging the map. Small/unloaded entries become clickable aggregate tiles, so browser pagination never truncates the map's byte accounting. Unknown sizes stay explicitly incomplete.
+
+The file browser and details are closed by default. **Command-2** toggles the resizable browser drawer (250 items per page); **Command-I** opens details for the selection. Click a tile to select, Command-click for multiple selections, double-click a folder to focus it, and use **Command-Up** or breadcrumbs to go up. **Command-F** focuses search. Search defaults to the current subtree; the Filter menu can switch to Entire Scan. **Command-1** returns to map-only layout. Quick Look, Finder reveal, Copy Path, and cleanup review are available from map context menus. Multiselection totals count overlapping parent/child paths once.
+
+Use **Explore a sample** to try the interface without granting access to personal files. Common/developer targets are scans, never automatic cleanup. Their grants still come from the system picker or a valid bookmark. A bookmark-save failure does not prevent the current scan.
+
+Review cleanup paths before choosing Trash or permanent deletion. Successful cleanup starts a fresh scan; failed items remain untouched and are reported. System-managed locations and package internals are protected. A file's age or size never establishes that it is disposable.
+
+## Architecture and source structure
+
+The app uses **MVVM with a separate service/core layer**, organized by feature. Read [the architecture and contribution rules](Documentation/ARCHITECTURE.md) before implementing a feature.
+
+- `DiskUnbloat/App`: application entry point, lifecycle, and entitlements.
+- `DiskUnbloat/Features/<Feature>/{Views,ViewModels}`: SwiftUI screens and their focused observable presentation models.
+- `DiskUnbloat/Services`: macOS integrations and app-container storage adapters.
+- `DiskUnbloat/Shared`, `Resources`, and `PreviewContent`: shared presentation helpers, assets/privacy declarations, and previews/sample data.
+- `Packages/DiskCore`: domain models, scanning, indexing, cleanup, suggestions, filesystem helpers, and pure visualization layout, grouped by subsystem.
+
+`WorkspaceViewModel` coordinates the location-selection feature, `ScanViewModel`, `ExplorerViewModel`, `CleanupViewModel`, and `SettingsViewModel`. New feature logic belongs to its owning feature or core service rather than expanding the workspace. The Xcode navigator mirrors the folders on disk. Repository-wide guidance is in [AGENTS.md](AGENTS.md).
+
+## Build and test
+
+```sh
+xcodebuild -project DiskUnbloat.xcodeproj -scheme DiskUnbloat \
+  -configuration Release -destination 'generic/platform=macOS' \
+  -derivedDataPath .derivedData CODE_SIGNING_ALLOWED=NO build
+swift test --package-path Packages/DiskCore
+xcodebuild -project DiskUnbloat.xcodeproj -scheme DiskUnbloat \
+  -destination 'platform=macOS,arch=arm64' -derivedDataPath .derivedData \
+  CODE_SIGN_IDENTITY=- test -only-testing:DiskUnbloatTests
+xcodebuild -project DiskUnbloat.xcodeproj -scheme DiskUnbloat \
+  -destination 'platform=macOS,arch=arm64' ONLY_ACTIVE_ARCH=YES \
+  CODE_SIGN_IDENTITY=- test
+swift run -c release --package-path Packages/DiskCore DiskBenchmark 1000000
+```
+
+UI automation requires a logged-in desktop session with Xcode authorized for automation. Use the native architecture for local tests; generic Release builds produce both arm64 and x86_64 slices.
+
+The project is checked in and opens directly without generators. `Tools/generate-project.py` can reproduce its structure using Python's standard library. Icon generation uses AppKit via `Tools/generate-icon.swift`; the master and all required macOS icon sizes are included. SwiftUI previews live in `DiskUnbloat/PreviewContent/Previews.swift`.
+
+See [architecture](Documentation/ARCHITECTURE.md) and [validation results](Documentation/VALIDATION.md).
+
+### Focused analysis
+
+Rescan the current folder from Scan → Rescan Folder or a map folder's context menu. Refresh uses a staging index and restores the previous map on cancellation/failure. Successful refresh retains surviving selections/navigation and removes overlapping cleanup-review entries for another review.
+
+Command-2 opens the resizable analysis drawer: Files, Largest, Types, and Candidates. Largest and Types support Current Folder/Entire Scan scope; statistics cover all indexed entries, including those represented by aggregate tiles. Candidate rules explain their criteria and consequences; age and size never establish safe deletion.
+
+Pinch outward to focus a folder and inward to go up; horizontal trackpad swipes and extra mouse buttons navigate history. Drop one folder onto the Dock icon to scan it. English/Russian follows macOS application language preferences. Run `python3 Tools/audit-localization.py` when adding UI text.

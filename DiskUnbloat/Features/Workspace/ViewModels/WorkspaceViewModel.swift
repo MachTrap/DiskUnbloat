@@ -214,15 +214,23 @@ enum WorkspacePhase: Equatable {
     }
 
     private func startGrouped(_ target: ScanTarget) {
-        let resolved = target.roots.map { authorization.authorizedURL(for: $0) ?? $0 }
-        scan.pendingGroup = PendingGroup(title: target.title, roots: resolved)
+        // The scan must never begin from an uncovered location: request the missing rights instead.
+        guard target.roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) else { chooseGroup(target); return }
+        scan.pendingGroup = PendingGroup(title: target.title, roots: target.roots.compactMap { authorization.authorizedURL(for: $0) })
         startScan()
     }
 
     private func chooseGroup(_ target: ScanTarget) {
         do {
-            if try authorization.choose(suggestedLocation: location.catalog.home, message: L10n.text("Authorize your home folder so every known cache location becomes available.")) != nil {
+            let granted = try authorization.choose(
+                suggestedLocation: location.catalog.home,
+                message: L10n.text("Authorize your home folder so every known cache location becomes available."))
+            guard granted != nil else { return } // The request was declined, so nothing is scanned.
+            // Only scan once every listed location is inside the new grant; re-scope to home otherwise.
+            if target.roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) {
                 startGrouped(target)
+            } else {
+                message = L10n.text("The chosen folder doesn’t cover every listed location. Choose your home folder to scan all of them.")
             }
         } catch { message = L10n.format("Couldn’t open that location. %@", error.diagnosticDescription) }
     }

@@ -27,7 +27,16 @@ struct SavedLocation: Identifiable, Codable {
         }
     }
 
+    /// Presents the folder picker for authorization. Replaceable so authorization flows can be
+    /// verified without presenting UI; the default opens a system open panel.
+    @ObservationIgnored var panelProvider: @MainActor (URL?, String?) throws -> URL? = AuthorizationStore.openPanel
+
     func choose(suggestedLocation: URL? = nil, message: (String)? = nil) throws -> URL? {
+        guard let url = try panelProvider(suggestedLocation, message) else { return nil }
+        return try acceptSelection(url)
+    }
+
+    private static func openPanel(suggestedLocation: URL?, message: String?) -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -36,7 +45,7 @@ struct SavedLocation: Identifiable, Codable {
         panel.directoryURL = suggestedLocation
         if let suggestedLocation { panel.message = message ?? L10n.format("Authorize %@, or choose another folder if it isn’t available.", suggestedLocation.path) }
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
-        return try acceptSelection(url)
+        return url
     }
 
     /// The picker grants access for this session. Persisting it for a later launch is optional.
@@ -109,10 +118,17 @@ struct SavedLocation: Identifiable, Codable {
         return nil
     }
 
-    /// Keep every grant that covers one of the scan scopes; grouped scans need them all.
+    /// Keep every grant the scan scope depends on: grants of the scanned locations themselves
+    /// and any ancestor grant (e.g. home) that reaches grouped scan locations. Grouped quick
+    /// actions derive child scan roots through `authorizedURL(for:)`, so the live grant is an
+    /// ancestor of every requested URL — stopping it here would strip the scan's only access.
     func retainOnly(_ urls: [URL]) {
         let kept = urls.map(canonicalURL)
-        func covers(_ item: URL) -> Bool { kept.contains { $0.path == item.path || item.path.hasPrefix($0.path + "/") } }
+        func covers(_ item: URL) -> Bool {
+            kept.contains {
+                $0.path == item.path || $0.path.hasPrefix(item.path + "/") || item.path.hasPrefix($0.path + "/")
+            }
+        }
         for item in active where !covers(item) { bookmarks.stopAccessing(item) }
         active.removeAll { !covers($0) }
     }

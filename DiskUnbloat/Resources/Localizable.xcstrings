@@ -207,6 +207,7 @@
       }
     },
     "%lld locations" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -229,12 +230,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld расположение"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -245,6 +240,12 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld расположений"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld расположение"
                 }
               },
               "other" : {
@@ -685,6 +686,7 @@
       }
     },
     "All caches" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -900,6 +902,7 @@
       }
     },
     "Authorize your home folder so every known cache location becomes available." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1641,6 +1644,7 @@
       }
     },
     "Dev tools" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1907,6 +1911,7 @@
       }
     },
     "Every known cache in your home folder in one scan: user caches, Xcode build data, developer caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2298,6 +2303,7 @@
       }
     },
     "Heavy developer artifacts: simulators, device support, Android SDK, Docker data, virtual machines, and local AI model stores." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3024,6 +3030,7 @@
       }
     },
     "None of these locations could be read. Check their permissions or scan individual folders." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

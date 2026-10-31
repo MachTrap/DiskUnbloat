@@ -30,6 +30,13 @@ struct FileInspector: View {
                         Text("Location").font(.caption).foregroundStyle(.secondary)
                         Text(node.path).font(.callout).textSelection(.enabled).lineLimit(nil)
                     }
+                    if let home = model.homePath, let known = LocationCatalog(home: URL(fileURLWithPath: home)).knownLocation(for: node.path) {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(known.title).font(.headline)
+                            Text(known.explanation).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                        }
+                    }
                     Divider()
                     Button("Quick Look", systemImage: "eye") { preview(node) }
                     Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { reveal(node) }

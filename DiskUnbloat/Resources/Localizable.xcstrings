@@ -752,6 +752,40 @@
         }
       }
     },
+    "Android emulators" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android emulators"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эмуляторы Android"
+          }
+        }
+      }
+    },
+    "Android Virtual Device images and data." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android Virtual Device images and data."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Образы и данные виртуальных устройств Android."
+          }
+        }
+      }
+    },
     "Any size" : {
       "localizations" : {
         "en" : {
@@ -950,6 +984,23 @@
         }
       }
     },
+    "Build intermediates produced by Xcode. Removal requires rebuilding your projects." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build intermediates produced by Xcode. Removal requires rebuilding your projects."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Промежуточные файлы сборки Xcode. Удаление потребует пересборки проектов."
+          }
+        }
+      }
+    },
     "Build intermediates. Removal requires rebuilding your projects." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1019,6 +1070,74 @@
         }
       }
     },
+    "Cached extension packages" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached extension packages"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные пакеты расширений"
+          }
+        }
+      }
+    },
+    "Cached Gradle dependencies and build data. Builds may need to download them again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached Gradle dependencies and build data. Builds may need to download them again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные зависимости и данные сборки Gradle. Сборки могут потребовать повторной загрузки."
+          }
+        }
+      }
+    },
+    "Cached models and datasets. Removal requires re-downloading." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached models and datasets. Removal requires re-downloading."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные модели и наборы данных. Удаление потребует повторной загрузки."
+          }
+        }
+      }
+    },
+    "Cached npm packages and metadata. Future installs may require network access." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached npm packages and metadata. Future installs may require network access."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные пакеты и метаданные npm. При будущих установках может потребоваться сеть."
+          }
+        }
+      }
+    },
     "Cached npm packages. Future installs may need the network." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1036,6 +1155,40 @@
         }
       }
     },
+    "Cached Python packages and wheels downloaded by uv. Future installs may need the network." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached Python packages and wheels downloaded by uv. Future installs may need the network."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные пакеты и колёса Python, загруженные uv. При будущих установках может потребоваться сеть."
+          }
+        }
+      }
+    },
+    "Cached SDK data used by VS Code Insiders. Safe to remove; it is regenerated." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached SDK data used by VS Code Insiders. Safe to remove; it is regenerated."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные данные SDK, используемые VS Code Insiders. Можно безопасно удалить; они будут созданы заново."
+          }
+        }
+      }
+    },
     "Cached Swift packages. Packages may need to be downloaded again." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1049,6 +1202,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Кэшированные пакеты Swift. Может потребоваться повторная загрузка."
+          }
+        }
+      }
+    },
+    "Cached Telegram media and data. Removal may require re-downloading media." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached Telegram media and data. Removal may require re-downloading media."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные медиа и данные Telegram. Удаление может потребовать повторной загрузки медиа."
+          }
+        }
+      }
+    },
+    "Cached web content for VS Code Insiders extensions. Can be rebuilt by the editor." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached web content for VS Code Insiders extensions. Can be rebuilt by the editor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированный веб-контент расширений VS Code Insiders. Редактор может восстановить его."
           }
         }
       }
@@ -1278,6 +1465,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выберите расположение заново, чтобы восстановить доступ. %@"
+          }
+        }
+      }
+    },
+    "Chrome on-device AI model" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chrome on-device AI model"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локальная ИИ-модель Chrome"
           }
         }
       }
@@ -1529,6 +1733,23 @@
         }
       }
     },
+    "Debug symbols for connected iOS devices. They can be re-downloaded when needed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debug symbols for connected iOS devices. They can be re-downloaded when needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Символы отладки для подключённых iOS-устройств. При необходимости их можно загрузить снова."
+          }
+        }
+      }
+    },
     "Delete permanently" : {
       "localizations" : {
         "en" : {
@@ -1742,6 +1963,40 @@
         }
       }
     },
+    "Docker data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docker data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные Docker"
+          }
+        }
+      }
+    },
+    "Docker images, containers, and volumes. Removal deletes Docker data." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docker images, containers, and volumes. Removal deletes Docker data."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Образы, контейнеры и тома Docker. Удаление сотрёт данные Docker."
+          }
+        }
+      }
+    },
     "Documents" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1775,6 +2030,23 @@
         }
       }
     },
+    "Downloaded local AI models. Removal requires re-pulling them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded local AI models. Removal requires re-pulling them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загруженные локальные ИИ-модели. Удаление потребует повторной загрузки."
+          }
+        }
+      }
+    },
     "Downloaded Python packages and wheels. Installs may need to download them again." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1788,6 +2060,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Загруженные пакеты Python и wheels. Может потребоваться повторная загрузка."
+          }
+        }
+      }
+    },
+    "Downloaded VS Code extension packages. Reinstalling extensions re-downloads them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded VS Code extension packages. Reinstalling extensions re-downloads them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загруженные пакеты расширений VS Code. Переустановка расширений загрузит их снова."
           }
         }
       }
@@ -2286,6 +2575,23 @@
         }
       }
     },
+    "Gradle caches" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gradle caches"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэши Gradle"
+          }
+        }
+      }
+    },
     "Hard links are counted once within the scanned scope. APFS shared blocks, snapshots, and purgeable storage mean file sizes do not predict exactly how much free space cleanup will recover. Unknown metadata and inaccessible folders can make totals incomplete." : {
       "localizations" : {
         "en" : {
@@ -2349,6 +2655,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Домашняя папка"
+          }
+        }
+      }
+    },
+    "Hugging Face cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hugging Face cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш Hugging Face"
           }
         }
       }
@@ -2452,6 +2775,23 @@
         }
       }
     },
+    "iOS simulators" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS simulators"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Симуляторы iOS"
+          }
+        }
+      }
+    },
     "Item is outside the authorized scan location." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2518,6 +2858,22 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Known cache locations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Known cache locations"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Известные расположения кэшей"
           }
         }
       }
@@ -2668,6 +3024,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Последнее изменение содержимого"
+          }
+        }
+      }
+    },
+    "LM Studio models" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio models"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модели LM Studio"
+          }
+        }
+      }
+    },
+    "Local AI model files used by LM Studio." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local AI model files used by LM Studio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локальные файлы ИИ-моделей, используемые LM Studio."
           }
         }
       }
@@ -3063,6 +3453,23 @@
         }
       }
     },
+    "npm cache contents" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "npm cache contents"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Содержимое кэша npm"
+          }
+        }
+      }
+    },
     "OK" : {
       "localizations" : {
         "en" : {
@@ -3318,6 +3725,23 @@
         }
       }
     },
+    "Ollama models" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama models"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модели Ollama"
+          }
+        }
+      }
+    },
     "On disk" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3347,6 +3771,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "На вашем Mac. Только на вашем Mac."
+          }
+        }
+      }
+    },
+    "On-device AI model files used by Chrome. Removing them may disable AI features until re-downloaded." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On-device AI model files used by Chrome. Removing them may disable AI features until re-downloaded."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файлы локальной ИИ-модели, используемые Chrome. Удаление может отключить ИИ-функции до повторной загрузки."
           }
         }
       }
@@ -3509,6 +3950,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Пакеты учитываются, даже если показаны одной плиткой. Символические ссылки не обходятся; облачные файлы не загружаются."
+          }
+        }
+      }
+    },
+    "Parallels virtual machines" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parallels virtual machines"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виртуальные машины Parallels"
+          }
+        }
+      }
+    },
+    "Parallels VM disk images. Large; removal deletes those machines." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parallels VM disk images. Large; removal deletes those machines."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисковые образы ВМ Parallels. Большие; удаление сотрёт эти машины."
           }
         }
       }
@@ -4265,6 +4740,23 @@
         }
       }
     },
+    "Simulator device data. Removing it deletes simulator contents and requires recreating devices." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulator device data. Removing it deletes simulator contents and requires recreating devices."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные симуляторов. Удаление сотрёт их содержимое и потребует создания заново."
+          }
+        }
+      }
+    },
     "Size" : {
       "localizations" : {
         "en" : {
@@ -4394,6 +4886,23 @@
         }
       }
     },
+    "Stored package tarballs inside the npm cache. Removing them forces re-downloading." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stored package tarballs inside the npm cache. Removing them forces re-downloading."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранённые tar-архивы пакетов внутри кэша npm. Удаление заставит загружать их заново."
+          }
+        }
+      }
+    },
     "Suggestions are based on metadata. They do not establish that a file is unused or safe to remove." : {
       "localizations" : {
         "en" : {
@@ -4444,6 +4953,57 @@
         }
       }
     },
+    "Telegram cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telegram cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш Telegram"
+          }
+        }
+      }
+    },
+    "Telegram container data including caches. Review before removing." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telegram container data including caches. Review before removing."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные контейнера Telegram, включая кэши. Проверьте перед удалением."
+          }
+        }
+      }
+    },
+    "Telegram stable data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telegram stable data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Стабильные данные Telegram"
+          }
+        }
+      }
+    },
     "Temporary application data. Removing it can disrupt apps or require downloads." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4456,7 +5016,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Временные данные приложений. Удаление может нарушить работу или потребовать загрузки данных."
+            "value" : "Временные данные приложений. Удаление может нарушить работу приложений или потребовать повторной загрузки."
           }
         }
       }
@@ -4877,6 +5437,23 @@
         }
       }
     },
+    "Unpacked package archives kept by uv for faster installs. Safe to remove; uv re-downloads them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unpacked package archives kept by uv for faster installs. Safe to remove; uv re-downloads them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Распакованные архивы пакетов, которые uv хранит для ускорения установки. Можно безопасно удалить; uv загрузит их снова."
+          }
+        }
+      }
+    },
     "Up" : {
       "localizations" : {
         "en" : {
@@ -4939,7 +5516,75 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Кэши пользователя"
+            "value" : "Пользовательские кэши"
+          }
+        }
+      }
+    },
+    "UTM virtual machines" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UTM virtual machines"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виртуальные машины UTM"
+          }
+        }
+      }
+    },
+    "UTM VM data and disk images." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UTM VM data and disk images."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные и дисковые образы ВМ UTM."
+          }
+        }
+      }
+    },
+    "uv cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uv cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш uv"
+          }
+        }
+      }
+    },
+    "uv package archive" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uv package archive"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Архив пакетов uv"
           }
         }
       }
@@ -4994,6 +5639,40 @@
         }
       }
     },
+    "VS Code Insiders SDK cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code Insiders SDK cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш SDK VS Code Insiders"
+          }
+        }
+      }
+    },
+    "VS Code Insiders web storage" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code Insiders web storage"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб-хранилище VS Code Insiders"
+          }
+        }
+      }
+    },
     "Write authorization is unavailable." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5023,7 +5702,24 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Данные сборки Xcode"
+            "value" : "Производные данные Xcode"
+          }
+        }
+      }
+    },
+    "Xcode device support" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xcode device support"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддержка устройств Xcode"
           }
         }
       }

@@ -691,3 +691,4 @@ struct MapInputTests {
         await model.discardIndex()
     }
 }
+

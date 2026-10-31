@@ -1,0 +1,379 @@
+{
+  "default-configuration": "Release",
+  "configurations": [
+    "Debug",
+    "Release",
+  ],
+  "localizations": {
+    "development": "en",
+    "supported": [
+      "Base",
+      "ru",
+    ],
+  },
+  "packages": [
+    {
+      "kind": "local",
+      "path": "Packages/DiskCore",
+    },
+  ],
+  "files": [
+    {
+      "kind": "group",
+      "path": "DiskUnbloat",
+      "children": [
+        {
+          "kind": "group",
+          "path": "App",
+          "children": [
+            { "path": "AppDelegate.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+            { "path": "DiskUnbloatApp.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+            { "path": "Info.plist" },
+            { "path": "DiskUnbloat.entitlements" },
+          ],
+        }, {
+          "kind": "group",
+          "path": "Features",
+          "children": [
+            {
+              "kind": "group",
+              "path": "Cleanup",
+              "children": [
+                {
+                  "kind": "group",
+                  "path": "ViewModels",
+                  "children": [
+                    { "path": "CleanupViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
+                  "path": "Views",
+                  "children": [
+                    { "path": "CleanupReviewView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                },
+              ],
+            }, {
+              "kind": "group",
+              "path": "Explorer",
+              "children": [
+                {
+                  "kind": "group",
+                  "path": "ViewModels",
+                  "children": [
+                    { "path": "ExplorerViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
+                  "path": "Views",
+                  "children": [
+                    { "path": "AnalysisDrawerView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "CategoryStatisticsView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "ExplorerView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "FileInspector.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "FileTable.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "TreemapView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                },
+              ],
+            }, {
+              "kind": "group",
+              "path": "LocationSelection",
+              "children": [
+                {
+                  "kind": "group",
+                  "path": "Models",
+                  "children": [
+                    { "path": "KnownLocation.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "ScanTarget.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
+                  "path": "ViewModels",
+                  "children": [
+                    { "path": "LocationSelectionViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
+                  "path": "Views",
+                  "children": [
+                    { "path": "LocationSelectionView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                },
+              ],
+            }, {
+              "kind": "group",
+              "path": "Scanning",
+              "children": [
+                {
+                  "kind": "group",
+                  "path": "ViewModels",
+                  "children": [
+                    { "path": "ScanViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
+                  "path": "Views",
+                  "children": [
+                    { "path": "ScanOptionsView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "ScanningView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                },
+              ],
+            }, {
+              "kind": "group",
+              "path": "Settings",
+              "children": [
+                {
+                  "kind": "group",
+                  "path": "ViewModels",
+                  "children": [
+                    { "path": "SettingsViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
+                  "path": "Views",
+                  "children": [
+                    { "path": "SettingsView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                },
+              ],
+            }, {
+              "kind": "group",
+              "path": "Workspace",
+              "children": [
+                {
+                  "kind": "group",
+                  "path": "ViewModels",
+                  "children": [
+                    { "path": "WorkspaceViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
+                  "path": "Views",
+                  "children": [
+                    { "path": "WorkspaceView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                },
+              ],
+            },
+          ],
+        }, {
+          "kind": "group",
+          "path": "PreviewContent",
+          "children": [
+            { "path": "Previews.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+            { "path": "SampleData.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+          ],
+        }, {
+          "kind": "group",
+          "path": "Resources",
+          "children": [
+            { "path": "Localizable.xcstrings", "target-membership": [ "DiskUnbloat/resources" ] },
+            { "path": "PrivacyInfo.xcprivacy", "target-membership": [ "DiskUnbloat/resources" ] },
+            { "path": "Assets.xcassets", "target-membership": [ "DiskUnbloat/resources" ] },
+          ],
+        }, {
+          "kind": "group",
+          "path": "Services",
+          "children": [
+            {
+              "kind": "group",
+              "path": "ApplicationActivity",
+              "children": [
+                { "path": "ApplicationActivityService.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            }, {
+              "kind": "group",
+              "path": "Authorization",
+              "children": [
+                { "path": "AuthorizationStore.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                { "path": "BookmarkAccess.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            }, {
+              "kind": "group",
+              "path": "FilePresentation",
+              "children": [
+                { "path": "FilePresentationService.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            }, {
+              "kind": "group",
+              "path": "MapNavigation",
+              "children": [
+                { "path": "MapHistoryGesture.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                { "path": "MapNavigationAdapter.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            }, {
+              "kind": "group",
+              "path": "ScanStorage",
+              "children": [
+                { "path": "ScanSessionStore.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            },
+          ],
+        }, {
+          "kind": "group",
+          "path": "Shared",
+          "children": [
+            {
+              "kind": "group",
+              "path": "Formatting",
+              "children": [
+                { "path": "ByteFormatting.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            }, {
+              "kind": "group",
+              "path": "Localization",
+              "children": [
+                { "path": "CleanupRulePresentation.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                { "path": "L10n.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                { "path": "MapEntryPresentation.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            }, {
+              "kind": "group",
+              "path": "Styling",
+              "children": [
+                { "path": "MapPalette.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            },
+          ],
+        },
+      ],
+    }, {
+      "kind": "group",
+      "name": "Products",
+      "children": [
+        { "path": "<PRODUCTS>/DiskUnbloat.app", "id": "000000000000000000000006", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/DiskUnbloatUITests.xctest", "id": "000000000000000000000029", "type": "wrapper.cfbundle" },
+        { "path": "<PRODUCTS>/DiskUnbloatTests.xctest", "id": "00000000000000000000003D", "type": "wrapper.cfbundle" },
+      ],
+    }, {
+      "kind": "group",
+      "path": "DiskUnbloatUITests",
+      "children": [
+        { "path": "DiskUnbloatUITests.swift", "target-membership": [ "DiskUnbloatUITests/compile-sources" ] },
+      ],
+    }, {
+      "kind": "group",
+      "path": "DiskUnbloatTests",
+      "children": [
+        { "path": "PresentationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+      ],
+    },
+  ],
+  "targets": [
+    {
+      "name": "DiskUnbloat",
+      "id": "000000000000000000000005",
+      "product": "Products/DiskUnbloat.app",
+      "product-type": "application",
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+        "resources",
+      ],
+      "package-product-members": [
+        {
+          "package": "DiskCore",
+          "product-name": "DiskCore",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "DiskCore",
+          "product-name": "DiskCore",
+          "build-phase": { "build-phase": "frameworks" },
+        },
+      ],
+      "build-settings": {
+        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+        "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
+        "CODE_SIGN_ENTITLEMENTS": "DiskUnbloat/App/DiskUnbloat.entitlements",
+        "CODE_SIGN_STYLE": "Automatic",
+        "COMBINE_HIDPI_IMAGES": "YES",
+        "CURRENT_PROJECT_VERSION": "1",
+        "ENABLE_APP_SANDBOX": "YES",
+        "ENABLE_HARDENED_RUNTIME": "YES",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "INFOPLIST_FILE": "DiskUnbloat/App/Info.plist",
+        "INFOPLIST_KEY_CFBundleDisplayName": "DiskUnbloat",
+        "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.utilities",
+        "INFOPLIST_KEY_NSHumanReadableCopyright": "Copyright © 2026 DiskUnbloat",
+        "LD_RUNPATH_SEARCH_PATHS": [
+          "$(inherited)",
+          "@executable_path/../Frameworks",
+        ],
+        "MARKETING_VERSION": "1.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.diskunbloat.app",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SWIFT_EMIT_LOC_STRINGS": "YES",
+        "SWIFT_STRICT_CONCURRENCY": "complete",
+        "SWIFT_VERSION": "6.0",
+      },
+    }, {
+      "name": "DiskUnbloatUITests",
+      "id": "000000000000000000000028",
+      "product": "Products/DiskUnbloatUITests.xctest",
+      "product-type": "bundle.ui-testing",
+      "dependencies": [
+        "DiskUnbloat",
+      ],
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+      ],
+      "build-settings": {
+        "CODE_SIGN_STYLE": "Automatic",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.diskunbloat.app.uitests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SWIFT_VERSION": "6.0",
+        "TEST_TARGET_NAME": "DiskUnbloat",
+      },
+    }, {
+      "name": "DiskUnbloatTests",
+      "id": "00000000000000000000003C",
+      "product": "Products/DiskUnbloatTests.xctest",
+      "product-type": "bundle.unit-test",
+      "dependencies": [
+        "DiskUnbloat",
+      ],
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+      ],
+      "package-product-members": [
+        {
+          "package": "DiskCore",
+          "product-name": "DiskCore",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "DiskCore",
+          "product-name": "DiskCore",
+          "build-phase": { "build-phase": "frameworks" },
+        },
+      ],
+      "build-settings": {
+        "BUNDLE_LOADER": "$(TEST_HOST)",
+        "CODE_SIGN_STYLE": "Automatic",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.diskunbloat.app.tests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SWIFT_VERSION": "6.0",
+        "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/DiskUnbloat.app/Contents/MacOS/DiskUnbloat",
+      },
+    },
+  ],
+  "build-settings": {
+    "CLANG_ENABLE_MODULES": "YES",
+    "ENABLE_TESTABILITY[config=Debug]": "YES",
+    "ENABLE_TESTABILITY[config=Release]": "NO",
+    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+    "ONLY_ACTIVE_ARCH[config=Debug]": "YES",
+    "ONLY_ACTIVE_ARCH[config=Release]": "NO",
+    "SDKROOT": "macosx",
+    "SWIFT_OPTIMIZATION_LEVEL[config=Debug]": "-Onone",
+    "SWIFT_OPTIMIZATION_LEVEL[config=Release]": "-O",
+    "SWIFT_STRICT_CONCURRENCY": "complete",
+    "SWIFT_VERSION": "6.0",
+  },
+  "last-upgrade": "26.6",
+}

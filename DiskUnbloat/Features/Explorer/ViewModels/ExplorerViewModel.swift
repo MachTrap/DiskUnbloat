@@ -127,14 +127,14 @@ private struct CachedResults {
         let hidden = paths
         selectionIDs = selectionIDs.filter { id in
             guard let node = nodesByID[id] else { return true }
-            return !hidden.contains { node.path == $0 || node.path.hasPrefix($0 + "/") }
+            return !hidden.contains { node.path.isWithin($0) }
         }
         sceneCache = [:]; sceneCacheOrder = []; resultsCache = [:]; resultsCacheOrder = []
         scheduleRefresh()
     }
 
     func excludeCandidate(_ node: FileNode) {
-        guard !excludedCandidatePaths.contains(where: { node.path == $0 || node.path.hasPrefix($0 + "/") || $0.hasPrefix(node.path + "/") }) else { return }
+        guard !excludedCandidatePaths.contains(where: { node.path.overlaps($0) }) else { return }
         excludedCandidatePaths.append(node.path)
         scheduleRefresh()
     }

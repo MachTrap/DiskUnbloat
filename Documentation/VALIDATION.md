@@ -35,6 +35,16 @@ All 36 core tests pass (including two new ones: plan dedup keeps topmost entries
 - `drawerRankingDoesNotChangeMapAndStatisticsUseAllRows` now checks the "statistics use all rows" invariant on the Types tab (where statistics materialize); the map-unchanged and largest-ranking assertions are unchanged.
 - All 36 core tests and 31 hosted tests pass. Universal Release build and test compilation pass. `Tools/audit-localization.py` validates 323 entries.
 
+## Phase 1–2 refactoring: shared path helpers and ScanIndex decomposition — 2026-11-01
+
+Behavior-preserving refactors; all validation re-run and green.
+
+- **Shared path helpers (`FileSystem/PathScope.swift`):** introduced `String.isWithin(_:)` (descendant-or-self, `/` matches every absolute path), `.overlaps(_:)`, and `.pathRange` (BINARY `[self/, self0)` bounds). Replaced ~15 ad-hoc `path == other || path.hasPrefix(other + "/")` (and two-way overlap) call sites across `CleanupSafety`, `CleanupPlan`, `ScanCoordinator`, `CleanupViewModel`, `ExplorerViewModel`, `AuthorizationStore`, `WorkspaceViewModel`, `KnownLocation`, and `ScanViewModel`, plus the duplicated `/`-rooted SQL range constructions in `ScanIndex`.
+- **Decomposed `ScanIndex.predicate`** (~110 lines) into an `SQLPredicate` clause accumulator with focused builders: `applyScope`, `applyFilters`, `applySuggestion`, `applyCleanupRule`, `applySystemExclusions`, `applyPathExclusion`. Clause order (and therefore positional `?` binding) is preserved exactly.
+- **Split `ScanIndex` into focused files:** `ScanIndex` (connection/schema/readers), `+Write`, `+Query`, `+Refresh`. Shared plumbing (`db`, `exec`, `bind`, `read`, `readRows`, …) became module-internal and `revision` became `internal(set)` so the split files compile; the actor boundary and public API are unchanged.
+
+Validation: 36 core tests, 31 hosted tests, universal Release build, and test compilation all pass after Phases 1–2.
+
 ## Current map-first build
 
 The app now routes through explicit location, scanning, preparing-results, and explorer screens, with dedicated cancelled/failed outcomes. The map fills the results workspace; browser and details start closed. Source ownership and product invariants are documented in ARCHITECTURE.md and AGENTS.md.

@@ -129,7 +129,7 @@ struct PendingGroup: Sendable {
         let scopes = groupRoots.isEmpty ? [root] : groupRoots
         guard let scope = scopes.first(where: {
             let path = canonicalURL($0).path
-            return path == "/" || node.path == path || node.path.hasPrefix(path + "/")
+            return node.path.isWithin(path)
         }) else { return nil }
         let canonical = canonicalURL(scope).path
         refreshNode = node; previousSnapshot = snapshot

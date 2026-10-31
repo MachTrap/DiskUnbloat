@@ -16,7 +16,7 @@ import DiskCore
     }
 
     private func activityReason(_ node: FileNode) -> String? {
-        if activity.blockedCachePaths(home: homePath).contains(where: { node.path == $0 || node.path.hasPrefix($0 + "/") || $0.hasPrefix(node.path + "/") }) {
+        if activity.blockedCachePaths(home: homePath).contains(where: { node.path.overlaps($0) }) {
             return L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again.")
         }
         return nil
@@ -44,7 +44,7 @@ import DiskCore
 
     func invalidate(overlapping path: String) -> Int {
         let previous = basket.count
-        basket.removeAll { $0.path == path || $0.path.hasPrefix(path + "/") || path.hasPrefix($0.path + "/") }
+        basket.removeAll { $0.path.overlaps(path) }
         return previous - basket.count
     }
 
@@ -77,7 +77,7 @@ import DiskCore
         let activity = self.activity; let home = homePath
         let plan = CleanupPlan(roots: roots, items: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { node in
             await MainActor.run {
-                if activity.blockedCachePaths(home: home).contains(where: { node.path == $0 || node.path.hasPrefix($0 + "/") || $0.hasPrefix(node.path + "/") }) {
+                if activity.blockedCachePaths(home: home).contains(where: { node.path.overlaps($0) }) {
                     return L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again.")
                 }
                 return nil

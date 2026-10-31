@@ -26,7 +26,7 @@ public struct CleanupPlan: Sendable {
         for item in sorted {
             // Lexical order visits a directory's descendants before the next sibling, so the
             // last kept path is the only possible ancestor of the next item.
-            if let ancestor, item.path == ancestor || item.path.hasPrefix(ancestor + "/") { continue }
+            if let ancestor, item.path.isWithin(ancestor) { continue }
             normalized.append(item); ancestor = item.path
         }
         self.items = normalized

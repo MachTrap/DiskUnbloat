@@ -12,14 +12,14 @@ public enum CleanupSafety {
         guard !scopePaths.isEmpty else { return .outsideScope }
         if scopePaths.contains(path) { return .scanRoot }
         // A "/" scope authorizes the whole scanned volume, as plain single-root scans did.
-        guard scopePaths.contains(where: { $0 == "/" || path.hasPrefix($0 + "/") }) else { return .outsideScope }
+        guard scopePaths.contains(where: { path.isWithin($0) }) else { return .outsideScope }
         // Only the exact curated cache locations (and their contents) are exempt; their managed
         // parents and every other managed tree remain protected.
-        let knownCache = exemptingCacheRoots.contains { path == $0 || path.hasPrefix($0 + "/") }
+        let knownCache = exemptingCacheRoots.contains { path.isWithin($0) }
         if !knownCache, isManagedData(path) { return .managedData }
         if node.packageAncestor { return .packageContents }
         let protected = ["/System", "/Library", "/bin", "/sbin", "/usr", "/dev", "/etc", "/var", "/private/etc", "/private/var/db", "/private/var/root", "/private/var/vm", "/private/var/log", "/Applications", "/System/Volumes/Data/System", "/System/Volumes/Data/Library"]
-        if protected.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) { return .systemManaged }
+        if protected.contains(where: { path.isWithin($0) }) { return .systemManaged }
         if let values = try? node.url.resourceValues(forKeys: [.isVolumeKey]), values.isVolume == true { return .volumeRoot }
         return nil
     }

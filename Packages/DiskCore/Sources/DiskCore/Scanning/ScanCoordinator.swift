@@ -90,7 +90,7 @@ private final class EnumerationWorker: @unchecked Sendable {
         let start = Date()
         while batch.nodes.count < 2048 && Date().timeIntervalSince(start) < 0.1 {
             guard let url = enumerator?.nextObject() as? URL else { batch.done = true; break }
-            if excludedPaths.contains(where: { url.path == $0 || url.path.hasPrefix($0 + "/") }) { enumerator?.skipDescendants(); continue }
+            if excludedPaths.contains(where: { url.path.isWithin($0) }) { enumerator?.skipDescendants(); continue }
             while parents.count > 1 && url.deletingLastPathComponent().path != parents.last?.path { parents.removeLast() }
             do {
                 let identity = try FileIdentity.read(url)

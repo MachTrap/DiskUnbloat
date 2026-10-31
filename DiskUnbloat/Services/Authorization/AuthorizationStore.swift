@@ -109,11 +109,9 @@ struct SavedLocation: Identifiable, Codable {
 
     /// Derive a child URL from a live grant without replacing the granted root's token.
     func authorizedURL(for target: URL) -> URL? {
-        for grant in active {
+        for grant in active where target.path.isWithin(grant.path) {
             if target.path == grant.path { return grant }
-            if target.path.hasPrefix(grant.path + "/") {
-                return grant.appendingPathComponent(String(target.path.dropFirst(grant.path.count + 1)))
-            }
+            return grant.appendingPathComponent(String(target.path.dropFirst(grant.path.count + 1)))
         }
         return nil
     }
@@ -125,9 +123,7 @@ struct SavedLocation: Identifiable, Codable {
     func retainOnly(_ urls: [URL]) {
         let kept = urls.map(canonicalURL)
         func covers(_ item: URL) -> Bool {
-            kept.contains {
-                $0.path == item.path || $0.path.hasPrefix(item.path + "/") || item.path.hasPrefix($0.path + "/")
-            }
+            kept.contains { $0.path.overlaps(item.path) }
         }
         for item in active where !covers(item) { bookmarks.stopAccessing(item) }
         active.removeAll { !covers($0) }

@@ -48,6 +48,6 @@ extension LocationCatalog {
     var explanations: [KnownLocation] { knownLocations }
 
     func knownLocation(for path: String) -> KnownLocation? {
-        knownLocations.first { path == $0.url.path || path.hasPrefix($0.url.path + "/") }
+        knownLocations.first { path.isWithin($0.url.path) }
     }
 }

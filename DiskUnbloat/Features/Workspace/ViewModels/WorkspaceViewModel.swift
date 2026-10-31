@@ -178,7 +178,7 @@ enum WorkspacePhase: Equatable {
         guard !isBusy else { return }
         guard target.grouped else {
             if let url = authorization.authorizedURL(for: target.url) { scan.pendingRoot = url; startScan(); return }
-            if let saved = authorization.locations.first(where: { target.url.path == $0.name || target.url.path.hasPrefix($0.name + "/") }) {
+            if let saved = authorization.locations.first(where: { target.url.path.isWithin($0.name) }) {
                 restoringLocation = true
                 locationTask = Task {
                     defer { restoringLocation = false }
@@ -199,7 +199,7 @@ enum WorkspacePhase: Equatable {
         // Grouped quick actions scan several known locations; the home grant covers them all.
         let covered = target.roots.allSatisfy { authorization.authorizedURL(for: $0) != nil }
         if covered { startGrouped(target); return }
-        if let saved = authorization.locations.first(where: { saved in target.roots.allSatisfy { $0.path == saved.name || $0.path.hasPrefix(saved.name + "/") } }) {
+        if let saved = authorization.locations.first(where: { saved in target.roots.allSatisfy { $0.path.isWithin(saved.name) } }) {
             restoringLocation = true
             locationTask = Task {
                 defer { restoringLocation = false }

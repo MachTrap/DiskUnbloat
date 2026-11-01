@@ -8,7 +8,6 @@ struct LocationSelectionView: View {
     let choose: () -> Void
     let target: (ScanTarget) -> Void
     let restore: (SavedLocation) -> Void
-    let sample: () -> Void
     let drop: ([URL]) -> Bool
 
     var body: some View {
@@ -50,21 +49,10 @@ struct LocationSelectionView: View {
                             }.padding(.top, 8)
                         } label: { Label("Developer caches", systemImage: "hammer").font(.callout) }
                     }.frame(maxWidth: .infinity, alignment: .leading)
-                    DisclosureGroup("Known cache locations") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(model.catalog.knownLocations) { item in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title).font(.caption.weight(.medium))
-                                    Text(item.explanation).font(.caption2).foregroundStyle(.secondary)
-                                }
-                            }
-                        }.padding(.top, 8)
-                    }.font(.caption)
                     HStack(spacing: 18) {
                         Button { model.showOptions = true } label: { Label("Scan options", systemImage: "slider.horizontal.3") }
                             .popover(isPresented: $model.showOptions) { ScanOptionsView(model: scan) }
                             .accessibilityIdentifier("scanOptions")
-                        Button("Explore a sample", action: sample).accessibilityIdentifier("loadSample")
                         Spacer()
                         Label("On your Mac. Only your Mac.", systemImage: "lock.shield").foregroundStyle(.secondary)
                     }.font(.caption).buttonStyle(.plain)

@@ -2280,22 +2280,6 @@
         }
       }
     },
-    "Explore a sample" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Explore a sample"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Посмотреть пример"
-          }
-        }
-      }
-    },
     "Explore folder" : {
       "localizations" : {
         "en" : {
@@ -2858,22 +2842,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "Known cache locations" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Known cache locations"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Известные расположения кэшей"
           }
         }
       }

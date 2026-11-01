@@ -164,7 +164,6 @@
           "path": "PreviewContent",
           "children": [
             { "path": "Previews.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-            { "path": "SampleData.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
           ],
         }, {
           "kind": "group",

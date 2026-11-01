@@ -42,7 +42,7 @@ struct WorkspaceView: View {
     @ViewBuilder private func phaseContent(windowWidth: CGFloat) -> some View {
             switch model.phase {
             case .choosing:
-                LocationSelectionView(model: model.location, authorization: model.authorization, scan: scan, busy: model.restoringLocation, choose: model.chooseLocation, target: model.scanTarget, restore: model.restore, sample: model.loadSample, drop: model.acceptDrop)
+                LocationSelectionView(model: model.location, authorization: model.authorization, scan: scan, busy: model.restoringLocation, choose: model.chooseLocation, target: model.scanTarget, restore: model.restore, drop: model.acceptDrop)
             case .scanning, .preparingResults:
                 ScanningView(model: scan, preparing: model.phase == .preparingResults, cancel: model.cancel, issues: { scan.showIssues = true })
             case .exploring:

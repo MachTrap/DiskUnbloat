@@ -61,12 +61,6 @@ enum WorkspacePhase: Equatable {
         authorization.release()
     }
 
-    func loadSample() {
-        guard !isBusy else { return }
-        do { beginScan(with: try SampleData.create()) }
-        catch { message = error.localizedDescription }
-    }
-
     func chooseLocation() {
         guard !isBusy else { return }
         do {

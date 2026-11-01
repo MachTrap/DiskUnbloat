@@ -174,6 +174,42 @@ import DiskCore
         Task { await refresh() }
     }
 
+    /// Expand the folder chain between the open folder and a selected item so its row
+    /// exists in the panel; pages folders whose target child lies beyond the first page.
+    func revealForSelection(_ node: FileNode) async {
+        guard let provider, let current else { return }
+        guard node.path != current.path, node.path.isWithin(current.path) else { return }
+        var targets: [(folder: FileNode, child: FileNode)] = []
+        var cursor = node
+        while let parentID = cursor.parentID, let parent = await provider.node(id: parentID) {
+            if parent.path == current.path || parent.isGroupRoot { break }
+            // Packages and symlinks stay atomic; the chain ends there.
+            guard parent.isDirectory, !parent.isSymbolicLink, !parent.isPackage else { break }
+            targets.append((parent, cursor))
+            cursor = parent
+        }
+        guard !targets.isEmpty else { return }
+        let gen = generation
+        for (folder, child) in targets.reversed() {
+            if peeks[folder.id] == nil { peeks[folder.id] = folder }
+            if peekChildren[folder.id] == nil {
+                let page = await provider.children(of: folder.id, limit: peekLimit, offset: 0, sortByName: false)
+                guard gen == generation else { return }
+                peekChildren[folder.id] = page
+                peekCounts[folder.id] = await provider.childCount(of: folder.id)
+                guard gen == generation else { return }
+            }
+            var fetched = peekChildren[folder.id] ?? []
+            while !fetched.contains(where: { $0.id == child.id }), fetched.count < (peekCounts[folder.id] ?? 0) {
+                let page = await provider.children(of: folder.id, limit: pageSize, offset: fetched.count, sortByName: false)
+                guard gen == generation, !page.isEmpty else { return }
+                fetched += page
+                peekChildren[folder.id] = fetched
+            }
+        }
+        lines = makeLines()
+    }
+
     /// Reveal or hide one folder's unselected direct children.
     func toggleRevealed(_ node: FileNode) {
         if revealed.contains(node.path) { revealed.remove(node.path) }

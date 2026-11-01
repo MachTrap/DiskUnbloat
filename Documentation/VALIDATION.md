@@ -2,6 +2,13 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Selection sync and larger expansion targets — 2026-11-02
+
+Two selection-panel refinements: the expand/collapse chevron grew from a 12 × 12 to a 20 × 20 hit target (glyph 10 pt), and map selection and panel rows now mirror each other. Tapping a panel row highlights the same tile on the map (`ExplorerViewModel.select`); a map selection highlights the matching panel row with an accent tint and scrolls it into view, lazily expanding the folder chain first — folders page until the target child is visible (`CleanupQueueModel.revealForSelection`), and the chain stops at packages/symlinks, which stay atomic. The highlight is the explorer's selection and stays independent of the queue checkboxes. No new localization keys; no project-file changes.
+
+- Hosted app tests: 50 pass — one new: revealing a selection pages a folder until the fifth-largest child is visible, marks it peeked, and ignores items outside the open folder.
+- Core tests: 43 pass; universal Release build and `build-for-testing` (UI bundle included) pass; localization audit unchanged at 279 entries. The automated UI suite was not executed (desktop-automation limitation below).
+
 ## Container peek expansion — 2026-11-01
 
 Follow-up to the selection panel: unselected containers previously had no expansion control. Plain folders (not packages, not symbolic links) now show a chevron; expanding one lazily fetches its **three largest direct children** (known size descending) and, when more exist, a `Show more items` row that pages the rest. Peek state is local to `CleanupQueueModel`, keyed per folder, invalidated on session/branch refresh, and reused recursively for nested folders. No new localization keys; no project-file changes.

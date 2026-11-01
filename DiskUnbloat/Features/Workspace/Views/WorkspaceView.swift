@@ -46,7 +46,7 @@ struct WorkspaceView: View {
             case .scanning, .preparingResults:
                 ScanningView(model: scan, preparing: model.phase == .preparingResults, cancel: model.cancel, issues: { scan.showIssues = true })
             case .exploring:
-                ExplorerView(model: model.explorer, queue: model.queue, scan: scan, canClean: model.canClean, queuedPaths: cleanup.basket.map { $0.node.path }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, selectForCleanup: model.addToBasket, deselectFromCleanup: model.deselect, addSelection: model.addSelectionToBasket, performCleanup: model.performCleanup)
+                ExplorerView(model: model.explorer, queue: model.queue, scan: scan, canClean: model.canClean, queuedPaths: cleanup.basket.map { $0.node.path }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, selectForCleanup: model.addToBasket, deselectFromCleanup: model.deselect, addSelection: model.addSelectionToBasket, performCleanup: model.performCleanup, highlight: { model.explorer.select($0.id) })
             case .cancelled: outcome(cancelled: true, message: "The scan stopped with partial results. You can explore what was read, but cleanup will stay disabled.")
             case .failed(let error): outcome(cancelled: false, message: error)
             }

@@ -277,6 +277,25 @@ import DiskCore
         #expect(model.lines.map(\.id) == ["header-1", "item-10"])
     }
 
+    @Test func revealForSelectionExpandsChainToReachDeepSelection() async throws {
+        let (nodes, children) = boxFixture()
+        let cleanup = CleanupViewModel(service: RecordingCleanupService(), homePath: "/t2")
+        let model = CleanupQueueModel(cleanup: cleanup)
+        model.pageSize = 2
+        model.attach(StubQueueProvider(nodes: nodes, childrenByID: children))
+        await model.refresh(current: nodes[1])
+        #expect(model.lines.map(\.id) == ["header-1", "item-10"])
+        // The fifth-largest child sits beyond the first peek page; revealing a selection
+        // pages the folder until the selected item is visible.
+        await model.revealForSelection(nodes[15]!)
+        #expect(model.isPeeked(nodes[10]!))
+        #expect(model.lines.map(\.id) == ["header-1", "item-10", "item-11", "item-12", "item-13", "item-14", "item-15"])
+        // Items outside the open folder expand nothing.
+        let outside = node(99, nil, "/t3/other.bin", dir: false, size: 7)
+        await model.revealForSelection(outside)
+        #expect(model.lines.map(\.id) == ["header-1", "item-10", "item-11", "item-12", "item-13", "item-14", "item-15"])
+    }
+
     @Test func deselectRemovesEveryOverlappingEntry() {
         let service = RecordingCleanupService()
         let cleanup = CleanupViewModel(service: service, homePath: "/Users/xqueue")

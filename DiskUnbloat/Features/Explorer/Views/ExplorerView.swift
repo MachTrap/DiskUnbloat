@@ -17,6 +17,8 @@ struct ExplorerView: View {
     let deselectFromCleanup: (FileNode) -> Void
     let addSelection: () -> Void
     let performCleanup: (CleanupMode) -> Void
+    /// Highlights an item on the map, e.g. when a panel row is tapped.
+    let highlight: (FileNode) -> Void
     @State private var showOptions = false
     @FocusState private var searchFocused: Bool
 
@@ -41,7 +43,7 @@ struct ExplorerView: View {
             legend
         }
         .inspector(isPresented: showQueue) {
-            CleanupQueueView(model: queue, current: model.current, canClean: canClean, select: selectForCleanup, deselect: deselectFromCleanup, performCleanup: performCleanup)
+            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup)
                 .inspectorColumnWidth(min: 280, ideal: 340, max: 480)
         }
         .toolbar { toolbar }

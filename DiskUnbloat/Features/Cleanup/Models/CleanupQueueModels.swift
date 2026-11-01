@@ -165,7 +165,7 @@ enum CleanupQueueTree {
             hasHiddenChildren: hiddenCount > 0, hiddenChildCount: hiddenCount)))
         if kids.isEmpty {
             // An unselected plain folder expands to a lazy peek at its largest children.
-            if let peeked = input.peekChildren[node.id] {
+            if isExpandableContainer(node), let peeked = input.peekChildren[node.id] {
                 for child in peeked {
                     render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
                 }

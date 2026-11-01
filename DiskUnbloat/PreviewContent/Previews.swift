@@ -32,7 +32,7 @@ private enum PreviewMap {
 }
 
 #Preview("Cleanup queue") {
-    CleanupQueueView(model: previewQueueModel(), current: nil, canClean: true, select: { _ in }, deselect: { _ in }, performCleanup: { _ in })
+    CleanupQueueView(model: previewQueueModel(), current: nil, selected: nil, selectedIDs: [], canClean: true, select: { _ in }, deselect: { _ in }, highlight: { _ in }, performCleanup: { _ in })
         .frame(width: 340, height: 620)
 }
 #Preview("Choose location · Russian") {

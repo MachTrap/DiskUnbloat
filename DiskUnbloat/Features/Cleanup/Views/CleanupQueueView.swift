@@ -7,9 +7,14 @@ import DiskCore
 struct CleanupQueueView: View {
     @Bindable var model: CleanupQueueModel
     let current: FileNode?
+    /// The explorer's current map selection, mirrored into the panel as a highlight.
+    let selected: FileNode?
+    let selectedIDs: Set<Int64>
     let canClean: Bool
     let select: (FileNode) -> Void
     let deselect: (FileNode) -> Void
+    /// Tapping a row highlights the same item on the map.
+    let highlight: (FileNode) -> Void
     let performCleanup: (CleanupMode) -> Void
     @State private var confirmDelete = false
     @State private var confirmPermanent = false
@@ -19,32 +24,44 @@ struct CleanupQueueView: View {
     private struct RefreshKey: Equatable { let revision: Int; let currentID: Int64? }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            if model.lines.isEmpty { emptyState } else { list }
-            Divider()
-            footer
+        ScrollViewReader { proxy in
+            VStack(spacing: 0) {
+                header
+                Divider()
+                if model.lines.isEmpty { emptyState } else { list }
+                Divider()
+                footer
+            }
+            .task(id: RefreshKey(revision: cleanup.queueRevision, currentID: current?.id)) {
+                await model.refresh(current: current)
+            }
+            .onChange(of: selectedIDs) { _, ids in
+                // Mirror the map selection into the panel: expand the folder chain so the
+                // row exists, then bring it into view.
+                guard let node = selected, ids.contains(node.id) else { return }
+                Task {
+                    await model.revealForSelection(node)
+                    try? await Task.sleep(for: .milliseconds(30))
+                    proxy.scrollTo("item-\(node.id)", anchor: .center)
+                }
+            }
+            .confirmationDialog(L10n.text("Delete selected items?"), isPresented: $confirmDelete, titleVisibility: .visible) {
+                Button("Move to Trash", role: .destructive) { performCleanup(.trash) }
+                Button("Delete permanently…", role: .destructive) { confirmPermanent = true }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(L10n.format(
+                    "%lld items · %@ estimated. Folders include their contents. Scanned folders are emptied but kept. If a location does not support Trash, that item will stay in place. Cache removal can disrupt applications; cloud deletion may sync to other devices.",
+                    cleanup.basket.count, sizeText(cleanup.estimatedBytes)))
+            }
+            .alert(L10n.text("Permanently delete these items?"), isPresented: $confirmPermanent) {
+                Button("Delete permanently", role: .destructive) { performCleanup(.permanent) }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(L10n.text("This immediately removes the selected items and all contents of selected folders. Scanned folders stay in place but are emptied. This cannot be undone. Files will not be moved to Trash."))
+            }
+            .accessibilityIdentifier("cleanupQueue")
         }
-        .task(id: RefreshKey(revision: cleanup.queueRevision, currentID: current?.id)) {
-            await model.refresh(current: current)
-        }
-        .confirmationDialog(L10n.text("Delete selected items?"), isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Move to Trash", role: .destructive) { performCleanup(.trash) }
-            Button("Delete permanently…", role: .destructive) { confirmPermanent = true }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(L10n.format(
-                "%lld items · %@ estimated. Folders include their contents. Scanned folders are emptied but kept. If a location does not support Trash, that item will stay in place. Cache removal can disrupt applications; cloud deletion may sync to other devices.",
-                cleanup.basket.count, sizeText(cleanup.estimatedBytes)))
-        }
-        .alert(L10n.text("Permanently delete these items?"), isPresented: $confirmPermanent) {
-            Button("Delete permanently", role: .destructive) { performCleanup(.permanent) }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(L10n.text("This immediately removes the selected items and all contents of selected folders. Scanned folders stay in place but are emptied. This cannot be undone. Files will not be moved to Trash."))
-        }
-        .accessibilityIdentifier("cleanupQueue")
     }
 
     private var header: some View {
@@ -98,7 +115,8 @@ struct CleanupQueueView: View {
     }
 
     private func itemRow(_ row: CleanupQueueRow) -> some View {
-        HStack(spacing: 7) {
+        let highlighted = selectedIDs.contains(row.node.id)
+        return HStack(spacing: 7) {
             if row.hasSelectedDescendants || row.canPeek {
                 let expanded = row.hasSelectedDescendants ? !model.collapsed.contains(row.node.path) : model.isPeeked(row.node)
                 Button {
@@ -106,13 +124,14 @@ struct CleanupQueueView: View {
                     else { model.togglePeek(row.node) }
                 } label: {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
-                        .frame(width: 12, height: 12)
+                        .font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
                 }.buttonStyle(.plain)
                 .help(L10n.text(expanded ? "Collapse" : "Expand"))
                 .accessibilityIdentifier("queueChevron")
             } else {
-                Color.clear.frame(width: 12, height: 12)
+                Color.clear.frame(width: 20, height: 20)
             }
             checkbox(row)
             Image(systemName: row.node.isSymbolicLink ? "link" : row.node.isDirectory ? "folder.fill" : "doc")
@@ -134,8 +153,9 @@ struct CleanupQueueView: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .padding(.leading, CGFloat(row.depth) * 14)
-        .background(.background.opacity(0.001))
+        .background(highlighted ? Color.accentColor.opacity(0.14) : .clear, in: .rect(cornerRadius: 5))
         .contentShape(Rectangle())
+        .onTapGesture { highlight(row.node) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(row.node.name)
         .accessibilityValue(checkStateText(row.checkState))

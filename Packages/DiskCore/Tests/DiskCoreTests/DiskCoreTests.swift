@@ -476,6 +476,28 @@ func destroy(_ index: ScanIndex) async {
     await destroy(index)
 }
 
+@Test func hiddenPathsShrinkContainerSizes() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    func node(_ id: Int64,_ parent: Int64?,_ path: String,_ directory: Bool,_ size: Int64) -> FileNode {
+        FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: directory,logicalSize: size,allocatedSize: size,modified: nil,identity: "\(id)")
+    }
+    try await index.insert([
+        node(1,nil,"/map",true,0), node(2,1,"/map/folder",true,0),
+        node(3,2,"/map/folder/big.bin",false,1000), node(4,2,"/map/folder/small.bin",false,10),
+    ])
+    try await index.aggregate()
+    var q = FileQuery()
+    // A container's size includes every descendant until a nested item is queued.
+    #expect(await index.mapScene(rootID: 1, query: q, filtered: false).entries.first { $0.id == 2 }?.bytes == 1010)
+    // Queuing the large nested file shrinks both its container and the map total.
+    q.hiddenPaths = ["/map/folder/big.bin"]
+    let scene = await index.mapScene(rootID: 1, query: q, filtered: false)
+    #expect(scene.entries.first { $0.id == 2 }?.bytes == 10)
+    #expect(scene.summary.knownBytes == 10)
+    await destroy(index)
+}
+
 @Test func refreshedSameIdentityKeepsIDAndReplacementsNeverReuseIDs() async throws {
     let f = try Fixture(); defer { f.dispose() }
     let keptURL = try f.file("branch/keep",bytes: 50)

@@ -5,6 +5,13 @@ import DiskCore
 
 /// Test doubles shared across the presentation test suites.
 
+/// Cleanup service whose every item reports success, to exercise post-cleanup navigation.
+struct SucceedingCleanupService: CleanupServing {
+    func execute(_ plan: CleanupPlan) async -> [CleanupResult] {
+        plan.items.map { CleanupResult(id: $0.id, path: $0.path, succeeded: true, message: "Moved to Trash") }
+    }
+}
+
 actor RecordingCleanupService: CleanupServing {
     private(set) var plans: [CleanupPlan] = []
     func execute(_ plan: CleanupPlan) async -> [CleanupResult] {

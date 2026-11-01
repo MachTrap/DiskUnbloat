@@ -11,6 +11,22 @@ import DiskCore
         return root
     }
 
+    @Test func performCleanupReturnsToStartScreenInsteadOfRescanning() async throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let model = WorkspaceViewModel(cleanupService: SucceedingCleanupService())
+        model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
+        let index = try #require(model.scan.index)
+        let branch = try #require(await index.node(path: canonicalURL(root).path + "/branch"))
+        // Queue the item directly: this fixture sits under the sandbox container tree, which
+        // addToBasket's managed-data safety check refuses. This targets post-cleanup navigation.
+        model.cleanup.basket = [branch]
+        model.performCleanup(.trash)
+        await model.waitForCleanup()
+        #expect(model.phase == .choosing)
+        #expect(model.cleanup.basket.isEmpty)
+        await model.shutdown()
+    }
+
     @Test func folderRefreshRestoresPresentationAndInvalidatesOverlappingBasket() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
         let model = WorkspaceViewModel()

@@ -39,12 +39,23 @@ extension ScanIndex {
     /// Bounded breadth-first loading keeps the current folder complete even on million-entry scans.
     public func mapScene(rootID: Int64, query: FileQuery, filtered: Bool, maxEntries: Int = 10000) -> MapScene {
         let budget = max(2, min(10000, maxEntries))
+        // Queued (hidden) subtrees are excluded from container sizes so queued items visibly
+        // disappear and their containers shrink. Each queued item's aggregate is its subtree size.
+        let hidden: [(path: String, bytes: Int64)] = query.hiddenPaths.compactMap {
+            guard let n = node(path: $0) else { return nil }
+            return (n.path, n.knownSize(for: query.metric))
+        }
+        func visibleSize(_ n: FileNode) -> Int64 {
+            let queued = hidden.reduce(Int64(0)) { $1.path.isWithin(n.path) ? $0 + $1.bytes : $0 }
+            return max(0, n.knownSize(for: query.metric) - queued)
+        }
+        guard let rootNode = node(rootID) else { return MapScene(rootID: rootID, entries: [], summary: SizeSummary()) }
         var entries: [MapEntry] = []
-        var pending: [(Int64, Int)] = [(rootID, 0)]
+        var pending: [(Int64, Int, FileNode)] = [(rootID, 0, rootNode)]
         var cursor = 0
         var rootSummary = SizeSummary()
         while cursor < pending.count {
-            let (owner, depth) = pending[cursor]; cursor += 1
+            let (owner, depth, ownerNode) = pending[cursor]; cursor += 1
             var q = query
             if !filtered { q.parentID = owner; q.subtreePath = nil; q.leafResults = false }
             q.offset = 0
@@ -55,19 +66,20 @@ extension ScanIndex {
             q.sortByName = false; q.ascending = false
             let total = summary(q)
             if owner == rootID {
-                let unknown = filtered ? total.unknownCount : max(total.unknownCount, node(rootID)?.unknownCount(for: query.metric) ?? 0)
-                rootSummary = SizeSummary(knownBytes: total.knownBytes, itemCount: total.itemCount, unknownCount: unknown)
+                let unknown = filtered ? total.unknownCount : max(total.unknownCount, rootNode.unknownCount(for: query.metric))
+                rootSummary = SizeSummary(knownBytes: filtered ? total.knownBytes : visibleSize(rootNode), itemCount: total.itemCount, unknownCount: unknown)
             }
             let nodes = self.query(q)
             for node in nodes {
                 let folder = node.isDirectory && (!node.isPackage || query.inspectPackages) && !node.isSymbolicLink
-                entries.append(MapEntry(id: node.id, parentID: owner, ownerID: owner, kind: folder ? .folder : .file, node: node, bytes: node.knownSize(for: query.metric), unknownCount: node.unknownCount(for: query.metric)))
-                if folder && depth < 2 && !filtered && node.knownSize(for: query.metric) > 0 { pending.append((node.id, depth + 1)) }
+                entries.append(MapEntry(id: node.id, parentID: owner, ownerID: owner, kind: folder ? .folder : .file, node: node, bytes: visibleSize(node), unknownCount: node.unknownCount(for: query.metric)))
+                if folder && depth < 2 && !filtered && node.knownSize(for: query.metric) > 0 { pending.append((node.id, depth + 1, node)) }
             }
             let omitted = total.itemCount - nodes.count
             if omitted > 0 {
-                let used = nodes.reduce(Int64(0)) { $0 + $1.knownSize(for: query.metric) }
-                entries.append(MapEntry(id: -owner - 1, parentID: owner, ownerID: owner, kind: .aggregate, node: nil, bytes: max(0, total.knownBytes - used), count: omitted, unknownCount: max(0,total.unknownCount - nodes.reduce(0) { $0 + $1.unknownCount(for: query.metric) })))
+                let used = nodes.reduce(Int64(0)) { $0 + visibleSize($1) }
+                let ownerBytes = filtered ? total.knownBytes : visibleSize(ownerNode)
+                entries.append(MapEntry(id: -owner - 1, parentID: owner, ownerID: owner, kind: .aggregate, node: nil, bytes: max(0, ownerBytes - used), count: omitted, unknownCount: max(0,total.unknownCount - nodes.reduce(0) { $0 + $1.unknownCount(for: query.metric) })))
             }
             if filtered { break }
         }

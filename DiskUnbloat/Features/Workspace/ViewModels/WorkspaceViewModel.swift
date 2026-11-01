@@ -48,6 +48,8 @@ enum WorkspacePhase: Equatable {
 
     func waitForScan() async { await scanTask?.value }
 
+    func waitForCleanup() async { await cleanupTask?.value }
+
     func shutdown() async {
         shuttingDown = true
         locationTask?.cancel()
@@ -270,8 +272,12 @@ enum WorkspacePhase: Equatable {
         guard canClean, !scan.roots.isEmpty, let index = scan.index, let items = cleanup.begin() else { return }
         cleanupTask = Task {
             if await cleanup.execute(items, roots: scan.roots, index: index, mode: mode) {
-                // Recompute hard-link ownership throughout the scope after any successful removal.
-                startScan(preservingCleanupReport: true)
+                // The current map is stale after removals; return to the location chooser
+                // instead of re-scanning, dropping the stale index. The deletion report is kept.
+                phase = .choosing
+                explorer.reset()
+                cleanup.reset(preservingReport: true)
+                await scan.discardIndex()
             }
         }
     }

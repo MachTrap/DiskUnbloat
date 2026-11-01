@@ -68,6 +68,13 @@ Final low-risk polish; all validation re-run and green.
 
 Validation: 36 core tests, 31 hosted tests across 10 suites, universal Release build, test compilation, `Tools/audit-localization.py` (323 entries), and generator idempotency all pass.
 
+## Bug fixes: post-cleanup navigation and queued-item container sizes — 2026-11-01
+
+- **After deleting, return to the start screen:** `WorkspaceViewModel.performCleanup` now navigates to the location chooser (`phase = .choosing`), resets the stale explorer, and discards the stale index instead of re-scanning. The deletion report is preserved.
+- **Queued items shrink their containers:** `MapScene.mapScene` now computes each tile's *visible* size (its aggregate minus queued subtrees), so a container shrinks when a nested item is added to the deletion queue and the map total excludes queued bytes. Folder tiles previously used the stored aggregate, which still counted queued (hidden) descendants — so a container stayed large after its only big file was queued.
+
+Regression tests: `hiddenPathsShrinkContainerSizes` (core) and `performCleanupReturnsToStartScreenInsteadOfRescanning` (hosted — it queues the item directly because the sandboxed fixture lives under the managed container tree). All 37 core tests, 32 hosted tests, the universal Release build, test compilation, and `Tools/audit-localization.py` (323 entries) pass.
+
 ## Current map-first build
 
 The app now routes through explicit location, scanning, preparing-results, and explorer screens, with dedicated cancelled/failed outcomes. The map fills the results workspace; browser and details start closed. Source ownership and product invariants are documented in ARCHITECTURE.md and AGENTS.md.

@@ -7,7 +7,7 @@ import DiskCore
     private let homePath: String
     @ObservationIgnored private let service: any CleanupServing
     private(set) var cleaning = false
-    var basket: [FileNode] = []
+    var basket: [CleanupEntry] = []
     var showBasket = false
     private(set) var results: [CleanupResult] = []
 
@@ -15,17 +15,28 @@ import DiskCore
         self.service = service; self.homePath = homePath; self.activity = activity
     }
 
-    /// Refusal message when a node overlaps a running application's active cache. Static so the
+    /// Refusal message when a path overlaps a running application's active cache. Static so the
     /// `execute` preflight (a `@Sendable` closure) can reuse it without capturing `self`.
-    private static func activityMessage(_ node: FileNode, activity: any ApplicationActivityProviding, home: String) -> String? {
-        if activity.blockedCachePaths(home: home).contains(where: { node.path.overlaps($0) }) {
+    private static func activityMessage(_ path: String, activity: any ApplicationActivityProviding, home: String) -> String? {
+        if activity.blockedCachePaths(home: home).contains(where: { path.overlaps($0) }) {
             return L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again.")
         }
         return nil
     }
 
     private func activityReason(_ node: FileNode) -> String? {
-        Self.activityMessage(node, activity: activity, home: homePath)
+        Self.activityMessage(node.path, activity: activity, home: homePath)
+    }
+
+    /// Weaker refusal for a kept scan-root folder: only the folder itself (or a folder below an
+    /// active cache) is refused. Active caches among its contents are rechecked per child before
+    /// each removal at execution time, so an always-protected cache inside the root cannot block
+    /// cleaning the whole location.
+    private func rootActivityReason(_ node: FileNode) -> String? {
+        if activity.blockedCachePaths(home: homePath).contains(where: { node.path.isWithin($0) }) {
+            return activityReason(node)
+        }
+        return nil
     }
 
     func reset(preservingReport: Bool = false) {
@@ -37,47 +48,64 @@ import DiskCore
 
     func add(_ node: FileNode, roots: [URL]) -> String? {
         guard !roots.isEmpty else { return L10n.text(CleanupReason.outsideScope.message) }
-        if let reason = activityReason(node) { return reason }
-        if let reason = CleanupSafety.blockedReasonCode(node, roots: roots, exemptingCacheRoots: CleanupRule.knownCacheRoots(home: homePath)) { return L10n.text(reason.message) }
-        basket = CleanupPlan(roots: roots, items: basket + [node], mode: .trash, knownCacheRoots: CleanupRule.knownCacheRoots(home: homePath)).items
+        let cacheRoots = CleanupRule.knownCacheRoots(home: homePath)
+        let removeReason = CleanupSafety.blockedReasonCode(node, roots: roots, exemptingCacheRoots: cacheRoots)
+        let emptyReason = CleanupSafety.emptyContentsBlockedReasonCode(node, roots: roots, exemptingCacheRoots: cacheRoots)
+        let operation: CleanupOperation
+        if removeReason == nil {
+            if let reason = activityReason(node) { return reason }
+            operation = .remove
+        } else if emptyReason == nil {
+            // A scan-root folder cannot be removed, but its contents can be cleaned in place.
+            if let reason = rootActivityReason(node) { return reason }
+            operation = .emptyContents
+        } else {
+            // For scan roots the empty-contents check names the specific protection that
+            // still applies (managed data, system tree, volume root) instead of the generic
+            // "roots cannot be removed" refusal.
+            let reason = removeReason == .scanRoot ? emptyReason : removeReason
+            return L10n.text((reason ?? .scanRoot).message)
+        }
+        basket = CleanupPlan(roots: roots, entries: basket + [CleanupEntry(node: node, operation: operation)], mode: .trash, knownCacheRoots: cacheRoots).items
         return nil
     }
 
     func invalidate(overlapping path: String) -> Int {
         let previous = basket.count
-        basket.removeAll { $0.path.overlaps(path) }
+        basket.removeAll { $0.node.path.overlaps(path) }
         return previous - basket.count
     }
 
     func removeFromBasket(_ node: FileNode) {
         guard !cleaning else { return }
-        basket.removeAll { $0.id == node.id }
+        basket.removeAll { $0.node.id == node.id }
     }
 
     /// Called synchronously to disable repeated submissions before creating an async task.
-    func begin() -> [FileNode]? {
+    func begin() -> [CleanupEntry]? {
         guard !cleaning, !basket.isEmpty else { return nil }
         cleaning = true
         return basket
     }
 
-    func execute(_ items: [FileNode], root: URL, index: ScanIndex, mode: CleanupMode) async -> Bool {
+    func execute(_ items: [CleanupEntry], root: URL, index: ScanIndex, mode: CleanupMode) async -> Bool {
         await execute(items, roots: [root], index: index, mode: mode)
     }
 
-    func execute(_ items: [FileNode], roots: [URL], index: ScanIndex, mode: CleanupMode) async -> Bool {
+    func execute(_ items: [CleanupEntry], roots: [URL], index: ScanIndex, mode: CleanupMode) async -> Bool {
         guard !roots.isEmpty else { return false }
         defer { cleaning = false }
-        var eligible: [FileNode] = []
+        var eligible: [CleanupEntry] = []
         var refused: [CleanupResult] = []
-        for node in items {
-            if let reason = activityReason(node) { refused.append(CleanupResult(id: node.id,path: node.path,succeeded: false,message: reason)) }
-            else { eligible.append(node) }
+        for entry in items {
+            let reason = entry.operation == .remove ? activityReason(entry.node) : rootActivityReason(entry.node)
+            if let reason { refused.append(CleanupResult(id: entry.node.id,path: entry.node.path,succeeded: false,message: reason)) }
+            else { eligible.append(entry) }
         }
-        let ancestors = await index.ancestorIdentities(for: items.map(\.id))
+        let ancestors = await index.ancestorIdentities(for: items.map { $0.node.id })
         let activity = self.activity; let home = homePath
-        let plan = CleanupPlan(roots: roots, items: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { node in
-            await MainActor.run { CleanupViewModel.activityMessage(node, activity: activity, home: home) }
+        let plan = CleanupPlan(roots: roots, entries: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { path in
+            await MainActor.run { CleanupViewModel.activityMessage(path, activity: activity, home: home) }
         }, knownCacheRoots: CleanupRule.knownCacheRoots(home: homePath))
         results = refused + (await service.execute(plan))
         return results.contains(where: \.succeeded)

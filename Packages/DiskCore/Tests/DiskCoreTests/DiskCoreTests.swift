@@ -658,7 +658,99 @@ private actor CleanupGate {
     // A descendant must be dropped even when its ancestor is not the last kept path,
     // and independent roots must all survive.
     let plan = CleanupPlan(root: URL(fileURLWithPath: "/"), items: [node("/z"), node("/a/b/c"), node("/a/b"), node("/a/c"), node("/a")], mode: .trash)
-    #expect(plan.items.map(\.path) == ["/a", "/z"])
+    #expect(plan.items.map { $0.node.path } == ["/a", "/z"])
+    #expect(plan.items.allSatisfy { $0.operation == .remove })
+}
+
+@Test func cleanupPlanNormalizationSubsumesInsideEmptyingAndKeepsRemoval() {
+    func node(_ path: String) -> FileNode {
+        FileNode(id: 1, parentID: 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: true, logicalSize: 10, allocatedSize: 10, modified: nil, identity: path)
+    }
+    func entry(_ path: String, _ operation: CleanupOperation) -> CleanupEntry { CleanupEntry(node: node(path), operation: operation) }
+    // Cleaning a folder's contents covers anything queued inside it, in either order.
+    let inside = CleanupPlan(roots: [URL(fileURLWithPath: "/g")], entries: [entry("/g/caches", .emptyContents), entry("/g/caches/app", .remove)], mode: .trash)
+    #expect(inside.items.map { $0.node.path } == ["/g/caches"])
+    #expect(inside.items.map(\.operation) == [.emptyContents])
+    // The same path queued twice keeps the stronger operation: removal.
+    let same = CleanupPlan(roots: [URL(fileURLWithPath: "/g")], entries: [entry("/g/caches", .emptyContents), entry("/g/caches", .remove)], mode: .trash)
+    #expect(same.items.map(\.operation) == [.remove])
+    // Removing an ancestor subsumes an emptying entry below it.
+    let above = CleanupPlan(roots: [URL(fileURLWithPath: "/g")], entries: [entry("/g/work", .remove), entry("/g/work/cache", .emptyContents)], mode: .trash)
+    #expect(above.items.map { $0.node.path } == ["/g/work"])
+    #expect(above.items.map(\.operation) == [.remove])
+}
+
+@Test func emptyContentsSafetyQualifiesOnlyScanRoots() {
+    let first = URL(fileURLWithPath: "/Users/g/Library/Caches")
+    let second = URL(fileURLWithPath: "/Users/g/.gradle/caches")
+    func node(_ path: String, directory: Bool = true) -> FileNode {
+        FileNode(id: 1, parentID: 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: directory, logicalSize: directory ? nil : 10, allocatedSize: directory ? nil : 10, modified: nil, identity: "n")
+    }
+    // Every listed root of a grouped scan can be emptied in place.
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node("/Users/g/Library/Caches"), roots: [first, second]) == nil)
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node("/Users/g/.gradle/caches"), roots: [first, second]) == nil)
+    // Contents queue for ordinary removal; the synthetic wrapper is never a target.
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node("/Users/g/Library/Caches/sub"), roots: [first, second]) == .scanRoot)
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node(ScanGroup.path), roots: [first, second]) == .outsideScope)
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node("/Users/g/Downloads"), roots: [first, second]) == .outsideScope)
+    // "/" and non-folders stay refused even when they head the scope.
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node("/"), roots: [URL(fileURLWithPath: "/")]) == .scanRoot)
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node("/Users/g/Library/Caches", directory: false), roots: [first]) == .scanRoot)
+    // A managed scan root keeps its protection unless a curated cache location exempts it.
+    let telegram = "/Users/g/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram"
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node(telegram), roots: [URL(fileURLWithPath: telegram)]) == .managedData)
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node(telegram), roots: [URL(fileURLWithPath: telegram)], exemptingCacheRoots: [telegram]) == nil)
+    // System-managed scan roots stay refused.
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node("/Applications"), roots: [URL(fileURLWithPath: "/Applications")]) == .systemManaged)
+}
+
+@Test func emptyContentsRemovalKeepsTheScanRootFolder() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    _ = try f.file("cache.bin", bytes: 4096)
+    _ = try f.file("sub/nested.bin", bytes: 2048)
+    let (index, _) = try await scan(f.root)
+    let root = try #require(await index.node(1))
+    #expect(root.path == canonicalURL(f.root).path)
+    // The scan root is blocked from removal but qualified for in-place cleaning.
+    #expect(CleanupSafety.blockedReason(root, root: f.root) != nil)
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(root, roots: [f.root]) == nil)
+    let results = await CleanupService().execute(CleanupPlan(roots: [f.root], entries: [CleanupEntry(node: root, operation: .emptyContents)], mode: .permanent))
+    #expect(results.count == 1)
+    #expect(results.first?.succeeded == true, "\(results.first?.message ?? "No result")")
+    // The folder itself survives while every current child is gone.
+    #expect(FileManager.default.fileExists(atPath: root.path))
+    #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty)
+    await destroy(index)
+}
+
+@Test func emptyContentsRefusesAFolderThatChangedSinceScanning() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    _ = try f.file("a.bin")
+    let (index, _) = try await scan(f.root)
+    let root = try #require(await index.node(1))
+    _ = try f.file("late.bin")
+    let results = await CleanupService().execute(CleanupPlan(roots: [f.root], entries: [CleanupEntry(node: root, operation: .emptyContents)], mode: .permanent))
+    #expect(results.first?.succeeded == false)
+    #expect(FileManager.default.fileExists(atPath: f.root.appendingPathComponent("a.bin").path))
+    await destroy(index)
+}
+
+@Test func emptyContentsRechecksPreflightForEveryChild() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    _ = try f.file("keep-cache/a.bin")
+    _ = try f.file("other.bin")
+    let (index, _) = try await scan(f.root)
+    let root = try #require(await index.node(1))
+    let protected = canonicalURL(f.root).path + "/keep-cache"
+    let plan = CleanupPlan(roots: [f.root], entries: [CleanupEntry(node: root, operation: .emptyContents)], mode: .permanent, preflight: { path in path == protected ? "protected by activity" : nil })
+    let results = await CleanupService().execute(plan)
+    #expect(results.count == 1)
+    #expect(results.first?.succeeded == false)
+    // The guarded child and its contents stay, the other child is removed, and the folder stays.
+    #expect(FileManager.default.fileExists(atPath: protected + "/a.bin"))
+    #expect(!FileManager.default.fileExists(atPath: f.root.appendingPathComponent("other.bin").path))
+    #expect(FileManager.default.fileExists(atPath: root.path))
+    await destroy(index)
 }
 
 @Test func categoryListReturnsDistinctFileCategories() async throws {

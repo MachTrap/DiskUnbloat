@@ -13,16 +13,21 @@ struct CleanupReviewView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Deletion queue").font(.title2.bold())
-                    Text(L10n.format("%lld items · %@ estimated", model.basket.count, sizeText(model.basket.reduce(0) { $0 + $1.displaySize }))).foregroundStyle(.secondary)
+                    Text(L10n.format("%lld items · %@ estimated", model.basket.count, sizeText(model.basket.reduce(0) { $0 + $1.node.displaySize }))).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Image(systemName: "tray.full").font(.largeTitle).foregroundStyle(.teal)
             }
             Text("Review every path. Folders include their contents. Cache removal can disrupt applications; cloud deletion may sync to other devices. Actual recovered space may differ.").font(.callout).foregroundStyle(.secondary)
             List {
-                ForEach(model.basket) { node in
+                ForEach(model.basket) { entry in
+                    let node = entry.node
                     HStack {
-                        VStack(alignment: .leading, spacing: 3) { Text(node.name).fontWeight(.medium); Text(node.path).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(node.name).fontWeight(.medium)
+                            Text(node.path).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                            if entry.operation == .emptyContents { Text("Cleans contents · keeps folder").font(.caption).foregroundStyle(.teal) }
+                        }
                         Spacer()
                         Text(sizeText(node.allocatedSize)).foregroundStyle(.secondary)
                         Button { model.removeFromBasket(node) } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).help("Remove from queue").disabled(model.cleaning)

@@ -19,7 +19,7 @@ import DiskCore
         let branch = try #require(await index.node(path: canonicalURL(root).path + "/branch"))
         // Queue the item directly: this fixture sits under the sandbox container tree, which
         // addToBasket's managed-data safety check refuses. This targets post-cleanup navigation.
-        model.cleanup.basket = [branch]
+        model.cleanup.basket = [CleanupEntry(node: branch, operation: .remove)]
         model.performCleanup(.trash)
         await model.waitForCleanup()
         #expect(model.phase == .choosing)

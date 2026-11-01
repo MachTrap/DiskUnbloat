@@ -65,7 +65,8 @@ import DiskCore
         let file = try #require(await index.node(3))
         #expect(model.add(file, root: root) == nil)
         #expect(model.add(folder, root: root) == nil)
-        #expect(model.basket.map(\.id) == [2])
+        #expect(model.basket.map { $0.node.id } == [2])
+        #expect(model.basket.map(\.operation) == [.remove])
         let items = try #require(model.begin())
         #expect(model.cleaning)
         #expect(model.begin() == nil)
@@ -74,7 +75,7 @@ import DiskCore
         #expect(!model.cleaning)
         let plans = await service.plans
         #expect(plans.count == 1)
-        #expect(plans.first?.items.map(\.id) == [2])
+        #expect(plans.first?.items.map { $0.node.id } == [2])
         #expect(plans.first?.ancestorIdentities[root.path] == "cleanup")
         await discard(index)
     }
@@ -88,11 +89,53 @@ import DiskCore
         // The managed parent stays protected; the curated cache location can join the queue.
         #expect(model.add(parent, root: root) != nil)
         #expect(model.add(telegram, root: root) == nil)
-        #expect(model.basket.map(\.id) == [11])
+        #expect(model.basket.map { $0.node.id } == [11])
         let items = try #require(model.begin())
         await model.execute(items, root: root, index: try await index(name: "unused"), mode: .trash)
         let plans = await service.plans
         #expect(plans.first?.knownCacheRoots.contains { $0.hasSuffix("/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram") } == true)
+    }
+
+    @Test func scanRootsQueueAsCleanContentsKeepingTheFolder() async throws {
+        let service = RecordingCleanupService()
+        let model = CleanupViewModel(service: service, homePath: "/Users/xdbtest")
+        let caches = URL(fileURLWithPath: "/Users/xdbtest/Library/Caches")
+        func node(_ id: Int64, _ path: String) -> FileNode {
+            FileNode(id: id, parentID: id == 1 ? nil : 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "\(id)")
+        }
+        // A scan-root folder cannot be removed, so queueing it cleans its contents in place.
+        #expect(model.add(node(1, "/Users/xdbtest/Library/Caches"), roots: [caches]) == nil)
+        #expect(model.basket.map(\.operation) == [.emptyContents])
+        // Contents keep the ordinary removal path and collapse into the queued root.
+        #expect(model.add(node(2, "/Users/xdbtest/Library/Caches/app"), roots: [caches]) == nil)
+        #expect(model.basket.map { $0.node.id } == [1])
+        // A managed scan root stays protected: emptying ~/Library is still refused.
+        #expect(model.add(node(3, "/Users/xdbtest/Library"), roots: [URL(fileURLWithPath: "/Users/xdbtest/Library")]) != nil)
+        #expect(model.basket.map { $0.node.id } == [1])
+        let items = try #require(model.begin())
+        await model.execute(items, roots: [caches], index: try await index(name: "unused"), mode: .trash)
+        let plans = await service.plans
+        #expect(plans.first?.items.map(\.operation) == [.emptyContents])
+    }
+
+    @Test func activeCachesGuardContentsWhileRootCleaningStaysQueued() {
+        let home = "/Users/xactivity"
+        let caches = URL(fileURLWithPath: home + "/Library/Caches")
+        func dir(_ id: Int64, _ path: String) -> FileNode {
+            FileNode(id: id, parentID: 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "\(id)")
+        }
+        // A running application's cache among the root's contents no longer blocks queueing the
+        // root: every contents removal is rechecked against the activity guard at execution.
+        let cleanup = CleanupViewModel(service: RecordingCleanupService(), homePath: home, activity: FixedActivity(paths: [home + "/Library/Caches/running"]))
+        #expect(cleanup.add(dir(1, caches.path), roots: [caches]) == nil)
+        #expect(cleanup.basket.map(\.operation) == [.emptyContents])
+        // The active cache itself still cannot be queued for removal.
+        #expect(cleanup.add(dir(2, caches.path + "/running"), roots: [caches]) != nil)
+        #expect(cleanup.basket.map { $0.node.id } == [1])
+        // A scan root that is itself an active cache stays refused.
+        let active = CleanupViewModel(service: RecordingCleanupService(), homePath: home, activity: FixedActivity(paths: [caches.path]))
+        #expect(active.add(dir(3, caches.path), roots: [caches]) != nil)
+        #expect(active.basket.isEmpty)
     }
 
     @Test func queuedItemsDisappearFromMapBrowserAndSelection() async throws {

@@ -8,7 +8,7 @@ import DiskCore
 /// Cleanup service whose every item reports success, to exercise post-cleanup navigation.
 struct SucceedingCleanupService: CleanupServing {
     func execute(_ plan: CleanupPlan) async -> [CleanupResult] {
-        plan.items.map { CleanupResult(id: $0.id, path: $0.path, succeeded: true, message: "Moved to Trash") }
+        plan.items.map { CleanupResult(id: $0.node.id, path: $0.node.path, succeeded: true, message: "Moved to Trash") }
     }
 }
 

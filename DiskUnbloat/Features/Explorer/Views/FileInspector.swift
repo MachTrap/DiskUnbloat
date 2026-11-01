@@ -42,7 +42,14 @@ struct FileInspector: View {
                     Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { reveal(node) }
                     if model.canNavigate(node) { Button("Explore folder", systemImage: "folder") { model.navigate(node) } }
                     if !roots.isEmpty, let reason = CleanupSafety.blockedReason(node, roots: roots, exemptingCacheRoots: CleanupRule.knownCacheRoots(home: model.homePath ?? "")) {
-                        Label(L10n.text(reason), systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
+                        if CleanupSafety.emptyContentsBlockedReasonCode(node, roots: roots, exemptingCacheRoots: CleanupRule.knownCacheRoots(home: model.homePath ?? "")) == nil {
+                            // A scan-root folder cannot leave the disk, but queueing it cleans everything inside.
+                            Button("Clean contents (keep folder)", systemImage: "folder.badge.minus") { addToBasket(node) }
+                                .buttonStyle(.glass).disabled(!canClean).accessibilityIdentifier("addToReview")
+                            Text("The folder stays; its current contents are removed.").font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Label(L10n.text(reason), systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
+                        }
                     } else {
                         Button("Add to deletion queue", systemImage: "tray.and.arrow.down") { addToBasket(node) }
                             .buttonStyle(.glass).disabled(!canClean).accessibilityIdentifier("addToReview")

@@ -1486,6 +1486,38 @@
         }
       }
     },
+    "Clean contents (keep folder)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean contents (keep folder)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить содержимое (папку оставить)"
+          }
+        }
+      }
+    },
+    "Cleans contents · keeps folder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleans contents · keeps folder"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищает содержимое · папка остаётся"
+          }
+        }
+      }
+    },
     "Cleanup suggestions" : {
       "localizations" : {
         "en" : {
@@ -2162,6 +2194,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Прошло"
+          }
+        }
+      }
+    },
+    "Emptied. Contents moved to Trash." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emptied. Contents moved to Trash."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищено. Содержимое перемещено в Корзину."
+          }
+        }
+      }
+    },
+    "Emptied. Contents permanently deleted." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emptied. Contents permanently deleted."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищено. Содержимое удалено безвозвратно."
           }
         }
       }
@@ -5053,6 +5119,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не удалось обновить папку. Предыдущие результаты сохранены. %@"
+          }
+        }
+      }
+    },
+    "The folder stays; its current contents are removed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The folder stays; its current contents are removed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Папка остаётся; её текущее содержимое будет удалено."
+          }
+        }
+      }
+    },
+    "The folder was kept, but some contents could not be removed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The folder was kept, but some contents could not be removed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Папка сохранена, но часть содержимого не удалось удалить."
           }
         }
       }

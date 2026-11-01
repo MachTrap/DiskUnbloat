@@ -41,7 +41,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var selected: FileNode? { selection.flatMap { nodesByID[$0] } }
     var selectedNodes: [FileNode] { selectionIDs.compactMap { nodesByID[$0] } }
     var normalizedSelection: [FileNode] {
-        CleanupPlan(root: URL(fileURLWithPath: "/"), items: selectedNodes, mode: .trash).items
+        CleanupPlan(root: URL(fileURLWithPath: "/"), items: selectedNodes, mode: .trash).items.map(\.node)
     }
     var selectionBytes: Int64 { normalizedSelection.reduce(0) { $0 + $1.knownSize(for: metric) } }
     var current: FileNode?

@@ -1252,55 +1252,6 @@
         }
       }
     },
-    "Cleanup queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleanup queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очередь очистки"
-          }
-        }
-      }
-    },
-    "Cleanup Queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleanup Queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очередь очистки"
-          }
-        }
-      }
-    },
-    "Cleanup queue · %lld items · %@ estimated" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleanup queue · %lld items · %@ estimated"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очередь очистки · объекты: %lld · оценка: %@"
-          }
-        }
-      }
-    },
     "Cleanup report" : {
       "localizations" : {
         "en" : {
@@ -1532,7 +1483,6 @@
       }
     },
     "Current folder" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4000,6 +3950,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выберите папку или файл на карте, чтобы добавить их сюда."
+          }
+        }
+      }
+    },
+    "Select items to delete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select items to delete"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите объекты для удаления"
+          }
+        }
+      }
+    },
+    "Select items to delete · %lld items · %@ estimated" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select items to delete · %lld items · %@ estimated"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите объекты для удаления · объекты: %lld · оценка: %@"
           }
         }
       }

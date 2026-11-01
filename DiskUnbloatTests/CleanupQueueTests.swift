@@ -3,7 +3,8 @@ import Testing
 import DiskCore
 @testable import DiskUnbloat
 
-/// Queue-tree projection and lazy expansion: the panel's compact selected-first hierarchy.
+/// Queue-tree projection and lazy expansion: the panel's current-folder listing and
+/// compact selected-first hierarchy.
 @MainActor struct CleanupQueueTests {
     private func node(_ id: Int64, _ parent: Int64?, _ path: String, dir: Bool, size: Int64 = 0) -> FileNode {
         FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
@@ -11,13 +12,19 @@ import DiskCore
                  knownLogicalSize: size, knownAllocatedSize: size)
     }
 
-    /// Stub provider over an in-memory tree; children come back name-sorted and paged.
+    /// Stub provider over an in-memory tree; children come back paged in the requested
+    /// order (by name, or by known size descending).
     private struct StubQueueProvider: CleanupQueueProviding {
         let nodes: [Int64: FileNode]
         let childrenByID: [Int64: [FileNode]]
         func node(id: Int64) async -> FileNode? { nodes[id] }
-        func children(of parentID: Int64, limit: Int, offset: Int) async -> [FileNode] {
-            let all = (childrenByID[parentID] ?? []).sorted { $0.name < $1.name }
+        func children(of parentID: Int64, limit: Int, offset: Int, sortByName: Bool) async -> [FileNode] {
+            let all = (childrenByID[parentID] ?? []).sorted { a, b in
+                if sortByName { return a.name < b.name }
+                let left = a.knownSize(for: .allocated)
+                let right = b.knownSize(for: .allocated)
+                return left == right ? a.path < b.path : left > right
+            }
             guard offset < all.count else { return [] }
             return Array(all[offset..<min(offset + limit, all.count)])
         }
@@ -35,6 +42,101 @@ import DiskCore
         let nodes: [Int64: FileNode] = [root, folder, a, file, b, c].reduce(into: [:]) { $0[$1.id] = $1 }
         let children: [Int64: [FileNode]] = [1: [folder, b, c], 2: [a, file]]
         return (nodes, children)
+    }
+
+    @Test func currentFolderListsChildrenBySizeDescending() {
+        let (nodes, children) = fixture()
+        // Nothing is selected: the panel still lists the open folder, largest first.
+        let lines = CleanupQueueTree.lines(.init(
+            entries: [], nodes: nodes, current: nodes[1],
+            directoryChildren: children[1]!.sorted { $0.knownSize(for: .allocated) > $1.knownSize(for: .allocated) },
+            directoryCount: 3))
+        #expect(lines.map(\.id) == ["header-1", "item-2", "item-5", "item-4"])
+        guard case .directoryHeader(let open) = lines[0], case .item(let folderRow) = lines[1],
+              case .item(let cRow) = lines[2], case .item(let bRow) = lines[3] else {
+            Issue.record("Expected a header, then size-ordered children"); return
+        }
+        #expect(open.id == 1)
+        #expect(folderRow.checkState == .unchecked && folderRow.node.id == 2 && folderRow.bytes == 40)
+        #expect(cRow.node.id == 5 && cRow.bytes == 35)
+        #expect(bRow.node.id == 4 && bRow.bytes == 25)
+    }
+
+    @Test func selectedDirectChildShowsCheckedInsideTheListing() {
+        let (nodes, children) = fixture()
+        // A selected direct child belongs in the listing as a checked row, not twice.
+        let entries = [CleanupEntry(node: nodes[4]!, operation: .remove)]
+        let lines = CleanupQueueTree.lines(.init(
+            entries: entries, nodes: nodes, current: nodes[1],
+            directoryChildren: children[1]!.sorted { $0.knownSize(for: .allocated) > $1.knownSize(for: .allocated) },
+            directoryCount: 3))
+        #expect(lines.map(\.id) == ["header-1", "item-2", "item-5", "item-4"])
+        guard case .item(let bRow) = lines[3] else { Issue.record("Expected the selected child in the listing"); return }
+        #expect(bRow.checkState == .checked && bRow.operation == .remove && bRow.bytes == 25)
+    }
+
+    @Test func deepSelectionNestsUnderItsListingRow() {
+        let (nodes, children) = fixture()
+        // A file selected below a listing folder nests under that folder's row.
+        let entries = [CleanupEntry(node: nodes[6]!, operation: .remove)]
+        let lines = CleanupQueueTree.lines(.init(
+            entries: entries, nodes: nodes, current: nodes[1],
+            directoryChildren: children[1]!.sorted { $0.knownSize(for: .allocated) > $1.knownSize(for: .allocated) },
+            directoryCount: 3))
+        #expect(lines.map(\.id) == ["header-1", "item-2", "item-6", "item-5", "item-4"])
+        guard case .item(let folderRow) = lines[1], case .item(let fileRow) = lines[2] else {
+            Issue.record("Expected the partial folder then its selected child"); return
+        }
+        #expect(folderRow.checkState == .partial && folderRow.bytes == 30)
+        #expect(fileRow.checkState == .checked && fileRow.node.id == 6 && fileRow.depth == 1)
+    }
+
+    @Test func directoryListingPaginatesWithHonestCount() {
+        let (nodes, children) = fixture()
+        let lines = CleanupQueueTree.lines(.init(
+            entries: [], nodes: nodes, current: nodes[1],
+            directoryChildren: children[1]!.sorted { $0.knownSize(for: .allocated) > $1.knownSize(for: .allocated) },
+            directoryCount: 5))
+        #expect(lines.map(\.id) == ["header-1", "item-2", "item-5", "item-4", "showMore-1"])
+    }
+
+    /// root(1) contains box(10) with five files: 11..15 sized 500, 400, 300, 200, 100.
+    private func boxFixture() -> (nodes: [Int64: FileNode], children: [Int64: [FileNode]]) {
+        let root = node(1, nil, "/t2", dir: true, size: 100)
+        let box = node(10, 1, "/t2/box", dir: true, size: 1500)
+        var nodes: [Int64: FileNode] = [1: root, 10: box]
+        let sizes: [(Int64, Int64)] = [(11, 500), (12, 400), (13, 300), (14, 200), (15, 100)]
+        var kids: [FileNode] = []
+        for (id, size) in sizes {
+            let f = node(id, 10, "/t2/box/f\(id).bin", dir: false, size: size)
+            nodes[id] = f; kids.append(f)
+        }
+        return (nodes, [1: [box], 10: kids])
+    }
+
+    @Test func unselectedContainersAreExpandable() {
+        let (nodes, children) = boxFixture()
+        let lines = CleanupQueueTree.lines(.init(
+            entries: [], nodes: nodes, current: nodes[1],
+            directoryChildren: children[1]!, directoryCount: 1))
+        // A container with nothing selected still offers a chevron; nothing nested shows
+        // until the user expands it.
+        #expect(lines.map(\.id) == ["header-1", "item-10"])
+        guard case .item(let boxRow) = lines[1] else { Issue.record("Expected the container row"); return }
+        #expect(boxRow.canPeek && boxRow.checkState == .unchecked && !boxRow.hasSelectedDescendants)
+    }
+
+    @Test func peekShowsThreeLargestThenPaging() {
+        let (nodes, children) = boxFixture()
+        let largest3 = children[10]!.sorted { $0.knownSize(for: .allocated) > $1.knownSize(for: .allocated) }.prefix(3).map { $0 }
+        let lines = CleanupQueueTree.lines(.init(
+            entries: [], nodes: nodes, current: nodes[1],
+            directoryChildren: children[1]!, directoryCount: 1,
+            peekChildren: [10: largest3], peekCounts: [10: 5]))
+        // Expanded: the three largest children by size, then paging for the rest.
+        #expect(lines.map(\.id) == ["header-1", "item-10", "item-11", "item-12", "item-13", "showMore-10"])
+        guard case .item(let first) = lines[2] else { Issue.record("Expected peeked children"); return }
+        #expect(first.node.id == 11 && first.depth == 1 && first.bytes == 500)
     }
 
     @Test func wholeFolderSelectionIsOneAtomicCheckedRow() {
@@ -129,23 +231,50 @@ import DiskCore
         #expect(queueMembership(path: "/t/other", queuedPaths: ["/t/folder"]) == .none)
     }
 
-    @Test func modelGathersAncestorsAndLazySiblings() async throws {
+    @Test func modelListsCurrentFolderAndGathersLazySiblings() async throws {
         let (nodes, children) = fixture()
         let service = RecordingCleanupService()
         let cleanup = CleanupViewModel(service: service, homePath: "/Users/xqueue")
-        cleanup.basket = [CleanupEntry(node: nodes[3]!, operation: .remove)]
+        cleanup.basket = [CleanupEntry(node: nodes[6]!, operation: .remove)]
         let model = CleanupQueueModel(cleanup: cleanup)
+        model.pageSize = 2
         model.attach(StubQueueProvider(nodes: nodes, childrenByID: children))
-        await model.refresh()
-        #expect(model.lines.map(\.id) == ["item-1", "item-2", "item-3", "more-2", "more-1"])
-        // Revealing loads one page of unselected siblings lazily.
+        await model.refresh(current: nodes[1])
+        // The open folder is listed even though only one deep file is selected, and the
+        // selected descendant nests under its folder's row — which keeps its hidden-
+        // siblings expander. The page limit is respected.
+        #expect(model.lines.map(\.id) == ["header-1", "item-2", "item-6", "more-2", "item-5", "showMore-1"])
+        // Loading more appends the remaining children and drops the pagination row.
+        await model.loadMore(of: nodes[1]!)
+        #expect(model.lines.map(\.id) == ["header-1", "item-2", "item-6", "more-2", "item-5", "item-4"])
+        // Revealing unselected siblings loads one page of children lazily.
         model.toggleRevealed(nodes[2]!)
         try await Task.sleep(for: .milliseconds(30))
-        #expect(model.lines.map(\.id) == ["item-1", "item-2", "item-3", "item-6", "more-1"])
-        // Emptying the queue empties the tree.
+        #expect(model.lines.map(\.id) == ["header-1", "item-2", "item-6", "item-3", "item-5", "item-4"])
+        // Unchecking the entry keeps the listing and empties the selected tree.
         cleanup.basket = []
-        await model.refresh()
-        #expect(model.lines.isEmpty)
+        await model.refresh(current: nodes[1])
+        #expect(model.lines.map(\.id) == ["header-1", "item-2", "item-5", "item-4"])
+    }
+
+    @Test func modelPeeksLargestChildrenLazily() async throws {
+        let (nodes, children) = boxFixture()
+        let cleanup = CleanupViewModel(service: RecordingCleanupService(), homePath: "/t2")
+        let model = CleanupQueueModel(cleanup: cleanup)
+        model.attach(StubQueueProvider(nodes: nodes, childrenByID: children))
+        await model.refresh(current: nodes[1])
+        #expect(model.lines.map(\.id) == ["header-1", "item-10"])
+        // Expanding shows the three largest children; the rest stay behind Show more.
+        model.togglePeek(nodes[10]!)
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(model.lines.map(\.id) == ["header-1", "item-10", "item-11", "item-12", "item-13", "showMore-10"])
+        // Show more pages the rest in.
+        await model.loadMore(of: nodes[10]!)
+        #expect(model.lines.map(\.id) == ["header-1", "item-10", "item-11", "item-12", "item-13", "item-14", "item-15"])
+        // Toggling again collapses the peek.
+        model.togglePeek(nodes[10]!)
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(model.lines.map(\.id) == ["header-1", "item-10"])
     }
 
     @Test func deselectRemovesEveryOverlappingEntry() {

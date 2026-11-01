@@ -41,7 +41,7 @@ struct ExplorerView: View {
             legend
         }
         .inspector(isPresented: showQueue) {
-            CleanupQueueView(model: queue, canClean: canClean, select: selectForCleanup, deselect: deselectFromCleanup, performCleanup: performCleanup)
+            CleanupQueueView(model: queue, current: model.current, canClean: canClean, select: selectForCleanup, deselect: deselectFromCleanup, performCleanup: performCleanup)
                 .inspectorColumnWidth(min: 280, ideal: 340, max: 480)
         }
         .toolbar { toolbar }
@@ -173,7 +173,7 @@ struct ExplorerView: View {
             } label: { Label("Display", systemImage: "rectangle.3.group") }
             Button(action: newScan) { Label("New scan", systemImage: "folder.badge.plus") }
             Button { showQueue.wrappedValue.toggle() } label: { queueBadge }
-                .help(L10n.format("Cleanup queue · %lld items · %@ estimated", queue.selectedCount, sizeText(queue.selectedBytes)))
+                .help(L10n.format("Select items to delete · %lld items · %@ estimated", queue.selectedCount, sizeText(queue.selectedBytes)))
                 .accessibilityIdentifier("reviewCleanup")
         }
         ToolbarItem(placement: .automatic) {

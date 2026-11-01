@@ -142,14 +142,15 @@ extension ScanIndex {
         let order = q.sortByName ? "name COLLATE NOCASE" : q.metric == .allocated ? "knownAllocated" : "knownLogical"
         return readRows("SELECT id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,fingerprint,insidePackage,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified FROM nodes WHERE \(whereSQL) ORDER BY \(order) \(q.ascending ? "ASC" : "DESC"),id LIMIT \(max(1, min(q.limit, 10000))) OFFSET \(max(0, q.offset))", strings: strings)
     }
-    /// Direct children of one folder, in stable name order. Used by the cleanup queue's
-    /// lazy tree expansion; it applies no cleanup filtering, only the package policy.
-    public func children(of parentID: Int64, inspectPackages: Bool, limit: Int, offset: Int) -> [FileNode] {
+    /// Direct children of one folder in a stable order: by name when `sortByName` is
+    /// true, otherwise by known allocated size descending. Used by the cleanup queue's
+    /// lazy tree expansion and its current-folder listing.
+    public func children(of parentID: Int64, inspectPackages: Bool, limit: Int, offset: Int, sortByName: Bool = true) -> [FileNode] {
         var q = FileQuery()
         q.parentID = parentID
         q.inspectPackages = inspectPackages
-        q.sortByName = true
-        q.ascending = true
+        q.sortByName = sortByName
+        q.ascending = sortByName
         q.limit = limit
         q.offset = offset
         return query(q)

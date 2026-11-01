@@ -2,8 +2,9 @@ import Foundation
 import Observation
 import DiskCore
 
-/// Presentation state for the cleanup-queue panel: the compact tree of selected items and
-/// the local expansion state used to reveal hidden siblings. The queue itself stays in
+/// Presentation state for the cleanup-queue panel: the current open folder's listing
+/// (size-descending, selectable), the selected-items tree outside it, and the local
+/// expansion state used to reveal hidden siblings. The queue itself stays in
 /// `CleanupViewModel.basket`; this model only derives rows and lazily fetches tree context.
 @MainActor @Observable final class CleanupQueueModel {
     let cleanup: CleanupViewModel
@@ -12,13 +13,22 @@ import DiskCore
     @ObservationIgnored private var fetchedChildren: [Int64: [FileNode]] = [:]
     @ObservationIgnored private var childCounts: [Int64: Int] = [:]
     @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var current: FileNode?
+    @ObservationIgnored private var directoryParentID: Int64?
+    @ObservationIgnored private var directoryChildren: [FileNode] = []
+    /// Unselected plain folders the user expanded to peek inside.
+    @ObservationIgnored private var peeks: [Int64: FileNode] = [:]
+    @ObservationIgnored private var peekChildren: [Int64: [FileNode]] = [:]
+    @ObservationIgnored private var peekCounts: [Int64: Int] = [:]
     /// Folder paths whose unselected direct children are revealed.
     var revealed: Set<String> = []
     /// Partially selected folder paths the user collapsed.
     var collapsed: Set<String> = []
     private(set) var lines: [CleanupQueueLine] = []
     private(set) var isLoading = false
-    let pageSize = 100
+    var pageSize = 100
+    /// Largest children shown when a folder is first expanded.
+    let peekLimit = 3
 
     init(cleanup: CleanupViewModel) { self.cleanup = cleanup }
 
@@ -37,31 +47,48 @@ import DiskCore
         resetCaches()
     }
 
+    /// Drop fetched tree context after a branch refresh changed the underlying rows.
+    func invalidateCaches() {
+        resetCaches()
+        Task { await refresh(current: current) }
+    }
+
     private func resetCaches() {
         generation += 1
         nodesByID = [:]
         fetchedChildren = [:]
         childCounts = [:]
+        directoryParentID = nil
+        directoryChildren = []
+        peeks = [:]
+        peekChildren = [:]
+        peekCounts = [:]
         lines = []
     }
 
-    /// Rebuild the tree for the current queue. Idempotent; callers re-run it when the
-    /// queue revision or the expansion state changes. Fetched child pages survive
-    /// rebuilds so revealed folders keep their pagination.
-    func refresh() async {
-        guard let provider, !cleanup.basket.isEmpty else {
+    /// Rebuild the panel for the current queue and open folder. The current-folder
+    /// listing appears even when the queue is empty. Idempotent; callers re-run it when
+    /// the queue revision or the expansion state changes.
+    func refresh(current: FileNode? = nil) async {
+        if let current { self.current = current }
+        guard let provider else {
             generation += 1
-            nodesByID = [:]
-            fetchedChildren = [:]
-            childCounts = [:]
             lines = []
             return
         }
         let entries = cleanup.basket
+        let openFolder = self.current
         generation += 1
         let gen = generation
         isLoading = true
         defer { if gen == generation { isLoading = false } }
+        // The open folder's direct children, by known size descending. Fetched pages
+        // survive rebuilds so pagination keeps its position.
+        if let openFolder, openFolder.id != directoryParentID {
+            directoryChildren = await provider.children(of: openFolder.id, limit: pageSize, offset: 0, sortByName: false)
+            if gen != generation { return }
+            directoryParentID = openFolder.id
+        }
         var nodes: [Int64: FileNode] = [:]
         for entry in entries { nodes[entry.node.id] = entry.node }
         // Resolve each entry's strict ancestors so partial folders can be shown. The
@@ -83,23 +110,68 @@ import DiskCore
                 if gen != generation { return }
             }
             if revealed.contains(node.path), fetchedChildren[node.id] == nil {
-                fetchedChildren[node.id] = await provider.children(of: node.id, limit: pageSize, offset: 0)
+                fetchedChildren[node.id] = await provider.children(of: node.id, limit: pageSize, offset: 0, sortByName: true)
                 if gen != generation { return }
             }
         }
+        // Peeked folders keep their largest-first child pages across rebuilds.
+        for node in peeks.values where peekChildren[node.id] == nil {
+            peekChildren[node.id] = await provider.children(of: node.id, limit: peekLimit, offset: 0, sortByName: false)
+            if gen != generation { return }
+            peekCounts[node.id] = await provider.childCount(of: node.id)
+            if gen != generation { return }
+        }
         nodesByID = nodes
-        lines = makeLines(entries: entries)
+        var input = CleanupQueueTree.Input(
+            entries: entries, nodes: nodes, current: openFolder,
+            directoryChildren: openFolder?.id == directoryParentID ? directoryChildren : [],
+            childCounts: childCounts,
+            fetchedChildren: fetchedChildren, peekChildren: peekChildren, peekCounts: peekCounts,
+            revealed: revealed, collapsed: collapsed)
+        if let openFolder, directoryParentID == openFolder.id {
+            input.directoryCount = await provider.childCount(of: openFolder.id)
+            if gen != generation { return }
+        }
+        lines = CleanupQueueTree.lines(input)
     }
 
-    /// Load the next page of revealed children for one folder.
+    /// Load the next page: of revealed unselected children, of a peeked folder's
+    /// children, or of the open-folder listing.
     func loadMore(of node: FileNode) async {
         guard let provider else { return }
         let gen = generation
-        let offset = fetchedChildren[node.id]?.count ?? 0
-        let page = await provider.children(of: node.id, limit: pageSize, offset: offset)
-        guard gen == generation else { return }
-        fetchedChildren[node.id, default: []] += page
-        lines = makeLines(entries: cleanup.basket)
+        if node.id == directoryParentID {
+            let offset = directoryChildren.count
+            let page = await provider.children(of: node.id, limit: pageSize, offset: offset, sortByName: false)
+            guard gen == generation else { return }
+            directoryChildren += page
+        } else if peeks[node.id] != nil {
+            let offset = peekChildren[node.id]?.count ?? 0
+            let page = await provider.children(of: node.id, limit: pageSize, offset: offset, sortByName: false)
+            guard gen == generation else { return }
+            peekChildren[node.id, default: []] += page
+        } else {
+            let offset = fetchedChildren[node.id]?.count ?? 0
+            let page = await provider.children(of: node.id, limit: pageSize, offset: offset, sortByName: true)
+            guard gen == generation else { return }
+            fetchedChildren[node.id, default: []] += page
+        }
+        lines = makeLines()
+    }
+
+    /// Whether a folder's lazy peek is currently expanded.
+    func isPeeked(_ node: FileNode) -> Bool { peeks[node.id] != nil }
+
+    /// Expand or collapse an unselected folder's largest-children peek.
+    func togglePeek(_ node: FileNode) {
+        if peeks[node.id] != nil {
+            peeks[node.id] = nil
+            peekChildren[node.id] = nil
+            peekCounts[node.id] = nil
+        } else {
+            peeks[node.id] = node
+        }
+        Task { await refresh() }
     }
 
     /// Reveal or hide one folder's unselected direct children.
@@ -113,13 +185,17 @@ import DiskCore
     func toggleCollapsed(_ node: FileNode) {
         if collapsed.contains(node.path) { collapsed.remove(node.path) }
         else { collapsed.insert(node.path) }
-        lines = makeLines(entries: cleanup.basket)
+        lines = makeLines()
     }
 
-    private func makeLines(entries: [CleanupEntry]) -> [CleanupQueueLine] {
-        CleanupQueueTree.lines(CleanupQueueTree.Input(
-            entries: entries, nodes: nodesByID, childCounts: childCounts,
-            fetchedChildren: fetchedChildren, revealed: revealed, collapsed: collapsed))
+    private func makeLines() -> [CleanupQueueLine] {
+        let openFolder = current
+        return CleanupQueueTree.lines(CleanupQueueTree.Input(
+            entries: cleanup.basket, nodes: nodesByID, current: openFolder,
+            directoryChildren: openFolder?.id == directoryParentID ? directoryChildren : [],
+            childCounts: childCounts,
+            fetchedChildren: fetchedChildren, peekChildren: peekChildren, peekCounts: peekCounts,
+            revealed: revealed, collapsed: collapsed))
     }
 
     private func isPartialAncestor(_ node: FileNode, entries: [CleanupEntry]) -> Bool {

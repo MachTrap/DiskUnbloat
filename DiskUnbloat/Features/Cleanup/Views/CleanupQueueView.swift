@@ -1,11 +1,12 @@
 import SwiftUI
 import DiskCore
 
-/// The right-hand cleanup queue: selected folders and files as a compact tree, their
-/// estimated size, and the reviewed deletion action. Opens automatically after a
-/// completed scan and stays available from the explorer toolbar.
+/// The right-hand selection panel: the currently open folder's contents as a
+/// size-descending, selectable listing (so the panel is useful before anything is
+/// selected), plus the selected-items tree for entries elsewhere in the scan.
 struct CleanupQueueView: View {
     @Bindable var model: CleanupQueueModel
+    let current: FileNode?
     let canClean: Bool
     let select: (FileNode) -> Void
     let deselect: (FileNode) -> Void
@@ -15,6 +16,8 @@ struct CleanupQueueView: View {
 
     private var cleanup: CleanupViewModel { model.cleanup }
 
+    private struct RefreshKey: Equatable { let revision: Int; let currentID: Int64? }
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -23,7 +26,9 @@ struct CleanupQueueView: View {
             Divider()
             footer
         }
-        .task(id: cleanup.queueRevision) { await model.refresh() }
+        .task(id: RefreshKey(revision: cleanup.queueRevision, currentID: current?.id)) {
+            await model.refresh(current: current)
+        }
         .confirmationDialog(L10n.text("Delete selected items?"), isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Move to Trash", role: .destructive) { performCleanup(.trash) }
             Button("Delete permanently…", role: .destructive) { confirmPermanent = true }
@@ -45,7 +50,7 @@ struct CleanupQueueView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("Cleanup queue").font(.headline)
+                Text("Select items to delete").font(.headline)
                 Text(L10n.count("%lld items", cleanup.basket.count))
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
@@ -67,6 +72,7 @@ struct CleanupQueueView: View {
             LazyVStack(alignment: .leading, spacing: 1) {
                 ForEach(model.lines) { line in
                     switch line {
+                    case .directoryHeader(let node): directoryHeader(node)
                     case .item(let row): itemRow(row)
                     case .more(let node, let depth, let count): moreRow(node, depth: depth, count: count)
                     case .showMore(let node, let depth): showMoreRow(node, depth: depth)
@@ -77,17 +83,33 @@ struct CleanupQueueView: View {
         }
     }
 
+    private func directoryHeader(_ node: FileNode) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "folder").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("Current folder").font(.caption).foregroundStyle(.secondary)
+            Text(node.name).font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
+                .help(node.path)
+            Spacer()
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 2).padding(.bottom, 5)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("queueFolderHeader")
+    }
+
     private func itemRow(_ row: CleanupQueueRow) -> some View {
         HStack(spacing: 7) {
-            if row.hasSelectedDescendants {
+            if row.hasSelectedDescendants || row.canPeek {
+                let expanded = row.hasSelectedDescendants ? !model.collapsed.contains(row.node.path) : model.isPeeked(row.node)
                 Button {
-                    model.toggleCollapsed(row.node)
+                    if row.hasSelectedDescendants { model.toggleCollapsed(row.node) }
+                    else { model.togglePeek(row.node) }
                 } label: {
-                    Image(systemName: model.collapsed.contains(row.node.path) ? "chevron.right" : "chevron.down")
+                    Image(systemName: expanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
                         .frame(width: 12, height: 12)
                 }.buttonStyle(.plain)
-                .help(L10n.text(model.collapsed.contains(row.node.path) ? "Expand" : "Collapse"))
+                .help(L10n.text(expanded ? "Collapse" : "Expand"))
                 .accessibilityIdentifier("queueChevron")
             } else {
                 Color.clear.frame(width: 12, height: 12)
@@ -172,7 +194,7 @@ struct CleanupQueueView: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .padding(.leading, CGFloat(depth + 1) * 14)
+            .padding(.leading, CGFloat(depth) * 14)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

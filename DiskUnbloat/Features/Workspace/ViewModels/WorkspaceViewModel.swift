@@ -146,9 +146,10 @@ enum WorkspacePhase: Equatable {
             do {
                 if try await scan.runRefresh(request, node: node) {
                     let count = cleanup.invalidate(overlapping: node.path)
-                    if count > 0 { message = L10n.text("Refreshed items were removed from cleanup review. Review their current contents again.") }
+                    if count > 0 { message = L10n.text("Refreshed items were removed from the cleanup queue. Review their current contents again.") }
                     phase = .preparingResults; scan.stage = .preparingMap
                     await explorer.restoreAfterRefresh()
+                    queue.invalidateCaches()
                     scan.finishRefresh(restorePrevious: false); phase = .exploring
                 } else { phase = .cancelled }
             } catch { phase = .failed(L10n.format("The folder refresh failed. Previous results are unchanged. %@", L10n.text(error.localizedDescription))) }

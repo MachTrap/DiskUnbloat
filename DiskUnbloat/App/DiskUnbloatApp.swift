@@ -18,7 +18,7 @@ import SwiftUI
                 Button("Scan Again", action: model.startScan).keyboardShortcut("r").disabled(model.scan.root == nil || model.isBusy)
                 Button("Rescan Folder") { if let node = model.explorer.current { model.refreshFolder(node) } }.disabled(model.phase != .exploring || model.isBusy)
                 Button("Cancel Scan", action: model.cancel).keyboardShortcut(".").disabled(!model.scan.scanning)
-                Button("Cleanup Queue") { model.cleanup.showQueue.toggle() }.keyboardShortcut("k").disabled(model.phase != .exploring)
+                Button("Select items to delete") { model.cleanup.showQueue.toggle() }.keyboardShortcut("k").disabled(model.phase != .exploring)
             }
             CommandMenu("Explore") {
                 Group {

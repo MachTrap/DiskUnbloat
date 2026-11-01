@@ -16,9 +16,11 @@ struct CleanupQueueRow: Identifiable, Sendable, Equatable {
     /// Present only for exact queue entries.
     let operation: CleanupOperation?
     /// Size attributed to this row: an entry's known size, a partial folder's selected
-    /// descendants total, or a revealed unselected child's own known size for context.
+    /// descendants total, or an unselected child's own known size for context.
     let bytes: Int64
     let hasSelectedDescendants: Bool
+    /// Unselected plain folders can be expanded to peek at their largest children.
+    let canPeek: Bool
     let hasHiddenChildren: Bool
     let hiddenChildCount: Int
     var id: Int64 { node.id }
@@ -26,16 +28,21 @@ struct CleanupQueueRow: Identifiable, Sendable, Equatable {
     var keepsFolder: Bool { operation == .emptyContents }
 }
 
-/// One line of the queue list: an item row, a "hidden items" expander, or a pagination row.
+/// One line of the queue list: the current-folder header, an item row, a "hidden items"
+/// expander, or a pagination row.
 enum CleanupQueueLine: Identifiable, Sendable, Equatable {
+    /// Section header naming the currently open folder the listing below belongs to.
+    case directoryHeader(FileNode)
     case item(CleanupQueueRow)
     /// `… N more items`: reveals unselected direct children hidden by default.
     case more(FileNode, depth: Int, hiddenChildCount: Int)
-    /// `Show more items`: loads the next page of already-revealed children.
+    /// `Show more items`: loads the next page of already-revealed children or the
+    /// current-folder listing.
     case showMore(FileNode, depth: Int)
 
     var id: String {
         switch self {
+        case .directoryHeader(let node): "header-\(node.id)"
         case .item(let row): "item-\(row.id)"
         case .more(let node, _, _): "more-\(node.id)"
         case .showMore(let node, _): "showMore-\(node.id)"
@@ -43,46 +50,87 @@ enum CleanupQueueLine: Identifiable, Sendable, Equatable {
     }
 }
 
-/// Pure queue-tree projection. Builds the compact hierarchy the panel renders:
-/// normalized entries, their partial ancestors (auto-expanded, selected children first),
-/// and unselected direct children only where the user revealed them.
+/// Pure queue projection. Builds two sections:
+/// - the current open folder's direct children, sorted by known size descending, with
+///   selected entries checked and partially selected folders expanded — so the panel is
+///   a browsable listing even before anything is selected;
+/// - the selected-items tree for entries outside that folder.
 enum CleanupQueueTree {
     struct Input {
         /// Normalized cleanup entries; topmost kept entries, disjoint subtrees.
         var entries: [CleanupEntry]
         /// Every node the gather resolved: entries plus their strict ancestors.
         var nodes: [Int64: FileNode]
+        /// The currently open folder; the listing section is built around it.
+        var current: FileNode?
+        /// Direct children of `current` in display order (known size descending).
+        var directoryChildren: [FileNode] = []
+        /// Total direct-child count of `current`, for honest pagination.
+        var directoryCount: Int? = nil
         /// Exact direct-child counts per folder, for honest hidden-item badges.
         var childCounts: [Int64: Int] = [:]
         /// Fetched direct-child pages per folder, for revealed unselected children.
         var fetchedChildren: [Int64: [FileNode]] = [:]
+        /// Largest-first child pages per peeked unselected folder.
+        var peekChildren: [Int64: [FileNode]] = [:]
+        /// Exact direct-child counts of peeked folders, for honest "show more" rows.
+        var peekCounts: [Int64: Int] = [:]
         var revealed: Set<String> = []
         var collapsed: Set<String> = []
     }
 
     static func lines(_ input: Input) -> [CleanupQueueLine] {
         let entryByID = Dictionary(uniqueKeysWithValues: input.entries.map { ($0.node.id, $0) })
-        // Structural children: exact entries and strict ancestors of entries, per parent.
+        let structural = structuralChildren(entries: input.entries, nodes: input.nodes, current: input.current)
+        var out: [CleanupQueueLine] = []
+        // The current open folder: a listing of its direct children by known size, so the
+        // panel shows content even with an empty queue. Selected descendants of a partial
+        // child nest directly beneath its row.
+        if let current = input.current {
+            out.append(.directoryHeader(current))
+            let shown = input.directoryChildren
+            for child in shown {
+                render(child, depth: 0, input: input, entryByID: entryByID, structural: structural, into: &out)
+            }
+            let total = input.directoryCount ?? shown.count
+            if shown.count < total { out.append(.showMore(current, depth: 0)) }
+        }
+        // Entries elsewhere in the scan keep their full ancestor tree above the listing.
+        let parents = Set(structural.keys)
+        let roots = Set(entryByID.keys).union(parents)
+            .compactMap { input.nodes[$0] }
+            .filter { node in
+                if let current = input.current, node.path.isWithin(current.path) { return false }
+                guard let parentID = node.parentID, let parent = input.nodes[parentID] else { return true }
+                return parent.isGroupRoot
+            }
+            .sorted(by: bySize)
+        for root in roots { render(root, depth: 0, input: input, entryByID: entryByID, structural: structural, into: &out) }
+        return out
+    }
+
+    /// Known-size descending, path as the deterministic tie-break.
+    private static func bySize(_ a: FileNode, _ b: FileNode) -> Bool {
+        let left = a.knownSize(for: .allocated)
+        let right = b.knownSize(for: .allocated)
+        return left == right ? a.path < b.path : left > right
+    }
+
+    /// Parent → structural children: exact entries and strict ancestors of entries. The
+    /// chain stops at the current folder, so its children become the inner roots.
+    private static func structuralChildren(
+        entries: [CleanupEntry], nodes: [Int64: FileNode], current: FileNode?
+    ) -> [Int64: Set<Int64>] {
         var structural: [Int64: Set<Int64>] = [:]
-        var ancestors: Set<Int64> = []
-        for entry in input.entries {
+        for entry in entries {
             var child = entry.node
-            while let parentID = child.parentID, let parent = input.nodes[parentID], !parent.isGroupRoot {
+            while let parentID = child.parentID, let parent = nodes[parentID], !parent.isGroupRoot {
+                if let current, parent.path == current.path { break }
                 structural[parentID, default: []].insert(child.id)
-                ancestors.insert(parentID)
                 child = parent
             }
         }
-        // Top-level rows: everything whose parent is absent or the synthetic group wrapper.
-        let referenced = Set(entryByID.keys).union(ancestors)
-        let roots = referenced.compactMap { input.nodes[$0] }.filter { node in
-            guard let parentID = node.parentID, let parent = input.nodes[parentID] else { return true }
-            return parent.isGroupRoot
-        }.sorted { $0.path < $1.path }
-
-        var out: [CleanupQueueLine] = []
-        for root in roots { render(root, depth: 0, input: input, entryByID: entryByID, structural: structural, into: &out) }
-        return out
+        return structural
     }
 
     private static func render(
@@ -99,41 +147,52 @@ enum CleanupQueueTree {
             out.append(.item(CleanupQueueRow(
                 node: node, depth: depth, checkState: .checked, operation: entry.operation,
                 bytes: node.knownSize(for: .allocated),
-                hasSelectedDescendants: false, hasHiddenChildren: false, hiddenChildCount: 0)))
+                hasSelectedDescendants: false, canPeek: false, hasHiddenChildren: false, hiddenChildCount: 0)))
             return
         }
-        let kids = structural[node.id] ?? []
+        let kids = (structural[node.id] ?? []).compactMap { input.nodes[$0] }.sorted(by: bySize)
         let total = input.childCounts[node.id] ?? kids.count
         let hiddenCount = max(0, total - kids.count)
         let selectedBytes = input.entries.reduce(Int64(0)) { sum, entry in
             entry.node.path.isWithin(node.path) ? sum + entry.node.knownSize(for: .allocated) : sum
         }
         out.append(.item(CleanupQueueRow(
-            node: node, depth: depth, checkState: .partial, operation: nil,
-            bytes: selectedBytes,
-            hasSelectedDescendants: true, hasHiddenChildren: hiddenCount > 0, hiddenChildCount: hiddenCount)))
-        guard !input.collapsed.contains(node.path) else { return }
-        // Selected children first, then partially selected descendants, both in path order.
-        let childNodes = kids.compactMap { input.nodes[$0] }
-        let selectedKids = childNodes.filter { entryByID[$0.id] != nil }.sorted { $0.path < $1.path }
-        let partialKids = childNodes.filter { entryByID[$0.id] == nil }.sorted { $0.path < $1.path }
-        for child in selectedKids {
-            render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
+            node: node, depth: depth,
+            checkState: kids.isEmpty ? .unchecked : .partial, operation: nil,
+            bytes: kids.isEmpty ? node.knownSize(for: .allocated) : selectedBytes,
+            hasSelectedDescendants: !kids.isEmpty,
+            canPeek: kids.isEmpty && isExpandableContainer(node),
+            hasHiddenChildren: hiddenCount > 0, hiddenChildCount: hiddenCount)))
+        if kids.isEmpty {
+            // An unselected plain folder expands to a lazy peek at its largest children.
+            if let peeked = input.peekChildren[node.id] {
+                for child in peeked {
+                    render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
+                }
+                if peeked.count < (input.peekCounts[node.id] ?? peeked.count) {
+                    out.append(.showMore(node, depth: depth + 1))
+                }
+            }
+            return
         }
-        for child in partialKids {
+        guard !input.collapsed.contains(node.path) else { return }
+        // Every structural child here is selected or partially selected; show them by size.
+        for child in kids {
             render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
         }
         if input.revealed.contains(node.path), let fetched = input.fetchedChildren[node.id] {
-            for child in fetched where !kids.contains(child.id) {
-                out.append(.item(CleanupQueueRow(
-                    node: child, depth: depth + 1, checkState: .unchecked, operation: nil,
-                    bytes: child.knownSize(for: .allocated),
-                    hasSelectedDescendants: false, hasHiddenChildren: false, hiddenChildCount: 0)))
+            for child in fetched where !kids.contains(where: { $0.id == child.id }) {
+                render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
             }
             if fetched.count < total { out.append(.showMore(node, depth: depth + 1)) }
         } else if hiddenCount > 0 {
             out.append(.more(node, depth: depth + 1, hiddenChildCount: hiddenCount))
         }
+    }
+
+    /// Plain folders can be expanded; packages stay atomic unless inspection is on.
+    private static func isExpandableContainer(_ node: FileNode) -> Bool {
+        node.isDirectory && !node.isSymbolicLink && !node.isPackage
     }
 }
 
@@ -159,7 +218,7 @@ func queueMembership(path: String, queuedPaths: [String]) -> QueueMembership {
 /// projection and gather can be tested without a database.
 protocol CleanupQueueProviding: Sendable {
     func node(id: Int64) async -> FileNode?
-    func children(of parentID: Int64, limit: Int, offset: Int) async -> [FileNode]
+    func children(of parentID: Int64, limit: Int, offset: Int, sortByName: Bool) async -> [FileNode]
     func childCount(of parentID: Int64) async -> Int
 }
 
@@ -168,8 +227,8 @@ struct IndexCleanupQueueProvider: CleanupQueueProviding {
     let index: ScanIndex
     let inspectPackages: Bool
     func node(id: Int64) async -> FileNode? { await index.node(id) }
-    func children(of parentID: Int64, limit: Int, offset: Int) async -> [FileNode] {
-        await index.children(of: parentID, inspectPackages: inspectPackages, limit: limit, offset: offset)
+    func children(of parentID: Int64, limit: Int, offset: Int, sortByName: Bool) async -> [FileNode] {
+        await index.children(of: parentID, inspectPackages: inspectPackages, limit: limit, offset: offset, sortByName: sortByName)
     }
     func childCount(of parentID: Int64) async -> Int {
         await index.childCount(of: parentID, inspectPackages: inspectPackages)

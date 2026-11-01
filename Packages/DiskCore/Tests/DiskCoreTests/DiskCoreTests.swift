@@ -771,7 +771,7 @@ private actor CleanupGate {
     let f = try Fixture(); defer { f.dispose() }
     let index = try f.index()
     let root = FileNode(id: 1, parentID: nil, path: "/kids", name: "kids", isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "root")
-    let files = (1...5).map { FileNode(id: Int64($0) + 1, parentID: 1, path: "/kids/f\($0).bin", name: "f\($0).bin", isDirectory: false, logicalSize: 10, allocatedSize: 10, modified: nil, identity: "\($0)") }
+    let files = (1...5).map { FileNode(id: Int64($0) + 1, parentID: 1, path: "/kids/f\($0).bin", name: "f\($0).bin", isDirectory: false, logicalSize: Int64($0) * 10, allocatedSize: Int64($0) * 10, modified: nil, identity: "\($0)") }
     try await index.insert([root] + files)
     try await index.aggregate()
     #expect(await index.childCount(of: 1, inspectPackages: true) == 5)
@@ -780,5 +780,8 @@ private actor CleanupGate {
     let lastPage = await index.children(of: 1, inspectPackages: true, limit: 2, offset: 4)
     #expect(firstPage.map(\.name) == ["f1.bin", "f2.bin"])
     #expect(lastPage.map(\.name) == ["f5.bin"])
+    // The queue's current-folder listing reads children by known size descending.
+    let bySize = await index.children(of: 1, inspectPackages: true, limit: 5, offset: 0, sortByName: false)
+    #expect(bySize.map(\.id) == [6, 5, 4, 3, 2])
     await destroy(index)
 }

@@ -2,6 +2,22 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Container peek expansion — 2026-11-01
+
+Follow-up to the selection panel: unselected containers previously had no expansion control. Plain folders (not packages, not symbolic links) now show a chevron; expanding one lazily fetches its **three largest direct children** (known size descending) and, when more exist, a `Show more items` row that pages the rest. Peek state is local to `CleanupQueueModel`, keyed per folder, invalidated on session/branch refresh, and reused recursively for nested folders. No new localization keys; no project-file changes.
+
+- Hosted app tests: 49 pass — three new: unselected containers expose the chevron without nested rows, a pure-tree peek shows the three largest then paging, and the model-level flow (expand → three largest → Show more pages the rest → collapse).
+- Core tests: 43 pass; universal Release build and `build-for-testing` (UI bundle included) pass; the localization audit validates 279 entries unchanged. The automated UI suite was not executed (desktop-automation limitation below).
+
+## Selection-panel refinements — 2026-11-01
+
+Follow-up to the cleanup-queue panel: the panel title and command became "Select items to delete" ("Выберите объекты для удаления"), and the panel now always lists the currently open folder's direct children ordered by known size descending — even with an empty queue — so items can be selected directly from the panel. The listing pages with an honest total (`Show more items`); a selected direct child shows checked in the listing, and an entry selected below the listing nests under its folder's row instead of appearing twice. The selected-items tree for entries elsewhere in the scan keeps its behavior and now sorts each level by known size descending.
+
+- **Core:** `ScanIndex.children(of:…sortByName:)` orders by name or by known allocated size descending.
+- **Model:** `CleanupQueueProviding.children` carries the sort; `CleanupQueueModel.refresh(current:)` owns the open-folder cache, invalidates it on navigation and branch refresh, and the pure `CleanupQueueTree` gained a `directoryHeader` line type plus the current-folder section.
+- **Localization:** two keys added ("Select items to delete" and its toolbar-help variant), the three retired "Cleanup queue" keys removed; audit validates 279 entries in canonical `localizedStandardCompare` order. The refresh-message source key now matches its catalog entry ("…from the cleanup queue…").
+- Hosted app tests: 46 pass — four new (size-descending listing with an empty queue, checked state inside the listing, deep selections nesting under their folder's row, pagination with an honest count) plus the model-level listing/pagination/reveal flow. Core tests: 43 pass. Universal Release build, `build-for-testing` (UI bundle included), and the localization audit pass; the automated UI suite was not executed (desktop-automation limitation below).
+
 ## Map-only explorer and cleanup-queue panel — 2026-11-01
 
 Redesign batch: the right details panel and the bottom file browser (with its Files/Largest/Types/Candidates tabs) were removed; the deletion queue became a right-hand panel of selected items that opens automatically after a completed scan; curated object descriptions moved into the map hover card; the context-menu action "Add to deletion queue" became "Select".

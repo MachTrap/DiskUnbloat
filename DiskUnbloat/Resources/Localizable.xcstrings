@@ -52,22 +52,6 @@
         }
       }
     },
-    "%@ items · page %lld of %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ items · page %lld of %lld"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Объектов: %@ · страница %lld из %lld"
-          }
-        }
-      }
-    },
     "%lld" : {
       "localizations" : {
         "en" : {
@@ -85,6 +69,7 @@
       }
     },
     "%lld items" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -136,19 +121,72 @@
         }
       }
     },
-    "%lld items · %@ estimated" : {
+    "%lld items · %@ estimated. Folders include their contents. Scanned folders are emptied but kept. If a location does not support Trash, that item will stay in place. Cache removal can disrupt applications; cloud deletion may sync to other devices." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld items · %@ estimated"
+            "value" : "%lld items · %@ estimated. Folders include their contents. Scanned folders are emptied but kept. If a location does not support Trash, that item will stay in place. Cache removal can disrupt applications; cloud deletion may sync to other devices."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Объекты: %lld · оценка: %@"
+            "value" : "Объекты: %lld · оценка: %@. Папки удаляются вместе с содержимым. Папки сканирования очищаются, но остаются. Если расположение не поддерживает Корзину, объект останется на месте. Удаление кэша может нарушить работу приложений; удаление облачных файлов может синхронизироваться с другими устройствами."
+          }
+        }
+      }
+    },
+    "%lld items processed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item processed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items processed"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Обработано %lld объекта"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Обработано %lld объектов"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Обработано %lld объект"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Обработано %lld объекта"
+                }
+              }
+            }
           }
         }
       }
@@ -252,59 +290,6 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld расположений"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld locations unavailable · results will be marked partial" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld location unavailable · results will be marked partial"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld locations unavailable · results will be marked partial"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld расположения недоступны · результаты будут неполными"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld расположений недоступно · результаты будут неполными"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld расположение недоступно · результаты будут неполными"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld расположений недоступно · результаты будут неполными"
                 }
               }
             }
@@ -418,127 +403,6 @@
         }
       }
     },
-    "%lld selected" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld selected"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld selected"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Выбрано %lld объекта"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Выбрано %lld объектов"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Выбран %lld объект"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Выбрано %lld объектов"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld selections · %@ estimated" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld selections · %@ estimated"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбрано: %lld · оценка: %@"
-          }
-        }
-      }
-    },
-    "%lld unknown" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld unknown"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld unknown"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld неизвестных"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld неизвестных"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld неизвестный"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld неизвестных"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "1 GB+" : {
       "localizations" : {
         "en" : {
@@ -603,23 +467,6 @@
         }
       }
     },
-    "A scan or cleanup is in progress. Try again when it finishes." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A scan or cleanup is in progress. Try again when it finishes."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выполняется сканирование или очистка. Повторите попытку после завершения."
-          }
-        }
-      }
-    },
     "A scan or cleanup is in progress. Try opening the folder again when it finishes." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -633,54 +480,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выполняется сканирование или очистка. Откройте папку повторно после завершения."
-          }
-        }
-      }
-    },
-    "Add selections to deletion queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add selections to deletion queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавить выбранное в очередь на удаление"
-          }
-        }
-      }
-    },
-    "Add to deletion queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to deletion queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавить в очередь на удаление"
-          }
-        }
-      }
-    },
-    "Add to Deletion Queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to Deletion Queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавить в очередь на удаление"
           }
         }
       }
@@ -737,6 +536,7 @@
       }
     },
     "Analysis" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -818,23 +618,6 @@
         }
       }
     },
-    "Application activity changed." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Application activity changed."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Активность приложения изменилась."
-          }
-        }
-      }
-    },
     "Approximate share of this volume's used data read so far" : {
       "localizations" : {
         "en" : {
@@ -881,22 +664,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Архивы"
-          }
-        }
-      }
-    },
-    "Ascending" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ascending"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "По возрастанию"
           }
         }
       }
@@ -1354,23 +1121,6 @@
         }
       }
     },
-    "Candidates" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Candidates"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Кандидаты"
-          }
-        }
-      }
-    },
     "Choose a folder. See the bigger picture." : {
       "localizations" : {
         "en" : {
@@ -1486,34 +1236,83 @@
         }
       }
     },
-    "Clean contents (keep folder)" : {
+    "Cleaning…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clean contents (keep folder)"
+            "value" : "Cleaning…"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Очистить содержимое (папку оставить)"
+            "value" : "Очистка…"
           }
         }
       }
     },
-    "Cleans contents · keeps folder" : {
+    "Cleanup queue" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cleans contents · keeps folder"
+            "value" : "Cleanup queue"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Очищает содержимое · папка остаётся"
+            "value" : "Очередь очистки"
+          }
+        }
+      }
+    },
+    "Cleanup Queue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleanup Queue"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очередь очистки"
+          }
+        }
+      }
+    },
+    "Cleanup queue · %lld items · %@ estimated" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleanup queue · %lld items · %@ estimated"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очередь очистки · объекты: %lld · оценка: %@"
+          }
+        }
+      }
+    },
+    "Cleanup report" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleanup report"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отчёт об очистке"
           }
         }
       }
@@ -1598,39 +1397,6 @@
         }
       }
     },
-    "Click to return this item to the candidate list" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click to return this item to the candidate list"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Нажмите, чтобы вернуть этот объект в список кандидатов"
-          }
-        }
-      }
-    },
-    "Close file browser" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close file browser"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Закрыть список файлов"
-          }
-        }
-      }
-    },
     "Cloud directory is not downloaded; contents were not requested." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1644,6 +1410,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Облачная папка не загружена; загрузка содержимого не запрашивалась."
+          }
+        }
+      }
+    },
+    "Collapse" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свернуть"
           }
         }
       }
@@ -1814,6 +1597,39 @@
         }
       }
     },
+    "Delete Selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Selected"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить выбранное"
+          }
+        }
+      }
+    },
+    "Delete selected items?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete selected items?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить выбранные объекты?"
+          }
+        }
+      }
+    },
     "Deleting application caches can disrupt applications. Close the related app first." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1831,51 +1647,18 @@
         }
       }
     },
-    "Deletion queue" : {
+    "Deselect" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deletion queue"
+            "value" : "Deselect"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Очередь на удаление"
-          }
-        }
-      }
-    },
-    "Deletion Queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deletion Queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очередь на удаление"
-          }
-        }
-      }
-    },
-    "Deletion queue · %lld items · %@ estimated" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deletion queue · %lld items · %@ estimated"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очередь на удаление · объекты: %lld · оценка: %@"
+            "value" : "Снять выбор"
           }
         }
       }
@@ -2249,22 +2032,6 @@
         }
       }
     },
-    "Every byte has a story." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every byte has a story."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "У каждого байта своя история."
-          }
-        }
-      }
-    },
     "Every known cache in your home folder in one scan: user caches, Xcode build data, developer caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2298,34 +2065,19 @@
         }
       }
     },
-    "Exclude from candidates" : {
+    "Expand" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exclude from candidates"
+            "value" : "Expand"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Исключить из кандидатов"
-          }
-        }
-      }
-    },
-    "Excluded:" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Excluded:"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Исключено:"
+            "value" : "Развернуть"
           }
         }
       }
@@ -2346,22 +2098,6 @@
         }
       }
     },
-    "Explore folder" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Explore folder"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть папку на карте"
-          }
-        }
-      }
-    },
     "Extension" : {
       "localizations" : {
         "en" : {
@@ -2374,39 +2110,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Расширение"
-          }
-        }
-      }
-    },
-    "File" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Файл"
-          }
-        }
-      }
-    },
-    "File browser" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File browser"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Список файлов"
           }
         }
       }
@@ -2424,23 +2127,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Файлы"
-          }
-        }
-      }
-    },
-    "Files · %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Files · %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Файлы · %@"
           }
         }
       }
@@ -2521,23 +2207,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перейти к папке"
-          }
-        }
-      }
-    },
-    "Folder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Folder"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Папка"
           }
         }
       }
@@ -2642,22 +2311,6 @@
         }
       }
     },
-    "Hard links are counted once within the scanned scope. APFS shared blocks, snapshots, and purgeable storage mean file sizes do not predict exactly how much free space cleanup will recover. Unknown metadata and inaccessible folders can make totals incomplete." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hard links are counted once within the scanned scope. APFS shared blocks, snapshots, and purgeable storage mean file sizes do not predict exactly how much free space cleanup will recover. Unknown metadata and inaccessible folders can make totals incomplete."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Жёсткие ссылки учитываются один раз в области сканирования. Общие блоки APFS, снимки и очищаемое хранилище не позволяют точно предсказать освобождаемое место. Неизвестные метаданные и недоступные папки делают итоги неполными."
-          }
-        }
-      }
-    },
     "Heavy developer artifacts: simulators, device support, Android SDK, Docker data, virtual machines, and local AI model stores." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2671,23 +2324,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Тяжёлые артефакты разработки: симуляторы, device support, Android SDK, данные Docker, виртуальные машины и хранилища локальных моделей ИИ."
-          }
-        }
-      }
-    },
-    "Hide files" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hide files"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Скрыть файлы"
           }
         }
       }
@@ -2722,22 +2358,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Кэш Hugging Face"
-          }
-        }
-      }
-    },
-    "If a location does not support Trash, that item will be left in place. Restore trashed files using Finder." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If a location does not support Trash, that item will be left in place. Restore trashed files using Finder."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Если расположение не поддерживает Корзину, объект останется на месте. Восстановить файлы из Корзины можно в Finder."
           }
         }
       }
@@ -2859,6 +2479,22 @@
         }
       }
     },
+    "Keeps folder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keeps folder"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Папка остаётся"
+          }
+        }
+      }
+    },
     "Known · %lld incomplete items" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2908,40 +2544,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "Known on disk · incomplete" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Known on disk · incomplete"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Известный размер на диске · неполный"
-          }
-        }
-      }
-    },
-    "Known size" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Known size"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Известный размер"
           }
         }
       }
@@ -2996,40 +2598,6 @@
         }
       }
     },
-    "Largest" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Largest"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Крупнейшие"
-          }
-        }
-      }
-    },
-    "Last modified" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last modified"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Изменён"
-          }
-        }
-      }
-    },
     "Last operation" : {
       "localizations" : {
         "en" : {
@@ -3042,22 +2610,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Последняя операция"
-          }
-        }
-      }
-    },
-    "Latest content modification" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Latest content modification"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Последнее изменение содержимого"
           }
         }
       }
@@ -3096,22 +2648,6 @@
         }
       }
     },
-    "Location" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Location"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Расположение"
-          }
-        }
-      }
-    },
     "Locations" : {
       "localizations" : {
         "en" : {
@@ -3145,23 +2681,6 @@
         }
       }
     },
-    "Logical size" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Logical size"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Логический размер"
-          }
-        }
-      }
-    },
     "Make space for what’s next." : {
       "localizations" : {
         "en" : {
@@ -3174,72 +2693,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Освободите место для нового."
-          }
-        }
-      }
-    },
-    "Map only" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Map only"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Только карта"
-          }
-        }
-      }
-    },
-    "Map Only" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Map Only"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Только карта"
-          }
-        }
-      }
-    },
-    "Matched by folder name, independent of age" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matched by folder name, independent of age"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Совпадение по имени папки, независимо от возраста"
-          }
-        }
-      }
-    },
-    "Matched by indexed path, size, and modification metadata. Application/tool activity may be unverified. Nothing is selected for removal." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matched by indexed path, size, and modification metadata. Application/tool activity may be unverified. Nothing is selected for removal."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Соответствие определено по пути, размеру и дате изменения в индексе. Активность приложений и инструментов может быть неизвестна. Для удаления ничего не выбрано."
           }
         }
       }
@@ -3292,22 +2745,6 @@
         }
       }
     },
-    "Move the reviewed items to Trash?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move the reviewed items to Trash?"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Переместить проверенные объекты в Корзину?"
-          }
-        }
-      }
-    },
     "Move to Trash" : {
       "localizations" : {
         "en" : {
@@ -3320,22 +2757,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Переместить в Корзину"
-          }
-        }
-      }
-    },
-    "Move to Trash…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move to Trash…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Переместить в Корзину…"
           }
         }
       }
@@ -3357,22 +2778,6 @@
         }
       }
     },
-    "Name" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Имя"
-          }
-        }
-      }
-    },
     "New scan" : {
       "localizations" : {
         "en" : {
@@ -3385,22 +2790,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Новое сканирование"
-          }
-        }
-      }
-    },
-    "Next page" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next page"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Следующая страница"
           }
         }
       }
@@ -3466,6 +2855,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ни одно из этих расположений не удалось прочитать. Проверьте права доступа или просканируйте папки по отдельности."
+          }
+        }
+      }
+    },
+    "Not selected" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not selected"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не выбрано"
+          }
+        }
+      }
+    },
+    "Nothing selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing selected"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ничего не выбрано"
           }
         }
       }
@@ -3826,22 +3248,6 @@
         }
       }
     },
-    "Open Folder" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Folder"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть папку"
-          }
-        }
-      }
-    },
     "Opening saved folder…" : {
       "localizations" : {
         "en" : {
@@ -3939,39 +3345,6 @@
         }
       }
     },
-    "Overlapping folder and file selections are counted once. Review paths before removing anything." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Overlapping folder and file selections are counted once. Review paths before removing anything."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пересекающиеся выбранные папки и файлы учитываются один раз. Проверьте пути перед удалением."
-          }
-        }
-      }
-    },
-    "Package" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Package"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пакет"
-          }
-        }
-      }
-    },
     "Packages are counted even when shown as one tile. Symbolic links aren’t followed; cloud files aren’t downloaded." : {
       "localizations" : {
         "en" : {
@@ -4055,23 +3428,25 @@
         }
       }
     },
-    "Percentages use known bytes only. Hard-link storage is counted once within the scan." : {
+    "Partly selected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Percentages use known bytes only. Hard-link storage is counted once within the scan."
+            "value" : "Partly selected"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Проценты рассчитаны только по известным байтам. Место жёстких ссылок учитывается один раз в области сканирования."
+            "value" : "Выбрано частично"
           }
         }
       }
     },
     "Permanently delete these items?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4155,22 +3530,6 @@
         }
       }
     },
-    "Previous page" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Previous page"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Предыдущая страница"
-          }
-        }
-      }
-    },
     "Privacy" : {
       "localizations" : {
         "en" : {
@@ -4200,38 +3559,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Прогресс"
-          }
-        }
-      }
-    },
-    "Protected locations, incomplete metadata, and caches of identified running applications are excluded. Other application/tool activity may be unverified. Nothing is selected for removal." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protected locations, incomplete metadata, and caches of identified running applications are excluded. Other application/tool activity may be unverified. Nothing is selected for removal."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Исключены защищённые расположения, неполные метаданные и кэши известных запущенных приложений. Активность других приложений и инструментов может быть неизвестна. Для удаления ничего не выбрано."
-          }
-        }
-      }
-    },
-    "Queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "В очередь"
           }
         }
       }
@@ -4334,36 +3661,19 @@
         }
       }
     },
-    "Refreshed items were removed from the deletion queue. Review their current contents again." : {
+    "Refreshed items were removed from the cleanup queue. Review their current contents again." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Refreshed items were removed from the deletion queue. Review their current contents again."
+            "value" : "Refreshed items were removed from the cleanup queue. Review their current contents again."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Обновлённые объекты убраны из очереди на удаление. Проверьте их текущее содержимое ещё раз."
-          }
-        }
-      }
-    },
-    "Refreshing folder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refreshing folder"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Обновление папки"
+            "value" : "Обновлённые объекты удалены из очереди очистки. Повторно проверьте их текущее содержимое."
           }
         }
       }
@@ -4381,22 +3691,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Восстанавливаемые папки"
-          }
-        }
-      }
-    },
-    "Remove from queue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove from queue"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Убрать из очереди"
           }
         }
       }
@@ -4429,22 +3723,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Пересканировать папку"
-          }
-        }
-      }
-    },
-    "Restore all" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore all"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вернуть все"
           }
         }
       }
@@ -4497,40 +3775,8 @@
         }
       }
     },
-    "Review" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверить"
-          }
-        }
-      }
-    },
-    "Review every path. Folders include their contents. Cache removal can disrupt applications; cloud deletion may sync to other devices. Actual recovered space may differ." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review every path. Folders include their contents. Cache removal can disrupt applications; cloud deletion may sync to other devices. Actual recovered space may differ."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверьте каждый путь. Папки включают всё содержимое. Удаление кэша может нарушить работу приложений, а удаление в облаке — синхронизироваться с другими устройствами. Освобождённое место может отличаться от оценки."
-          }
-        }
-      }
-    },
     "Rule" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4678,6 +3924,7 @@
       }
     },
     "Scope" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4725,18 +3972,34 @@
         }
       }
     },
-    "Select a tile or file to see its size, location, and available actions." : {
+    "Select" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Select a tile or file to see its size, location, and available actions."
+            "value" : "Select"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Выберите плитку или файл, чтобы увидеть размер, расположение и доступные действия."
+            "value" : "Выбрать"
+          }
+        }
+      }
+    },
+    "Select a folder or file on the map to add it here." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a folder or file on the map to add it here."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите папку или файл на карте, чтобы добавить их сюда."
           }
         }
       }
@@ -4758,6 +4021,22 @@
         }
       }
     },
+    "Selected for deletion" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected for deletion"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрано для удаления"
+          }
+        }
+      }
+    },
     "Show all" : {
       "localizations" : {
         "en" : {
@@ -4770,6 +4049,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показать всё"
+          }
+        }
+      }
+    },
+    "Show more items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show more items"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать ещё"
+          }
+        }
+      }
+    },
+    "Show unselected items in this folder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show unselected items in this folder"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать невыбранные объекты в этой папке"
           }
         }
       }
@@ -4807,22 +4119,6 @@
         }
       }
     },
-    "Sizes are estimates" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sizes are estimates"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Размеры приблизительны"
-          }
-        }
-      }
-    },
     "Some locations couldn’t be read. Map sizes are partial." : {
       "localizations" : {
         "en" : {
@@ -4839,34 +4135,34 @@
         }
       }
     },
-    "Some sizes are unknown. Open Files to inspect these entries." : {
+    "Some selected sizes are unknown." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Some sizes are unknown. Open Files to inspect these entries."
+            "value" : "Some selected sizes are unknown."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Некоторые размеры неизвестны. Откройте список файлов для просмотра."
+            "value" : "Размеры некоторых выбранных объектов неизвестны."
           }
         }
       }
     },
-    "Sort names" : {
+    "Some sizes are unknown. Adjust filters or navigate the map to inspect the scan." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sort names"
+            "value" : "Some sizes are unknown. Adjust filters or navigate the map to inspect the scan."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сортировать по имени"
+            "value" : "Размеры некоторых объектов неизвестны. Измените фильтры или перемещайтесь по карте, чтобы изучить сканирование."
           }
         }
       }
@@ -4904,18 +4200,18 @@
         }
       }
     },
-    "Storage map, %@ known. Use Command-2 to open the accessible file browser." : {
+    "Storage map, %@ known." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Storage map, %@ known. Use Command-2 to open the accessible file browser."
+            "value" : "Storage map, %@ known."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Карта хранилища, известный размер: %@. Нажмите Command-2 для открытия доступного списка файлов."
+            "value" : "Карта хранения, известно: %@."
           }
         }
       }
@@ -4966,23 +4262,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Кэш SwiftPM"
-          }
-        }
-      }
-    },
-    "Symbolic link · not followed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Symbolic link · not followed"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Символическая ссылка · без перехода"
           }
         }
       }
@@ -5123,22 +4402,6 @@
         }
       }
     },
-    "The folder stays; its current contents are removed." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The folder stays; its current contents are removed."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Папка остаётся; её текущее содержимое будет удалено."
-          }
-        }
-      }
-    },
     "The folder was kept, but some contents could not be removed." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5256,18 +4519,19 @@
         }
       }
     },
-    "This immediately removes %lld selections and all contents of selected folders. This cannot be undone. Files will not be moved to Trash." : {
+    "This immediately removes the selected items and all contents of selected folders. Scanned folders stay in place but are emptied. This cannot be undone. Files will not be moved to Trash." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This immediately removes %lld selections and all contents of selected folders. This cannot be undone. Files will not be moved to Trash."
+            "value" : "This immediately removes the selected items and all contents of selected folders. Scanned folders stay in place but are emptied. This cannot be undone. Files will not be moved to Trash."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Будут немедленно удалены выбранные объекты (%lld) и всё содержимое выбранных папок. Это действие нельзя отменить. Файлы не попадут в Корзину."
+            "value" : "Выбранные объекты и всё содержимое выбранных папок удаляются немедленно. Папки сканирования остаются на месте, но очищаются. Это действие нельзя отменить. Файлы не будут перемещены в Корзину."
           }
         }
       }
@@ -5356,89 +4620,6 @@
         }
       }
     },
-    "Threshold: %@ GB" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Threshold: %@ GB"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Порог: %@ ГБ"
-          }
-        }
-      }
-    },
-    "Threshold: %@ GB on disk" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Threshold: %@ GB on disk"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Порог на диске: %@ ГБ"
-          }
-        }
-      }
-    },
-    "Toggle Details" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toggle Details"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показать или скрыть сведения"
-          }
-        }
-      }
-    },
-    "Toggle File Browser" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toggle File Browser"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показать или скрыть список файлов"
-          }
-        }
-      }
-    },
-    "Types" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Types"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Типы"
-          }
-        }
-      }
-    },
     "Unable to enumerate this location." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5473,6 +4654,7 @@
       }
     },
     "Unknown" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5484,22 +4666,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Неизвестно"
-          }
-        }
-      }
-    },
-    "Unknown sizes are excluded from this ranking." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unknown sizes are excluded from this ranking."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Объекты с неизвестным размером не включены в рейтинг."
           }
         }
       }

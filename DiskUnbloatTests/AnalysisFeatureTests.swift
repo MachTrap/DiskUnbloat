@@ -33,8 +33,8 @@ import DiskCore
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let index = try #require(model.scan.index)
         let branch = try #require(await index.node(path: canonicalURL(root).path + "/branch"))
-        model.explorer.showFiles = true; model.explorer.drawerTab = .largest; model.explorer.drawerHeight = 230
-        model.explorer.showDetails = true; model.explorer.selectionIDs = [branch.id]
+        model.cleanup.showQueue = false
+        model.explorer.selectionIDs = [branch.id]
         model.addToBasket(branch)
         try Data(repeating: 1,count: 200).write(to: root.appendingPathComponent("branch/new.txt"))
         model.refreshFolder(branch)
@@ -42,8 +42,8 @@ import DiskCore
         await model.waitForScan()
         #expect(model.phase == .exploring)
         #expect(model.scan.index === index)
-        #expect(model.explorer.showFiles && model.explorer.showDetails)
-        #expect(model.explorer.drawerTab == .largest && model.explorer.drawerHeight == 230)
+        // The queue panel keeps its open/closed state across a focused refresh.
+        #expect(!model.cleanup.showQueue)
         #expect(model.explorer.selectionIDs == [branch.id])
         #expect(model.cleanup.basket.isEmpty)
         #expect(await index.node(branch.id)?.logicalSize == 300)
@@ -65,19 +65,20 @@ import DiskCore
         await model.shutdown()
     }
 
-    @Test func drawerRankingDoesNotChangeMapAndStatisticsUseAllRows() async throws {
+    @Test func mapGeometryIsIndependentOfLegendHighlightAndDescriptionsComeFromCatalog() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
         let model = WorkspaceViewModel()
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let scene = model.explorer.scene
-        model.explorer.drawerTab = .largest; await model.explorer.loadRows()
+        model.explorer.highlightedCategory = .video
+        // Category highlighting only dims the map; geometry never depends on it.
         #expect(model.explorer.scene == scene)
-        #expect(model.explorer.rows.first?.name == "a.mp4")
-        // Category statistics materialize on the Types tab and cover every row in scope,
-        // independent of the drawer's page-limited ranking.
-        model.explorer.drawerTab = .types; await model.explorer.loadRows()
-        #expect(model.explorer.categories.first?.category == .video)
-        #expect(model.explorer.categories.first?.count == 1)
+        // Descriptions exist only for curated locations, and never for other paths.
+        let home = try #require(model.explorer.homePath)
+        let caches = FileNode(id: 90,parentID: nil,path: home + "/Library/Caches",name: "Caches",isDirectory: true,logicalSize: 0,allocatedSize: 0,modified: nil,identity: "90")
+        #expect(model.explorer.description(for: caches) != nil)
+        let unknown = FileNode(id: 91,parentID: nil,path: home + "/Projects",name: "Projects",isDirectory: true,logicalSize: 0,allocatedSize: 0,modified: nil,identity: "91")
+        #expect(model.explorer.description(for: unknown) == nil)
         await model.shutdown()
     }
 

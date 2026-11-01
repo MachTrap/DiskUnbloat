@@ -12,8 +12,14 @@ struct TreemapView: View {
     let aggregate: (MapEntry) -> Void
     let preview: (FileNode) -> Void
     let reveal: (FileNode) -> Void
-    let addToBasket: (FileNode) -> Void
+    /// Cleanup-queue intent: select adds the node (scan roots clean contents in place),
+    /// deselect removes the queue entries covering it.
+    let selectForCleanup: (FileNode) -> Void
+    let deselectFromCleanup: (FileNode) -> Void
+    let queuedPaths: [String]
     let canClean: Bool
+    /// Curated description for the hover card, when the node has one.
+    var description: (FileNode) -> String? = { _ in nil }
     var refreshFolder: (FileNode) -> Void = { _ in }
     var parent: () -> Void = {}
     var history: (Bool) -> Void = { _ in }
@@ -41,7 +47,7 @@ struct TreemapView: View {
                         .scaleEffect(transitionScale).opacity(transitionOpacity).allowsHitTesting(false)
                 }
                 if tiles.isEmpty {
-                    ContentUnavailableView("No sized items", systemImage: "square.dashed", description: Text(scene.summary.unknownCount > 0 ? "Some sizes are unknown. Open Files to inspect these entries." : "This folder is empty, or no items match your filters."))
+                    ContentUnavailableView("No sized items", systemImage: "square.dashed", description: Text(scene.summary.unknownCount > 0 ? "Some sizes are unknown. Adjust filters or navigate the map to inspect the scan." : "This folder is empty, or no items match your filters."))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
@@ -87,7 +93,7 @@ struct TreemapView: View {
                         Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { reveal(node) }
                         Button("Copy path", systemImage: "doc.on.doc") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(node.path, forType: .string) }
                         Divider()
-                        Button("Add to deletion queue", systemImage: "tray.and.arrow.down") { addToBasket(node) }.disabled(!canClean)
+                        cleanupMenu(for: node)
                     } else { Button("Browse these items") { aggregate(entry) } }
                 }
             }
@@ -112,8 +118,16 @@ struct TreemapView: View {
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Storage map, \(sizeText(scene.summary.knownBytes)) known. Use Command-2 to open the accessible file browser.")
+            .accessibilityLabel("Storage map, \(sizeText(scene.summary.knownBytes)) known.")
             .accessibilityIdentifier("storageMap")
+        }
+    }
+    @ViewBuilder private func cleanupMenu(for node: FileNode) -> some View {
+        let membership = queueMembership(path: node.path, queuedPaths: queuedPaths)
+        if membership == .selected || membership == .insideSelection {
+            Button("Deselect", systemImage: "tray") { deselectFromCleanup(node) }.disabled(!canClean)
+        } else {
+            Button("Select", systemImage: "tray.and.arrow.down") { selectForCleanup(node) }.disabled(!canClean)
         }
     }
     private struct LayoutKey: Equatable { let scene: MapScene; let size: CGSize; let revision: Int }
@@ -129,6 +143,9 @@ struct TreemapView: View {
             Text(scene.summary.knownBytes > 0 ? L10n.format("%@ · %lld%% of view", sizeText(tile.entry.bytes), Int(Double(tile.entry.bytes) / Double(scene.summary.knownBytes) * 100)) : sizeText(tile.entry.bytes))
                 .font(.caption).foregroundStyle(.secondary)
             if let path = tile.entry.node?.path { Text(path).font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }
+            if let node = tile.entry.node, let explanation = description(node) {
+                Text(explanation).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
             if tile.entry.kind == .aggregate { Text("Click to browse all items in this folder").font(.caption2).foregroundStyle(.secondary) }
         }.padding(12).frame(maxWidth: 340, alignment: .leading).background(.regularMaterial, in: .rect(cornerRadius: 12)).padding(12)
     }

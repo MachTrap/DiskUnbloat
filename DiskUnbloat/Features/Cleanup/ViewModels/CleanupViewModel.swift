@@ -7,9 +7,20 @@ import DiskCore
     private let homePath: String
     @ObservationIgnored private let service: any CleanupServing
     private(set) var cleaning = false
-    var basket: [CleanupEntry] = []
-    var showBasket = false
+    /// Canonical deletion queue: normalized, topmost entries kept, disjoint subtrees.
+    var basket: [CleanupEntry] = [] { didSet { if basket != oldValue { queueRevision += 1 } } }
+    /// Bumped on every queue mutation so derived views can rebuild asynchronously.
+    private(set) var queueRevision = 0
+    var showQueue = false
+    /// Presents the per-item report after a completed cleanup run.
+    var showReport = false
     private(set) var results: [CleanupResult] = []
+
+    /// Estimated on-disk bytes of the normalized queue, using the same known-size
+    /// accounting the map subtracts when queued items disappear. An estimate, not a
+    /// promise of reclaimed space.
+    var estimatedBytes: Int64 { basket.reduce(0) { $0 + $1.node.knownSize(for: .allocated) } }
+    var hasUnknownSizes: Bool { basket.contains { $0.node.unknownAllocatedCount > 0 } }
 
     init(service: any CleanupServing, homePath: String = LocationCatalog().home.path, activity: any ApplicationActivityProviding = ApplicationActivityService()) {
         self.service = service; self.homePath = homePath; self.activity = activity
@@ -79,6 +90,18 @@ import DiskCore
     func removeFromBasket(_ node: FileNode) {
         guard !cleaning else { return }
         basket.removeAll { $0.node.id == node.id }
+    }
+
+    /// Remove every queue entry overlapping a path: the exact entry, entries below it,
+    /// or entries above it when the row is covered by a selected folder.
+    func deselect(_ node: FileNode) {
+        guard !cleaning else { return }
+        basket.removeAll { $0.node.path.overlaps(node.path) }
+    }
+
+    /// How a node relates to the queue, for context-menu wording.
+    func membership(_ node: FileNode) -> QueueMembership {
+        queueMembership(path: node.path, queuedPaths: basket.map { $0.node.path })
     }
 
     /// Called synchronously to disable repeated submissions before creating an async task.

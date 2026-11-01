@@ -4,7 +4,7 @@ import DiskCore
 @testable import DiskUnbloat
 
 @MainActor struct MapFirstFlowTests {
-    @Test func completedScanShowsMapWithSecondaryPanelsClosed() async {
+    @Test func completedScanOpensCleanupQueueWithMap() async {
         let scanner = ControlledScanner()
         let model = WorkspaceViewModel(coordinator: scanner)
         #expect(model.phase == .choosing)
@@ -17,7 +17,9 @@ import DiskCore
         await model.waitForScan()
         #expect(model.phase == .exploring)
         #expect(model.explorer.scene.summary.knownBytes == 4096)
-        #expect(!model.explorer.showFiles && !model.explorer.showDetails)
+        // The cleanup queue opens itself once a scan completes.
+        #expect(model.cleanup.showQueue)
+        #expect(model.cleanup.basket.isEmpty)
         #expect(model.canClean)
         await model.shutdown()
     }
@@ -30,9 +32,11 @@ import DiskCore
         model.cancel(); await model.waitForScan()
         #expect(model.phase == .cancelled)
         #expect(!model.canClean)
+        #expect(!model.cleanup.showQueue)
         model.viewPartialMap(); await model.waitForScan()
         #expect(model.phase == .exploring)
         #expect(!model.canClean)
+        #expect(!model.cleanup.showQueue)
         await model.shutdown()
     }
 

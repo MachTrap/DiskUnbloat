@@ -13,6 +13,8 @@ import XCTest
         XCTAssertTrue(app.buttons["chooseLocation"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.outlines["fileTable"].exists)
         XCTAssertFalse(app.textFields["searchFiles"].exists)
+        // The cleanup queue belongs to results; it must not mount before a scan.
+        XCTAssertFalse(app.descendants(matching: .any)["cleanupQueue"].exists)
         app.buttons["scanOptions"].click()
         XCTAssertTrue(app.switches["Include hidden files"].waitForExistence(timeout: 5))
         app.typeKey(.escape, modifierFlags: [])

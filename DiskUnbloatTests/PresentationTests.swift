@@ -39,7 +39,7 @@ import DiskCore
         #expect(model.current?.name == "second")
         #expect(model.selected == nil)
         #expect(model.back.isEmpty && model.forward.isEmpty)
-        #expect(model.rows.allSatisfy { $0.path.hasPrefix("/fixture/second/") })
+        #expect(model.scene.entries.compactMap(\.node).allSatisfy { $0.path.hasPrefix("/fixture/second/") })
         #expect(model.breadcrumbs.map(\.name) == ["second"])
         model.reset()
         await discard(first); await discard(second)
@@ -138,50 +138,32 @@ import DiskCore
         #expect(active.basket.isEmpty)
     }
 
-    @Test func queuedItemsDisappearFromMapBrowserAndSelection() async throws {
+    @Test func queuedItemsDisappearFromMapAndSelection() async throws {
         let model = ExplorerViewModel(settings: SettingsViewModel())
         let index = try await index(name: "queue")
         await model.attach(index, options: ScanOptions())
-        #expect(model.rows.map(\.id) == [2])
+        #expect(model.scene.entries.contains { $0.id == 2 })
         model.select(2)
         model.updateHiddenPaths(["/fixture/queue/folder"])
         try await Task.sleep(for: .milliseconds(230))
         #expect(model.hiddenPaths == ["/fixture/queue/folder"])
-        #expect(model.rows.isEmpty)
         #expect(!model.scene.entries.contains { $0.id == 2 })
         #expect(model.selected == nil)
         model.updateHiddenPaths([])
         try await Task.sleep(for: .milliseconds(230))
-        #expect(model.rows.map(\.id) == [2])
         #expect(model.scene.entries.contains { $0.id == 2 })
         await discard(index)
     }
 
-    @Test func candidateExclusionsHideItemsAndRestore() async throws {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".sqlite")
-        let index = try ScanIndex(url: url)
-        let old = Date().addingTimeInterval(-90 * 86400)
-        func node(_ id: Int64, _ parent: Int64?, _ path: String, _ date: Date?) -> FileNode {
-            FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: true, logicalSize: 4096, allocatedSize: 4096, modified: date, identity: "\(id)")
-        }
-        try await index.insert([
-            node(1, nil, "/Users/xdbtest/Library", old), node(2, 1, "/Users/xdbtest/Library/Caches", old),
-            node(3, 2, "/Users/xdbtest/Library/Caches/AppOld", old), node(5, 2, "/Users/xdbtest/Library/Caches/AppRecent", Date())
-        ])
-        try await index.aggregate()
-        let model = ExplorerViewModel(settings: SettingsViewModel(), userCacheRoot: URL(fileURLWithPath: "/Users/xdbtest/Library/Caches"))
+    @Test func selectionSurvivesSceneReloads() async throws {
+        let model = ExplorerViewModel(settings: SettingsViewModel())
+        let index = try await index(name: "selection")
         await model.attach(index, options: ScanOptions())
-        model.drawerTab = .candidates
-        model.candidateRule = .userCaches
-        await model.loadRows()
-        let oldCache = try #require(model.rows.first { $0.name == "AppOld" })
-        #expect(!model.rows.contains { $0.name == "AppRecent" })
-        model.excludeCandidate(oldCache)
-        try await Task.sleep(for: .milliseconds(230))
-        #expect(model.rows.isEmpty)
-        model.restoreCandidateExclusion(oldCache.path)
-        try await Task.sleep(for: .milliseconds(230))
-        #expect(model.rows.map(\.name) == ["AppOld"])
+        model.select(2)
+        model.metric = .logical
+        await model.loadResults()
+        #expect(model.selected?.name == "folder")
+        #expect(model.selectionBytes == 1024)
         await discard(index)
     }
 

@@ -6,7 +6,7 @@ import DiskCore
 
 #Preview("Compact scanning") { ScanningView(model: ScanViewModel(coordinator: ScanCoordinator()), preparing: true, cancel: {}, issues: {}).frame(width: 960,height: 640) }
 #Preview("Nested map · light") {
-    TreemapView(scene: PreviewMap.scene, selection: [], highlighted: nil, fitRevision: 0, select: { _,_ in }, open: { _ in }, aggregate: { _ in }, preview: { _ in }, reveal: { _ in }, addToBasket: { _ in }, canClean: false)
+    TreemapView(scene: PreviewMap.scene, selection: [], highlighted: nil, fitRevision: 0, select: { _,_ in }, open: { _ in }, aggregate: { _ in }, preview: { _ in }, reveal: { _ in }, selectForCleanup: { _ in }, deselectFromCleanup: { _ in }, queuedPaths: [], canClean: true)
         .frame(width: 960,height: 560).padding(16).preferredColorScheme(.light)
 }
 private enum PreviewMap {
@@ -22,11 +22,18 @@ private enum PreviewMap {
     }
 }
 
-#Preview("Category statistics") {
-    CategoryStatisticsView(categories: [
-        CategorySummary(category: .video,bytes: 8_000_000,count: 12,unknown: 1),
-        CategorySummary(category: .archives,bytes: 6_000_000,count: 8,unknown: 0)
-    ],highlighted: .constant(nil)).frame(width: 960,height: 200)
+@MainActor private func previewQueueModel() -> CleanupQueueModel {
+    let cleanup = CleanupViewModel(service: CleanupService())
+    cleanup.basket = [
+        CleanupEntry(node: PreviewMap.scene.entries[0].node!, operation: .remove),
+        CleanupEntry(node: PreviewMap.scene.entries[2].node!, operation: .remove)
+    ]
+    return CleanupQueueModel(cleanup: cleanup)
+}
+
+#Preview("Cleanup queue") {
+    CleanupQueueView(model: previewQueueModel(), canClean: true, select: { _ in }, deselect: { _ in }, performCleanup: { _ in })
+        .frame(width: 340, height: 620)
 }
 #Preview("Choose location · Russian") {
     WorkspaceView(model: WorkspaceViewModel()).environment(\.locale,Locale(identifier: "ru")).frame(width: 960,height: 640)

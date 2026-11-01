@@ -3,25 +3,26 @@ import DiskCore
 
 struct ExplorerView: View {
     @Bindable var model: ExplorerViewModel
-    let windowWidth: CGFloat
+    let queue: CleanupQueueModel
     let scan: ScanViewModel
     let canClean: Bool
-    let basketCount: Int
-    let basketBytes: Int64
     let queuedPaths: [String]
     let newScan: () -> Void
     let rescan: () -> Void
     let refreshFolder: (FileNode) -> Void
-    let review: () -> Void
     let issues: () -> Void
     let preview: (FileNode) -> Void
     let reveal: (FileNode) -> Void
-    let addToBasket: (FileNode) -> Void
+    let selectForCleanup: (FileNode) -> Void
+    let deselectFromCleanup: (FileNode) -> Void
     let addSelection: () -> Void
-    private var wide: Bool { windowWidth >= 1180 }
-    @State private var dragOrigin: CGFloat?
+    let performCleanup: (CleanupMode) -> Void
     @State private var showOptions = false
     @FocusState private var searchFocused: Bool
+
+    private var showQueue: Binding<Bool> {
+        Binding(get: { queue.cleanup.showQueue }, set: { queue.cleanup.showQueue = $0 })
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,23 +34,15 @@ struct ExplorerView: View {
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            GeometryReader { geometry in
-                VStack(spacing: 0) {
-                    TreemapView(scene: model.scene, selection: model.selectionIDs, highlighted: model.highlightedCategory, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, addToBasket: addToBasket, canClean: canClean, refreshFolder: refreshFolder, parent: model.up, history: model.history)
-                        .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
-                        .overlay(alignment: .bottom) { if model.isLoading { ProgressView().controlSize(.small).padding(12).background(.regularMaterial, in: Capsule()).padding(16) } }
-                    if model.showFiles {
-                        drawerHandle(maxHeight: geometry.size.height * 0.6)
-                        AnalysisDrawerView(model: model, canClean: canClean, preview: preview, reveal: reveal, addToBasket: addToBasket, refreshFolder: refreshFolder)
-                            .frame(height: min(model.drawerHeight, geometry.size.height * 0.6))
-                    }
-                }
-            }
+            TreemapView(scene: model.scene, selection: model.selectionIDs, highlighted: model.highlightedCategory, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+                .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
+                .overlay(alignment: .bottom) { if model.isLoading { ProgressView().controlSize(.small).padding(12).background(.regularMaterial, in: Capsule()).padding(16) } }
             if !model.selectionIDs.isEmpty { selectionBar }
             legend
         }
-        .inspector(isPresented: Binding(get: { wide && model.showDetails }, set: { if wide { model.showDetails = $0 } })) {
-            inspector.inspectorColumnWidth(min: 245, ideal: 275, max: 330)
+        .inspector(isPresented: showQueue) {
+            CleanupQueueView(model: queue, canClean: canClean, select: selectForCleanup, deselect: deselectFromCleanup, performCleanup: performCleanup)
+                .inspectorColumnWidth(min: 280, ideal: 340, max: 480)
         }
         .toolbar { toolbar }
         .modifier(RefreshHooks(model: model, queuedPaths: queuedPaths, focusSearch: { searchFocused = true }))
@@ -67,26 +60,19 @@ struct ExplorerView: View {
         let focusSearch: () -> Void
         func body(content: Content) -> some View {
             content
-                .onChange(of: model.drawerTab) { model.scheduleRefresh() }
-                .onChange(of: model.candidateRule) { model.scheduleRefresh() }
+                .onChange(of: model.suggestion) { model.scheduleRefresh() }
                 .onChange(of: model.search) { model.scheduleRefresh() }
                 .onChange(of: model.scope) { model.scheduleRefresh() }
-                .onChange(of: model.suggestion) { model.scheduleRefresh() }
                 .onChange(of: model.minimumGB) { model.scheduleRefresh() }
                 .onChange(of: model.olderDays) { model.scheduleRefresh() }
                 .onChange(of: model.extensionFilter) { model.scheduleRefresh() }
                 .onChange(of: model.metric) { model.scheduleRefresh() }
-                .onChange(of: model.sortName) { model.scheduleRefresh() }
-                .onChange(of: model.ascending) { model.scheduleRefresh() }
                 .onChange(of: model.searchRequested) { focusSearch() }
                 .onChange(of: queuedPaths) { model.updateHiddenPaths(queuedPaths) }
                 .onAppear { model.updateHiddenPaths(queuedPaths) }
         }
     }
 
-    private var inspector: some View {
-        FileInspector(model: model, roots: scan.roots, canClean: canClean, preview: preview, reveal: reveal, addToBasket: addToBasket)
-    }
     private var pathBar: some View {
         HStack(spacing: 12) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -131,9 +117,7 @@ struct ExplorerView: View {
             }
             Spacer()
             if let node = model.selected { Button { preview(node) } label: { Image(systemName: "eye") }.help("Quick Look"); Button { reveal(node) } label: { Image(systemName: "arrow.up.forward.square") }.help("Reveal in Finder") }
-            Button("Details", systemImage: "info.circle") { model.showDetails.toggle() }
-                .popover(isPresented: Binding(get: { !wide && model.showDetails }, set: { if !wide { model.showDetails = $0 } })) { inspector.frame(width: 290, height: 470) }
-            Button("Queue", systemImage: "tray.and.arrow.down", action: addSelection).disabled(!canClean).accessibilityIdentifier("addToReview")
+            Button("Select", systemImage: "tray.and.arrow.down", action: addSelection).disabled(!canClean).accessibilityIdentifier("addToReview")
             Button { model.selectionIDs = [] } label: { Image(systemName: "xmark") }.help("Clear selection")
         }.buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 10).background(.bar)
     }
@@ -147,31 +131,15 @@ struct ExplorerView: View {
             }
             if model.highlightedCategory != nil { Button("Show all") { model.highlightedCategory = nil }.buttonStyle(.plain).foregroundStyle(.teal) }
             Spacer(minLength: 4)
-            Button { model.showFiles.toggle() } label: {
-                Label(model.showFiles ? L10n.text("Hide files") : L10n.format("Files · %@", model.totalRows.formatted()), systemImage: "list.bullet")
-            }.buttonStyle(.plain).accessibilityIdentifier("toggleFiles")
         }.font(.caption2).padding(.horizontal, 20).padding(.vertical, 10).background(.bar)
     }
-    private func drawerHandle(maxHeight: CGFloat) -> some View {
-        HStack {
-            Picker("Analysis", selection: $model.drawerTab) {
-                ForEach(AnalysisTab.allCases) { Text(L10n.text($0.rawValue)).tag($0) }
-            }.pickerStyle(.segmented).frame(maxWidth: 380).accessibilityIdentifier("analysisTabs")
-            Spacer(); Capsule().fill(.secondary.opacity(0.3)).frame(width: 34,height: 3); Spacer()
-            Button { model.showFiles = false } label: { Image(systemName: "xmark") }.buttonStyle(.plain).font(.caption).help("Close file browser")
-        }.padding(.horizontal, 16).frame(height: 26).background(.bar)
-            .gesture(DragGesture().onChanged { value in
-                if dragOrigin == nil { dragOrigin = model.drawerHeight }
-                model.drawerHeight = min(max(110, (dragOrigin ?? 190) - value.translation.height), max(110,maxHeight))
-            }.onEnded { _ in dragOrigin = nil })
-    }
-    /// Toolbar tray icon with a small red circle showing the queued item count.
+    /// Toolbar tray icon with a small badge showing the queued item count.
     private var queueBadge: some View {
         ZStack(alignment: .topTrailing) {
-            Image(systemName: "tray")
-            if basketCount > 0 {
-                Text("\(basketCount)").font(.system(size: 9, weight: .bold)).monospacedDigit().foregroundStyle(.white)
-                    .padding(.horizontal, basketCount > 9 ? 3 : 0)
+            Image(systemName: queue.cleanup.showQueue ? "tray.full" : "tray")
+            if queue.selectedCount > 0 {
+                Text("\(queue.selectedCount)").font(.system(size: 9, weight: .bold)).monospacedDigit().foregroundStyle(.white)
+                    .padding(.horizontal, queue.selectedCount > 9 ? 3 : 0)
                     .frame(minWidth: 14, minHeight: 14).background(Circle().fill(.red))
                     .fixedSize().offset(x: 7, y: -7).accessibilityHidden(true)
             }
@@ -197,20 +165,15 @@ struct ExplorerView: View {
             } label: { Label("Filter", systemImage: "line.3.horizontal.decrease") }
             Menu {
                 Picker("Size", selection: $model.metric) { ForEach(SizeMetric.allCases) { Text(L10n.text($0.rawValue)).tag($0) } }
-                Toggle("Sort names", isOn: $model.sortName); Toggle("Ascending", isOn: $model.ascending)
                 Divider()
                 Button("Fit map") { model.fitRevision += 1 }
-                Toggle("File browser", isOn: $model.showFiles)
-                Toggle("Details", isOn: $model.showDetails)
-                Button("Map only") { model.showFiles = false; model.showDetails = false }
-                Divider()
                 Button("Scan options") { showOptions = true }
                 Button("Rescan folder") { if let node = model.current { refreshFolder(node) } }.accessibilityIdentifier("rescanFolder")
                 Button("Scan again", action: rescan)
             } label: { Label("Display", systemImage: "rectangle.3.group") }
             Button(action: newScan) { Label("New scan", systemImage: "folder.badge.plus") }
-            Button(action: review) { queueBadge }.disabled(basketCount == 0)
-                .help(L10n.format("Deletion queue · %lld items · %@ estimated", basketCount, sizeText(basketBytes)))
+            Button { showQueue.wrappedValue.toggle() } label: { queueBadge }
+                .help(L10n.format("Cleanup queue · %lld items · %@ estimated", queue.selectedCount, sizeText(queue.selectedBytes)))
                 .accessibilityIdentifier("reviewCleanup")
         }
         ToolbarItem(placement: .automatic) {

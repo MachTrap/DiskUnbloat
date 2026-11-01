@@ -18,14 +18,11 @@ import SwiftUI
                 Button("Scan Again", action: model.startScan).keyboardShortcut("r").disabled(model.scan.root == nil || model.isBusy)
                 Button("Rescan Folder") { if let node = model.explorer.current { model.refreshFolder(node) } }.disabled(model.phase != .exploring || model.isBusy)
                 Button("Cancel Scan", action: model.cancel).keyboardShortcut(".").disabled(!model.scan.scanning)
-                Button("Deletion Queue") { model.cleanup.showBasket = true }.keyboardShortcut("k").disabled(model.cleanup.basket.isEmpty)
+                Button("Cleanup Queue") { model.cleanup.showQueue.toggle() }.keyboardShortcut("k").disabled(model.phase != .exploring)
             }
             CommandMenu("Explore") {
                 Group {
                 Button("Search") { model.explorer.searchRequested += 1 }.keyboardShortcut("f")
-                Button("Map Only") { model.explorer.showFiles = false; model.explorer.showDetails = false }.keyboardShortcut("1")
-                Button("Toggle File Browser") { model.explorer.showFiles.toggle() }.keyboardShortcut("2")
-                Button("Toggle Details") { model.explorer.showDetails.toggle() }.keyboardShortcut("i")
                 Button("Go to Parent", action: model.explorer.up).keyboardShortcut(.upArrow, modifiers: .command)
                 }.disabled(model.phase != .exploring)
             }

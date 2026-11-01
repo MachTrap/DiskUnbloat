@@ -16,6 +16,7 @@ enum WorkspacePhase: Equatable {
     let scan: ScanViewModel
     let explorer: ExplorerViewModel
     let cleanup: CleanupViewModel
+    let queue: CleanupQueueModel
     @ObservationIgnored private let filePresentation: any FilePresenting
     @ObservationIgnored private var locationTask: Task<Void, Never>?
     private(set) var restoringLocation = false
@@ -38,6 +39,7 @@ enum WorkspacePhase: Equatable {
         scan = ScanViewModel(coordinator: coordinator)
         explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
         cleanup = CleanupViewModel(service: cleanupService)
+        queue = CleanupQueueModel(cleanup: cleanup)
     }
 
     var isBusy: Bool { scan.scanning || phase == .preparingResults || cleanup.cleaning || restoringLocation }
@@ -57,6 +59,7 @@ enum WorkspacePhase: Equatable {
         await scan.cancel()
         await scanTask?.value
         explorer.reset()
+        queue.reset()
         await scan.discardIndex()
         authorization.release()
     }
@@ -105,6 +108,7 @@ enum WorkspacePhase: Equatable {
         phase = .scanning
         explorer.reset()
         cleanup.reset(preservingReport: preservingCleanupReport)
+        queue.reset()
         scanTask = Task {
             authorization.retainOnly(request.roots)
             do {
@@ -125,6 +129,8 @@ enum WorkspacePhase: Equatable {
                 phase = .preparingResults
                 scan.stage = .preparingMap
                 await explorer.attach(index, options: request.options, grouped: scan.isGroupScan)
+                queue.attach(IndexCleanupQueueProvider(index: index, inspectPackages: request.options.inspectPackages))
+                cleanup.showQueue = true
                 phase = .exploring
             } catch { phase = .failed(L10n.format("Couldn’t start the scan. %@", error.diagnosticDescription)) }
         }
@@ -250,7 +256,12 @@ enum WorkspacePhase: Equatable {
     func viewPartialMap() {
         guard phase == .cancelled, let index = scan.index else { return }
         phase = .preparingResults; scan.stage = .preparingMap
-        scanTask = Task { await explorer.attach(index, options: scan.options, grouped: scan.isGroupScan); phase = .exploring }
+        scanTask = Task {
+            await explorer.attach(index, options: scan.options, grouped: scan.isGroupScan)
+            // Cancelled results stay opt-in: the queue panel does not open itself here.
+            queue.attach(IndexCleanupQueueProvider(index: index, inspectPackages: scan.options.inspectPackages))
+            phase = .exploring
+        }
     }
 
     func addSelectionToBasket() { explorer.normalizedSelection.forEach(addToBasket) }
@@ -262,6 +273,13 @@ enum WorkspacePhase: Equatable {
         if let reason = cleanup.add(node, roots: scan.roots) { message = reason }
     }
 
+    /// Remove the queue entries covering a node: its exact entry, entries below it, or
+    /// the selected folder above it.
+    func deselect(_ node: FileNode) {
+        guard canClean else { return }
+        cleanup.deselect(node)
+    }
+
     func performCleanup(_ mode: CleanupMode) {
         guard canClean, !scan.roots.isEmpty, let index = scan.index, let items = cleanup.begin() else { return }
         cleanupTask = Task {
@@ -270,7 +288,9 @@ enum WorkspacePhase: Equatable {
                 // instead of re-scanning, dropping the stale index. The deletion report is kept.
                 phase = .choosing
                 explorer.reset()
+                queue.reset()
                 cleanup.reset(preservingReport: true)
+                cleanup.showReport = true
                 await scan.discardIndex()
             }
         }

@@ -36,15 +36,14 @@ import DiskCore
         model.search = "mp3"
         model.scheduleRefresh()
         try await Task.sleep(for: .milliseconds(240))
-        #expect(Set(model.rows.map(\.id)) == [3, 5])
+        #expect(Set(model.scene.entries.map(\.id)) == [3, 5])
         // Inside one root the same filter is scoped to that subtree only.
         let caches = try #require(await index.node(2))
         model.navigate(caches)
-        await model.waitForPage()
         model.search = "mp3"
         model.scheduleRefresh()
         try await Task.sleep(for: .milliseconds(240))
-        #expect(model.rows.map(\.id) == [3])
+        #expect(model.scene.entries.map(\.id) == [3])
         #expect(model.breadcrumbs.map(\.name) == ["All caches", "Caches"])
         model.reset(); await discard(index)
     }

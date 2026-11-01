@@ -41,15 +41,23 @@
               "children": [
                 {
                   "kind": "group",
+                  "path": "Models",
+                  "children": [
+                    { "path": "CleanupQueueModels.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                  ],
+                }, {
+                  "kind": "group",
                   "path": "ViewModels",
                   "children": [
+                    { "path": "CleanupQueueModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                     { "path": "CleanupViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                   ],
                 }, {
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "CleanupReviewView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "CleanupQueueView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "CleanupReportView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                   ],
                 },
               ],
@@ -68,11 +76,7 @@
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "AnalysisDrawerView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "CategoryStatisticsView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                     { "path": "ExplorerView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "FileInspector.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "FileTable.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                     { "path": "TreemapView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                   ],
                 },
@@ -259,7 +263,7 @@
       "children": [
         { "path": "AnalysisFeatureTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "AuthorizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
-        { "path": "BrowserPaginationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "CleanupQueueTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "GroupedScanTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "LocalizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapFirstFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

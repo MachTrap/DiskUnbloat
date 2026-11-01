@@ -12,28 +12,21 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     private let settings: SettingsViewModel
     private let activity: any ApplicationActivityProviding
     let homePath: String?
-    var candidateRule: CleanupRule = .large
-    private let cacheRootPath: String?
     @ObservationIgnored private var index: ScanIndex?
     /// Grouped scans put several locations under one synthetic root; filter scope then
     /// spans the union of all listed locations instead of one path prefix.
     @ObservationIgnored private var groupScan = false
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
-    @ObservationIgnored private var pageTask: Task<Void, Never>?
     @ObservationIgnored private var nodesByID: [Int64: FileNode] = [:]
     @ObservationIgnored private var sceneCache: [String: MapScene] = [:]
     @ObservationIgnored private var sceneCacheOrder: [String] = []
-    @ObservationIgnored private var resultsCache: [ResultsKey: CachedResults] = [:]
-    @ObservationIgnored private var resultsCacheOrder: [ResultsKey] = []
     private var queryGeneration = 0
     private var options = ScanOptions()
-    var drawerHeight: CGFloat = 190
-    var drawerTab: AnalysisTab = .files
-    var categories: [CategorySummary] = []
+    private let cacheRootPath: String?
+    private var catalog: LocationCatalog?
     private(set) var legendCategories: [FileCategory] = []
-    var rows: [FileNode] = []
     var scene = MapScene()
-    var selectionIDs: Set<Int64> = [] { didSet { if selectionIDs.isEmpty { showDetails = false } } }
+    var selectionIDs: Set<Int64> = []
     var selection: Int64? {
         get { selectionIDs.count == 1 ? selectionIDs.first : nil }
         set { selectionIDs = newValue.map { [$0] } ?? [] }
@@ -56,25 +49,12 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var extensionFilter = ""
     var metric: SizeMetric = .allocated
     var highlightedCategory: FileCategory?
-    var sortName = false
-    var ascending = false
-    var showFiles = false
-    var showDetails = false
-    var page = 0
-    let pageSize = 250
-    var totalRows = 0
-    var isLoading = false
     var fitRevision = 0
     var searchRequested = 0
-    /// Paths queued for deletion; they disappear from the map and browser until removed.
+    var isLoading = false
+    /// Paths queued for deletion; they disappear from the map until removed.
     private(set) var hiddenPaths: [String] = []
-    /// Candidate paths the user excluded from deletion suggestions this session.
-    private(set) var excludedCandidatePaths: [String] = []
-    var isCandidateFilterActive: Bool { drawerTab == .candidates || suggestion != nil }
-    var largeThresholdGB: Double { settings.largeGB }
-    var candidateAgeDays: Int { candidateRule.isCache ? settings.cacheAgeDays : settings.ageDays }
     var hasFilters: Bool { !search.isEmpty || suggestion != nil || minimumGB > 0 || olderDays > 0 || !extensionFilter.isEmpty }
-    var pageCount: Int { max(1, (totalRows + pageSize - 1) / pageSize) }
     var availableCategories: [FileCategory] {
         let present = Set(legendCategories)
         return FileCategory.allCases.filter { present.contains($0) }
@@ -86,13 +66,12 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     }
 
     func reset() {
-        refreshTask?.cancel(); pageTask?.cancel(); queryGeneration += 1; index = nil; nodesByID = [:]
-        sceneCache = [:]; sceneCacheOrder = []; resultsCache = [:]; resultsCacheOrder = []
-        rows = []; categories = []; legendCategories = []; drawerTab = .files; scene = MapScene(); current = nil; selectionIDs = []
-        breadcrumbs = []; back = []; forward = []; suggestion = nil; page = 0; totalRows = 0
-        showFiles = false; showDetails = false; highlightedCategory = nil
-        search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current; isLoading = false
-        hiddenPaths = []; excludedCandidatePaths = []
+        refreshTask?.cancel(); queryGeneration += 1; index = nil; nodesByID = [:]
+        sceneCache = [:]; sceneCacheOrder = []
+        legendCategories = []; scene = MapScene(); current = nil; selectionIDs = []
+        breadcrumbs = []; back = []; forward = []; suggestion = nil; highlightedCategory = nil
+        search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current
+        hiddenPaths = []; isLoading = false
     }
 
     /// Hides queued deletion items everywhere the explorer queries, and drops their selections.
@@ -104,22 +83,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             guard let node = nodesByID[id] else { return true }
             return !hidden.contains { node.path.isWithin($0) }
         }
-        sceneCache = [:]; sceneCacheOrder = []; resultsCache = [:]; resultsCacheOrder = []
-        scheduleRefresh()
-    }
-
-    func excludeCandidate(_ node: FileNode) {
-        guard !excludedCandidatePaths.contains(where: { node.path.overlaps($0) }) else { return }
-        excludedCandidatePaths.append(node.path)
-        scheduleRefresh()
-    }
-    func restoreCandidateExclusion(_ path: String) {
-        excludedCandidatePaths.removeAll { $0 == path }
-        scheduleRefresh()
-    }
-    func clearCandidateExclusions() {
-        guard !excludedCandidatePaths.isEmpty else { return }
-        excludedCandidatePaths = []
+        sceneCache = [:]; sceneCacheOrder = []
         scheduleRefresh()
     }
 
@@ -128,14 +92,14 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         let root = await index.node(1)
         guard self.index === index else { return }
         current = root
-        await loadRows(); await loadBreadcrumbs()
+        await loadResults(); await loadBreadcrumbs()
     }
 
-    func suspendQueries() { refreshTask?.cancel(); pageTask?.cancel(); queryGeneration += 1 }
+    func suspendQueries() { refreshTask?.cancel(); queryGeneration += 1 }
 
     func restoreAfterRefresh() async {
         guard let index else { return }
-        sceneCache = [:]; sceneCacheOrder = []; resultsCache = [:]; resultsCacheOrder = []
+        sceneCache = [:]; sceneCacheOrder = []
         let oldSelection = selectionIDs
         let oldBreadcrumbs = breadcrumbs
         var focus = current.flatMap { _ in current }
@@ -154,7 +118,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         back = validBack; forward = validForward
         nodesByID = Dictionary(uniqueKeysWithValues: surviving.map { ($0.id,$0) })
         selectionIDs = Set(surviving.map(\.id))
-        await loadRows(); await loadBreadcrumbs()
+        await loadResults(); await loadBreadcrumbs()
     }
 
     func scheduleRefresh() {
@@ -162,106 +126,56 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         refreshTask = Task {
             do { try await Task.sleep(for: .milliseconds(180)) } catch { return }
             guard !Task.isCancelled else { return }
-            await loadRows()
+            await loadResults()
         }
     }
 
-    /// Focused grouping roots span multiple real locations; their subtree scope covers the
-    /// whole scan, because every scanned path lives under one of the listed roots.
-    /// Snapshot the query-relevant state. Candidate exclusions are resolved here (main actor)
-    /// so `ExplorerQueries` stays a plain value type.
+    /// Snapshot the query-relevant state. Running-application cache exclusions are resolved
+    /// here (main actor) so `ExplorerQueries` stays a plain value type.
     private func makeQueries() -> ExplorerQueries {
-        let exclusions: [String]
-        if drawerTab == .candidates || suggestion != nil {
-            exclusions = (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) + excludedCandidatePaths
-        } else { exclusions = [] }
-        return ExplorerQueries(
-            current: current, metric: metric, options: options, drawerTab: drawerTab, scope: scope,
-            suggestion: suggestion, candidateRule: candidateRule, hiddenPaths: hiddenPaths,
-            excludedCandidatePaths: exclusions, search: search, minimumGB: minimumGB,
-            olderDays: olderDays, extensionFilter: extensionFilter, sortName: sortName, ascending: ascending,
+        ExplorerQueries(
+            current: current, metric: metric, options: options, scope: scope,
+            suggestion: suggestion, hiddenPaths: hiddenPaths,
+            activityExclusions: suggestion != nil ? (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) : [],
+            search: search, minimumGB: minimumGB,
+            olderDays: olderDays, extensionFilter: extensionFilter,
             cacheRootPath: cacheRootPath, homePath: homePath, cacheAgeDays: settings.cacheAgeDays,
-            ageDays: settings.ageDays, largeGB: settings.largeGB, groupScan: groupScan, pageSize: pageSize
+            ageDays: settings.ageDays, largeGB: settings.largeGB, groupScan: groupScan
         )
     }
 
-    func loadRows() async {
+    func loadResults() async {
         guard let index, let current else { return }
         queryGeneration += 1; let generation = queryGeneration
-        isLoading = true; page = 0
+        isLoading = true
         let revision = await index.revision
         let queries = makeQueries()
-        let browserQuery = queries.browserQuery(); let filtered = queries.hasFilters
-        let statsQuery = queries.statsQuery(from: browserQuery)
-        let mapQuery = queries.mapQuery(from: browserQuery)
+        let filtered = queries.hasFilters
         let sceneKey = "\(revision):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
-        let cachedScene = filtered ? nil : sceneCache[sceneKey]
-        // Candidate/suggestion results depend on the dynamic set of running applications, so
-        // they are never cached; everything else is safe to reuse across navigation.
-        let cacheable = drawerTab != .candidates && suggestion == nil
-        let resultsKey = ResultsKey(revision: revision, currentID: current.id, metric: metric, inspectPackages: options.inspectPackages, drawerTab: drawerTab, scope: scope, search: search, minimumGB: minimumGB, olderDays: olderDays, extensionFilter: extensionFilter, hiddenPaths: hiddenPaths, sortName: sortName, ascending: ascending)
-        let cachedResults = cacheable ? resultsCache[resultsKey] : nil
-
-        let resolvedSummary: SizeSummary; let resolvedRows: [FileNode]; let resolvedLegend: [FileCategory]
-        let resolvedStatistics: [CategorySummary]; let resolvedScene: MapScene
-        if let cached = cachedResults, let cachedScene {
-            resolvedSummary = cached.summary; resolvedRows = cached.rows; resolvedLegend = cached.legend
-            resolvedStatistics = cached.statistics; resolvedScene = cachedScene
+        let resolvedScene: MapScene
+        let resolvedLegend: [FileCategory]
+        if let cachedScene = filtered ? nil : sceneCache[sceneKey] {
+            resolvedScene = cachedScene
+            resolvedLegend = await index.categoryList(queries.legendQuery())
         } else {
-            // One actor call produces a consistent snapshot of every result shown.
-            let snap = await index.explorerSnapshot(browser: browserQuery, stats: statsQuery, mapQuery: mapQuery, mapRootID: current.id, filtered: filtered, includeStatistics: drawerTab == .types, includeScene: cachedScene == nil)
+            // One actor call produces a consistent map and legend for the same revision.
+            let snap = await index.mapSnapshot(
+                rootID: current.id, mapQuery: queries.sceneQuery(),
+                legendQuery: queries.legendQuery(), filtered: filtered)
             guard !Task.isCancelled, snap.revision == revision, generation == queryGeneration, self.index === index else { return }
-            if let cached = cachedResults {
-                resolvedSummary = cached.summary; resolvedRows = cached.rows; resolvedLegend = cached.legend
-                resolvedStatistics = cached.statistics
-            } else {
-                resolvedSummary = snap.summary; resolvedRows = snap.rows; resolvedLegend = snap.legendCategories
-                resolvedStatistics = snap.statistics
-                if cacheable {
-                    resultsCache[resultsKey] = CachedResults(summary: resolvedSummary, rows: resolvedRows, legend: resolvedLegend, statistics: resolvedStatistics)
-                    resultsCacheOrder.removeAll { $0 == resultsKey }; resultsCacheOrder.append(resultsKey)
-                    while resultsCacheOrder.count > 8 { resultsCache.removeValue(forKey: resultsCacheOrder.removeFirst()) }
-                }
-            }
-            if let cachedScene {
-                resolvedScene = cachedScene
-            } else {
-                resolvedScene = snap.scene
-                if !filtered {
-                    sceneCache[sceneKey] = snap.scene; sceneCacheOrder.removeAll { $0 == sceneKey }; sceneCacheOrder.append(sceneKey)
-                    while sceneCacheOrder.count > 4 { sceneCache.removeValue(forKey: sceneCacheOrder.removeFirst()) }
-                }
+            resolvedScene = snap.scene
+            resolvedLegend = snap.legendCategories
+            if !filtered {
+                sceneCache[sceneKey] = snap.scene; sceneCacheOrder.removeAll { $0 == sceneKey }; sceneCacheOrder.append(sceneKey)
+                while sceneCacheOrder.count > 4 { sceneCache.removeValue(forKey: sceneCacheOrder.removeFirst()) }
             }
         }
         let retainedSelection = selectedNodes
-        rows = resolvedRows; scene = resolvedScene; totalRows = resolvedSummary.itemCount; categories = resolvedStatistics; legendCategories = resolvedLegend
+        scene = resolvedScene; legendCategories = resolvedLegend
         nodesByID = Dictionary(resolvedScene.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        for n in resolvedRows + retainedSelection { nodesByID[n.id] = n }
+        for n in retainedSelection { nodesByID[n.id] = n }
         selectionIDs.formIntersection(nodesByID.keys); isLoading = false
     }
-
-    func changePage(_ delta: Int) {
-        guard let index else { return }
-        let target = min(max(0, page + delta), pageCount - 1)
-        guard target != page else { return }
-        pageTask?.cancel()
-        page = target
-        let generation = queryGeneration
-        var q = makeQueries().browserQuery(); q.offset = target * pageSize
-        pageTask = Task {
-            let revision = await index.revision
-            let nodes = await index.query(q)
-            let finalRevision = await index.revision
-            guard !Task.isCancelled, finalRevision == revision, self.index === index, generation == queryGeneration, page == target else { return }
-            let retainedSelection = selectedNodes
-            rows = nodes
-            nodesByID = Dictionary(scene.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-            for n in nodes + retainedSelection { nodesByID[n.id] = n }
-            selectionIDs.formIntersection(nodesByID.keys)
-        }
-    }
-
-    func waitForPage() async { await pageTask?.value }
 
     func select(_ id: Int64?) { selection = id }
     func select(_ entry: MapEntry, extending: Bool) {
@@ -273,11 +187,9 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     }
     func openAggregate(_ entry: MapEntry) {
         guard let index else { return }
-        if hasFilters { showFiles = true; return }
         Task {
-            if let owner = await index.node(entry.ownerID), self.index === index {
-                if owner.id != current?.id { navigate(owner) }
-                showFiles = true
+            if let owner = await index.node(entry.ownerID), self.index === index, owner.id != current?.id {
+                navigate(owner)
             }
         }
     }
@@ -291,10 +203,10 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     func navigate(_ node: FileNode, record: Bool = true) {
         guard canNavigate(node), node.id != current?.id else { return }
         if record, let current { back.append(current.id); forward = [] }
-        current = node; selectionIDs = []; showDetails = false; highlightedCategory = nil
+        current = node; selectionIDs = []; highlightedCategory = nil
         search = ""; suggestion = nil; minimumGB = 0; olderDays = 0; extensionFilter = ""
         refreshTask?.cancel()
-        refreshTask = Task { await loadRows(); await loadBreadcrumbs() }
+        refreshTask = Task { await loadResults(); await loadBreadcrumbs() }
     }
     func up() { if breadcrumbs.count > 1 { navigate(breadcrumbs[breadcrumbs.count - 2]) } }
     func history(_ backwards: Bool) {
@@ -310,9 +222,12 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         guard self.index === index, current?.id == currentID else { return }
         breadcrumbs = chain
     }
-}
 
-enum AnalysisTab: String, CaseIterable, Identifiable {
-    case files = "Files", largest = "Largest", types = "Types", candidates = "Candidates"
-    var id: Self { self }
+    /// Curated description for a node, shown in the map hover card. Nothing is invented:
+    /// nodes outside curated locations have no description.
+    func description(for node: FileNode) -> String? {
+        guard let homePath else { return nil }
+        if catalog == nil { catalog = LocationCatalog(home: URL(fileURLWithPath: homePath)) }
+        return catalog?.knownLocation(for: node.path)?.explanation
+    }
 }

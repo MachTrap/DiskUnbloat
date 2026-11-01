@@ -11,7 +11,7 @@ public enum CleanupOperation: Sendable, Hashable {
 }
 
 /// One reviewed deletion-queue entry: the scanned node plus what its removal means.
-public struct CleanupEntry: Sendable, Identifiable {
+public struct CleanupEntry: Sendable, Identifiable, Equatable {
     public let node: FileNode
     public let operation: CleanupOperation
     public var id: Int64 { node.id }

@@ -142,6 +142,27 @@ extension ScanIndex {
         let order = q.sortByName ? "name COLLATE NOCASE" : q.metric == .allocated ? "knownAllocated" : "knownLogical"
         return readRows("SELECT id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,fingerprint,insidePackage,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified FROM nodes WHERE \(whereSQL) ORDER BY \(order) \(q.ascending ? "ASC" : "DESC"),id LIMIT \(max(1, min(q.limit, 10000))) OFFSET \(max(0, q.offset))", strings: strings)
     }
+    /// Direct children of one folder, in stable name order. Used by the cleanup queue's
+    /// lazy tree expansion; it applies no cleanup filtering, only the package policy.
+    public func children(of parentID: Int64, inspectPackages: Bool, limit: Int, offset: Int) -> [FileNode] {
+        var q = FileQuery()
+        q.parentID = parentID
+        q.inspectPackages = inspectPackages
+        q.sortByName = true
+        q.ascending = true
+        q.limit = limit
+        q.offset = offset
+        return query(q)
+    }
+    /// Exact direct-child count for one folder, matching `children(of:)`'s scope.
+    public func childCount(of parentID: Int64, inspectPackages: Bool) -> Int {
+        let packageClause = inspectPackages ? "" : " AND insidePackage=0"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM nodes WHERE parent=\(parentID)\(packageClause)", -1, &stmt, nil) == SQLITE_OK else { return 0 }
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return 0 }
+        return Int(sqlite3_column_int64(stmt, 0))
+    }
     public func summary(_ q: FileQuery) -> SizeSummary {
         let (whereSQL, strings) = predicate(q)
         let known = q.metric == .allocated ? "knownAllocated" : "knownLogical"
@@ -212,34 +233,25 @@ extension ScanIndex {
     }
 }
 
-/// A consistent snapshot of every result the explorer shows for one state, produced in a
-/// single actor call so the browser summary, rows, legend, statistics, and map all reflect
-/// the same index revision.
-public struct ExplorerSnapshot: Sendable {
+/// A consistent map result for one explorer state, produced in a single actor turn so the
+/// map scene and its category legend reflect the same index revision.
+public struct MapSnapshot: Sendable {
     public let revision: UInt64
-    public let summary: SizeSummary
-    public let rows: [FileNode]
-    public let legendCategories: [FileCategory]
-    public let statistics: [CategorySummary]
     public let scene: MapScene
-    public init(revision: UInt64, summary: SizeSummary, rows: [FileNode], legendCategories: [FileCategory], statistics: [CategorySummary], scene: MapScene) {
-        self.revision = revision; self.summary = summary; self.rows = rows
-        self.legendCategories = legendCategories; self.statistics = statistics; self.scene = scene
+    public let legendCategories: [FileCategory]
+    public init(revision: UInt64, scene: MapScene, legendCategories: [FileCategory]) {
+        self.revision = revision
+        self.scene = scene; self.legendCategories = legendCategories
     }
 }
 
 extension ScanIndex {
-    /// Compute the browser summary, page rows, legend categories, optional full category
-    /// statistics, and an optional map scene in one atomic actor turn. `includeScene` and
-    /// `includeStatistics` let callers skip work they already have cached.
-    public func explorerSnapshot(browser: FileQuery, stats: FileQuery, mapQuery: FileQuery, mapRootID: Int64, filtered: Bool, includeStatistics: Bool, includeScene: Bool) -> ExplorerSnapshot {
-        ExplorerSnapshot(
+    /// Compute the bounded map scene and the legend categories in one atomic actor turn.
+    public func mapSnapshot(rootID: Int64, mapQuery: FileQuery, legendQuery: FileQuery, filtered: Bool) -> MapSnapshot {
+        MapSnapshot(
             revision: revision,
-            summary: summary(browser),
-            rows: query(browser),
-            legendCategories: categoryList(stats),
-            statistics: includeStatistics ? categorySummaries(stats) : [],
-            scene: includeScene ? mapScene(rootID: mapRootID, query: mapQuery, filtered: filtered) : MapScene(rootID: mapRootID)
+            scene: mapScene(rootID: rootID, query: mapQuery, filtered: filtered),
+            legendCategories: categoryList(legendQuery)
         )
     }
 }

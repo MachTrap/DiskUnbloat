@@ -13,11 +13,11 @@ struct WorkspaceView: View {
 
     init(model: WorkspaceViewModel) { self.model = model; scan = model.scan; cleanup = model.cleanup }
     var body: some View {
-        GeometryReader { geometry in phaseContent(windowWidth: geometry.size.width) }
+        GeometryReader { _ in phaseContent }
         .frame(maxWidth: .infinity,maxHeight: .infinity)
         .navigationTitle(model.phase == .exploring ? model.explorer.current?.name ?? "DiskUnbloat" : "DiskUnbloat")
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: model.phase)
-        .sheet(isPresented: $cleanup.showBasket) { CleanupReviewView(model: cleanup, canClean: model.canClean, performCleanup: model.performCleanup) }
+        .sheet(isPresented: $cleanup.showReport) { CleanupReportView(results: cleanup.results) { cleanup.showReport = false } }
         .sheet(isPresented: $scan.showIssues) { issuesSheet }
         .safeAreaInset(edge: .bottom) {
             if let warning = model.authorization.bookmarkWarning {
@@ -34,19 +34,19 @@ struct WorkspaceView: View {
         .onChange(of: model.settings.cacheAgeDays) { model.explorer.scheduleRefresh() }
         .onChange(of: model.settings.ageDays) { model.explorer.scheduleRefresh() }
         .onChange(of: model.phase) { old, new in updateWindow(for: new, previous: old) }
-        .onChange(of: window) { _, window in
-            guard let window else { return }
+        .onChange(of: window) { _, newValue in
+            guard newValue != nil else { return }
             updateWindow(for: model.phase, initial: true)
         }
     }
-    @ViewBuilder private func phaseContent(windowWidth: CGFloat) -> some View {
+    @ViewBuilder private var phaseContent: some View {
             switch model.phase {
             case .choosing:
                 LocationSelectionView(model: model.location, authorization: model.authorization, scan: scan, busy: model.restoringLocation, choose: model.chooseLocation, target: model.scanTarget, restore: model.restore, drop: model.acceptDrop)
             case .scanning, .preparingResults:
                 ScanningView(model: scan, preparing: model.phase == .preparingResults, cancel: model.cancel, issues: { scan.showIssues = true })
             case .exploring:
-                ExplorerView(model: model.explorer, windowWidth: windowWidth, scan: scan, canClean: model.canClean, basketCount: cleanup.basket.count, basketBytes: cleanup.basket.reduce(0) { $0 + $1.node.displaySize }, queuedPaths: cleanup.basket.map { $0.node.path }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, review: { cleanup.showBasket = true }, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, addToBasket: model.addToBasket, addSelection: model.addSelectionToBasket)
+                ExplorerView(model: model.explorer, queue: model.queue, scan: scan, canClean: model.canClean, queuedPaths: cleanup.basket.map { $0.node.path }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, selectForCleanup: model.addToBasket, deselectFromCleanup: model.deselect, addSelection: model.addSelectionToBasket, performCleanup: model.performCleanup)
             case .cancelled: outcome(cancelled: true, message: "The scan stopped with partial results. You can explore what was read, but cleanup will stay disabled.")
             case .failed(let error): outcome(cancelled: false, message: error)
             }

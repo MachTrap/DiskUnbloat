@@ -2214,23 +2214,6 @@
         }
       }
     },
-    "Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .cache, .artifacts, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .cache, .artifacts, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Папки, которые инструменты могут собрать или загрузить заново: node_modules, Pods, DerivedData, .cache, .artifacts или локальные результаты сборки. Исключённые объекты не изменяются. Пересборка и повторная загрузка занимают время."
-          }
-        }
-      }
-    },
     "Forward" : {
       "localizations" : {
         "en" : {
@@ -6519,6 +6502,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Контейнеры, тома и образы машин Podman. Удаление стирает данные контейнеров."
+          }
+        }
+      }
+    },
+    "Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .next, .cache, __pycache__, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .next, .cache, __pycache__, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Папки, которые инструменты могут собрать или загрузить заново: node_modules, Pods, DerivedData, .next, .cache, __pycache__ или локальные результаты сборки. Исключённые объекты не изменяются. Пересборка и повторная загрузка занимают время."
           }
         }
       }

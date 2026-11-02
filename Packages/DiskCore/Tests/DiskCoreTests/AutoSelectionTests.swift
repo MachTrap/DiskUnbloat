@@ -585,6 +585,65 @@ struct AutoSelectionTests {
         await destroy(index)
     }
 
+    @Test func expandedRebuildableNamesMatchTier2AcrossKinds() async throws {
+        // The Phase C name list: every framework/build-system cache folder matches
+        // anywhere in the scan, tier 2 only. Context-dependent lookalikes stay out.
+        let home = "/Users/rebuildable"
+        let root = FileNode(id: 1, parentID: nil, path: home, name: "rebuildable", isDirectory: true,
+                            logicalSize: 0, allocatedSize: 0, modified: Date(), identity: "root")
+        var nodes = [root]
+        var id: Int64 = 1
+        func folder(_ parent: Int64, _ path: String) -> Int64 {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: true, logicalSize: 100, allocatedSize: 100, modified: Date(), identity: "n\(id)"))
+            return id
+        }
+        let projectA = folder(1, home + "/webapp")
+        let next = folder(projectA, home + "/webapp/.next")
+        folder(next, home + "/webapp/.next/cache")
+        folder(projectA, home + "/webapp/.turbo")
+        let pyProject = folder(1, home + "/pylib")
+        folder(pyProject, home + "/pylib/__pycache__")
+        folder(pyProject, home + "/pylib/.pytest_cache")
+        let infra = folder(1, home + "/infra")
+        folder(infra, home + "/infra/.terragrunt-cache")
+        folder(infra, home + "/infra/.serverless")
+        let zig = folder(1, home + "/zigapp")
+        folder(zig, home + "/zigapp/zig-cache")
+        folder(zig, home + "/zigapp/zig-out")
+        let cmake = folder(1, home + "/cmakeapp")
+        folder(cmake, home + "/cmakeapp/cmake-build-debug")
+        // Lookalikes that need context never match: a plain build output folder, a
+        // virtual environment, a generic .output, and Unity-style Library.
+        folder(projectA, home + "/webapp/build")
+        folder(pyProject, home + "/pylib/.venv")
+        folder(projectA, home + "/webapp/.output")
+        folder(projectA, home + "/webapp/Library")
+        // The standalone prefix still matches its derived-data variants.
+        folder(pyProject, home + "/pylib/.derivedData-mapcheck")
+
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        // Tier 1 (safe) never touches name-matched folders.
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(safe.nodes.isEmpty)
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.path)) == [
+            home + "/webapp/.next",
+            home + "/webapp/.turbo",
+            home + "/pylib/__pycache__",
+            home + "/pylib/.pytest_cache",
+            home + "/pylib/.derivedData-mapcheck",
+            home + "/infra/.terragrunt-cache",
+            home + "/infra/.serverless",
+            home + "/zigapp/zig-cache",
+            home + "/zigapp/zig-out",
+            home + "/cmakeapp/cmake-build-debug",
+        ])
+        await destroy(index)
+    }
+
     // MARK: Hidden-range collapse
 
     @Test func hiddenRangesCollapseCompleteSiblingsAndPruneSubsumedPaths() async throws {

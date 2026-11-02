@@ -25,7 +25,7 @@ extension CleanupRule {
         case .swiftPM: L10n.text("Old cached Swift packages. Future builds may need to download dependencies again.")
         case .npm: L10n.text("Old npm package cache entries. Future installs may require network access.")
         case .pip: L10n.text("Old Python package downloads and wheels. Future installs may need to download them again.")
-        case .regenerable: L10n.text("Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .cache, .artifacts, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time.")
+        case .regenerable: L10n.text("Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .next, .cache, __pycache__, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time.")
         }
     }
     /// Curated cache locations exempt from managed-data protection for this home.

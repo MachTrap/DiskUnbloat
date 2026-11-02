@@ -152,6 +152,27 @@ public enum AutoSelectionSpec {
             // binaries and configuration above this path are never listed.
             AutoSelectionRule(relativePath: "actions-runner/_work/_tool", target: .children, coverage: .none),
             AutoSelectionRule(relativePath: "actions-runner/_work/_actions", target: .children, coverage: .none),
+            // Ollama's model store: only the `models` tree is a candidate, tier-2-only —
+            // multiple models share layer blobs, so partial selection would be unsafe, and
+            // the `id_ed25519` keypair and every other child stay out.
+            AutoSelectionRule(
+                relativePath: ".ollama", target: .children, coverage: .none,
+                eligibleChildNames: ["models"]),
+            // Unity's downloaded Asset Store package archives: re-downloadable, tier-2
+            // only. (The UPM global cache is a curated tier-1 cache root instead.)
+            AutoSelectionRule(relativePath: "Library/Unity/Asset Store-5.x", target: .children, coverage: .none),
+            // Conda's package caches: hard-linked into live environments, so only the
+            // rebuildable tier clears them in full; the package manager prefers
+            // `conda clean --all` and re-pulls anything missing.
+            AutoSelectionRule(relativePath: ".conda/pkgs", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: "anaconda3/pkgs", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: "miniconda3/pkgs", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: "miniforge3/pkgs", target: .children, coverage: .none),
+            // CLIP and Keras model stores: long-unused checkpoint families in tier 1.
+            AutoSelectionRule(relativePath: ".cache/clip", target: .children, coverage: .unusedOnly),
+            AutoSelectionRule(
+                relativePath: ".keras", target: .children, coverage: .unusedOnly,
+                eligibleChildNames: ["models", "datasets"]),
             // Name-matched rebuildable folders anywhere in the scan; tier 2 only.
             AutoSelectionRule(relativePath: nil, target: .children, coverage: .none),
         ]

@@ -378,7 +378,14 @@ func destroy(_ index: ScanIndex) async {
 @Test func curatedAppCachesSuggestManagedLocationsAndKeepNewestDeviceSupport() async throws {
     let f = try Fixture(); defer { f.dispose() }
     let index = try f.index()
-    let home = "/Users/appcache"
+    let home = "/Users/Shared/DiskUnbloat-appcache-" + UUID().uuidString
+    // The Telegram media directory exists on disk so the wildcard root resolves; the
+    // container itself never becomes a candidate again.
+    let stable = home + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable"
+    try FileManager.default.createDirectory(atPath: stable + "/account-7/postbox", withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(atPath: home) }
+    let media = stable + "/account-7/postbox/media"
+    try FileManager.default.createDirectory(atPath: media, withIntermediateDirectories: true)
     let old = Date().addingTimeInterval(-90*86400)
     func node(_ id: Int64,_ parent: Int64?,_ path: String,_ directory: Bool,_ date: Date?) -> FileNode {
         FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: directory,logicalSize: 10,allocatedSize: 10,modified: date,identity: "\(id)")
@@ -386,6 +393,7 @@ func destroy(_ index: ScanIndex) async {
     let support = home + "/Library/Application Support/Code - Insiders"
     let webStorage = support + "/WebStorage"
     let telegram = home + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram"
+    let account = telegram + "/stable/account-7"
     let deviceSupport = home + "/Library/Developer/Xcode/iOS DeviceSupport"
     let caches = home + "/Library/Caches"
     try await index.insert([
@@ -394,7 +402,8 @@ func destroy(_ index: ScanIndex) async {
         node(3,2,webStorage,true,old),
         node(4,3,webStorage+"/old.bin",false,old),
         node(5,1,telegram,true,old),
-        node(6,5,telegram+"/media.bin",false,old),
+        node(6,5,account,true,old),
+        node(14,6,media,true,old),
         node(7,1,deviceSupport,true,old),
         node(8,7,deviceSupport+"/17.5",true,old),
         node(9,7,deviceSupport+"/18.0",true,Date()),
@@ -405,17 +414,21 @@ func destroy(_ index: ScanIndex) async {
     ])
     try await index.aggregate()
     var q = FileQuery(); q.cleanupRule = .userCaches; q.userHome = home; q.leafResults = true
-    // Whole curated folders, old device support children, and per-app caches — never the
-    // managed parent, the newest device support version, or its descendants.
-    #expect(await index.query(q).map(\.id).sorted() == [3,5,8,10])
+    // Whole curated folders, old device support children, per-app caches, and the
+    // per-account media cache — never the managed parent, the container, the newest
+    // device support version, or its descendants.
+    #expect(await index.query(q).map(\.id).sorted() == [3, 8, 10, 14])
     // Cache search through the suggestion covers the same curated locations.
     var s = FileQuery(); s.suggestion = .caches; s.userHome = home; s.cleanupRule = .userCaches
-    #expect(await index.query(s).map(\.id).sorted() == [3,5,8,10])
+    #expect(await index.query(s).map(\.id).sorted() == [3, 8, 10, 14])
     // Only the exact curated cache locations are exempt from managed-data protection.
     #expect(CleanupSafety.blockedReasonCode(node(3,2,webStorage,true,old),root: URL(fileURLWithPath: home)) == .managedData)
     let exemptions = CleanupRule.allCases.flatMap { $0.roots(relativeTo: home) }.map(\.path)
     #expect(CleanupSafety.blockedReasonCode(node(3,2,webStorage,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == nil)
-    #expect(CleanupSafety.blockedReasonCode(node(5,1,telegram,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == nil)
+    #expect(CleanupSafety.blockedReasonCode(node(14,6,media,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == nil)
+    // The container and everything beside the media stop lying inside an exemption.
+    #expect(CleanupSafety.blockedReasonCode(node(5,1,telegram,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == .managedData)
+    #expect(CleanupSafety.blockedReasonCode(node(6,5,account,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == .managedData)
     #expect(CleanupSafety.blockedReasonCode(node(2,1,support,true,old),root: URL(fileURLWithPath: home),exemptingCacheRoots: exemptions) == .managedData)
     await destroy(index)
 }

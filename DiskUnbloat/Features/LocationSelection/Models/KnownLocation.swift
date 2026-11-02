@@ -100,7 +100,41 @@ extension LocationCatalog {
             entry("comfyInstalls", "ComfyUI-Installs", "ComfyUI installations", "Each ComfyUI installation the desktop app created, including its Python environment and custom nodes. Deletable from inside the app; custom nodes need reinstalling."),
             entry("comfyShared", "ComfyUI-Shared", "ComfyUI shared library", "The shared model, input, and output folders of ComfyUI Desktop: contains generated images and model files — review manually, never auto-selected."),
             entry("actActionCache", ".cache/act", "act action cache", "Actions downloaded by nektos/act and workflow cache artifacts. The next run re-downloads them."),
-            entry("runnerWork", "actions-runner/_work", "Actions runner work directory", "A self-hosted GitHub Actions runner's working area: repository checkouts, the tool cache, and cached action copies. The runner binaries above stay untouched.")
+            entry("runnerWork", "actions-runner/_work", "Actions runner work directory", "A self-hosted GitHub Actions runner's working area: repository checkouts, the tool cache, and cached action copies. The runner binaries above stay untouched."),
+            entry("telegramMedia", "Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable", "Telegram media cache", "Downloaded Telegram Desktop media per account only. The account data and login stay untouched; media re-downloads from the chat."),
+            entry("unityCache", "Library/Unity/cache", "Unity Package Manager cache", "Downloaded and unpacked package caches of Unity's Package Manager. Projects re-resolve them on the next resolution."),
+            entry("unityAssetStore", "Library/Unity/Asset Store-5.x", "Unity Asset Store packages", "Downloaded .unitypackage exports from the Asset Store. Reinstalling an asset from your library re-downloads it."),
+            entry("fusionDiskCache", "Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/DiskCache", "Resolve Fusion disk cache", "Fusion node render caches. They rebuild on timeline playback; the Resolve project database and galleries stay protected."),
+            entry("figmaWebCache", "Library/Application Support/Figma/DesktopProfile/Cache", "Figma web cache", "The app's Chromium web cache. Removed entries are rebuilt as needed."),
+            entry("figmaCompiledCache", "Library/Application Support/Figma/DesktopProfile/Code Cache", "Figma compiled cache", "Cached compiled code used for faster startup. The app rebuilds it."),
+            entry("figmaGPU", "Library/Application Support/Figma/DesktopProfile/GPUCache", "Figma GPU cache", "Cached GPU shader data. The app rebuilds it."),
+            entry("adobePeakFiles", "Library/Application Support/Adobe/Common/Peak Files", "Adobe peak files", "Audio waveform peaks written when Premiere, After Effects, and Audition load audio. They redraw from the source media."),
+            entry("adobePTX", "Library/Application Support/Adobe/Common/PTX", "Adobe PTX cache", "Adobe's processed-media cache. Regenerated when the apps work with the media again."),
+            entry("adobeAfterEffectsCache", "Library/Caches/Adobe/After Effects", "After Effects cache", "Temporary disk cache After Effects writes while compositing. It regenerates as projects render again."),
+            entry("adobeCameraRawCache", "Library/Caches/Adobe Camera Raw", "Camera Raw cache", "Processed previews of raw photos. They rebuild as images re-open."),
+            entry("terraformPluginCache", ".terraform.d/plugin-cache", "Terraform plugin cache", "Downloaded Terraform and OpenTofu provider binaries. `init` re-fetches anything missing."),
+            entry("sccacheStore", ".cache/sccache", "sccache store", "sccache's compiled-object cache. Objects recompile on the next build."),
+            entry("composerCache", ".composer/cache", "Composer cache", "PHP Composer's downloaded package archives. Installs re-download anything missing."),
+            entry("ivy2Cache", ".ivy2/cache", "Ivy cache", "Ivy's cached dependency artifacts. Builds re-download them from the configured repositories."),
+            entry("denoDotCache", ".deno/cache", "Deno cache", "Deno's remote modules and dependency cache at a custom DENO_DIR layout. New runs re-fetch what they need."),
+            entry("denoLibraryCache", "Library/Caches/deno", "Deno dependencies", "Deno's default remote-module and dependency cache. New runs re-fetch what they need."),
+            entry("condaPkgs", "anaconda3/pkgs", "Conda package cache", "Conda's downloaded package cache, hard-linked into live environments. Active environments keep their files; `conda` re-pulls missing packages and prefers its own `conda clean --all`."),
+            entry("condaPkgsMiniconda", "miniconda3/pkgs", "Conda package cache", "Conda's downloaded package cache, hard-linked into live environments. Active environments keep their files; `conda` re-pulls missing packages and prefers its own `conda clean --all`."),
+            entry("condaPkgsMiniforge", "miniforge3/pkgs", "Conda package cache", "Conda's downloaded package cache, hard-linked into live environments. Active environments keep their files; `conda` re-pulls missing packages and prefers its own `conda clean --all`."),
+            entry("condaDotPkgs", ".conda/pkgs", "Conda package cache", "Conda's downloaded package cache, hard-linked into live environments. Active environments keep their files; `conda` re-pulls missing packages and prefers its own `conda clean --all`."),
+            entry("clipCache", ".cache/clip", "CLIP models", "CLIP vision-model weights. Removed models re-download when a script uses them again."),
+            entry("kerasCache", ".keras", "Keras models", "Keras's pretrained model weights and datasets. They re-download on demand."),
+            entry("xcodeArchives", "Library/Developer/Xcode/Archives", "Xcode archives", "Signed release archives with debug symbols for shipped builds. Deleting removes the ability to symbolicate those builds — never auto-selected."),
+            entry("goBuildCache", "Library/Caches/go-build", "Go build cache", "Compiled build artifacts of Go toolchains. Builds recompile everything from source."),
+            entry("coursierCache", "Library/Caches/Coursier", "Coursier cache", "The Scala artifact cache. Builds re-fetch their dependencies."),
+            entry("pypoetryCache", "Library/Caches/pypoetry", "Poetry cache", "Poetry's downloaded packages and wheels. Future installs may need the network."),
+            entry("pdmCache", "Library/Caches/pdm", "PDM cache", "PDM's downloaded packages and wheels. Future installs may need the network."),
+            entry("pipenvCache", "Library/Caches/pipenv", "Pipenv cache", "Pipenv's downloaded packages and wheels. Future installs may need the network."),
+            entry("cocoaPodsCache", "Library/Caches/CocoaPods", "CocoaPods cache", "CocoaPods's downloaded pod specs and archives. Install runs re-fetch them."),
+            entry("carthageCache", "Library/Caches/Carthage", "Carthage cache", "Prebuilt framework archives Carthage fetched. Builds re-fetch from their git sources."),
+            entry("claudeData", ".claude", "Claude Code data", "The coding agent's conversation transcripts, memory files, and configuration. Contains user content — reviewed manually, never auto-selected."),
+            entry("codexData", ".codex", "Codex data", "The coding agent's sessions and configuration. Contains user content — reviewed manually, never auto-selected."),
+            entry("cursorCLI", ".cursor", "Cursor CLI data", "The AI editor's agent configuration and MCP settings. Contains user content — reviewed manually, never auto-selected.")
         ]
     }
 
@@ -108,7 +142,24 @@ extension LocationCatalog {
     var locationExplanations: [KnownLocation] { knownLocations }
     var explanations: [KnownLocation] { knownLocations }
 
+    /// Hover explanations keyed by a name suffix instead of a path: library bundles like
+    /// `.fcpbundle` can live anywhere, so path-based entries cannot match them. Hover-only
+    /// — these never become cleanup rules; the guidance points to the owning application's
+    /// own management tools.
+    var knownLocationSuffixes: [(suffix: String, id: String, title: String, explanation: String)] {
+        [
+            (
+                ".fcpbundle", "finalCutLibrary", "Final Cut Pro library",
+                "A Final Cut Pro library whose render files, thumbnails, and peaks can grow to hundreds of gigabytes. To reclaim that space safely, use File → Delete Generated Library Files inside Final Cut Pro; DiskUnbloat never touches inside the bundle."),
+        ]
+    }
+
     func knownLocation(for path: String) -> KnownLocation? {
-        knownLocations.first { path.isWithin($0.url.path) }
+        if let match = knownLocations.first(where: { path.isWithin($0.url.path) }) { return match }
+        let name = (path as NSString).lastPathComponent
+        guard let suffixEntry = knownLocationSuffixes.first(where: { name.hasSuffix($0.suffix) && name != $0.suffix }) else { return nil }
+        return KnownLocation(
+            id: suffixEntry.id, url: URL(fileURLWithPath: path), title: L10n.text(suffixEntry.title),
+            explanation: L10n.text(suffixEntry.explanation))
     }
 }

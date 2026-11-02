@@ -81,6 +81,18 @@ struct LocationCatalog {
             // A home-installed GitHub Actions runner: its tool cache and action checkouts
             // are covered by tier-2 rules, and the work directory scans for context.
             home.appendingPathComponent("actions-runner/_work"),
+            // Unity's downloaded Asset Store packages and the Conda package caches:
+            // tier-2-only stores whose roots belong in the Dev tools scan.
+            home.appendingPathComponent("Library/Unity/Asset Store-5.x"),
+            home.appendingPathComponent(".conda/pkgs"),
+            home.appendingPathComponent("anaconda3/pkgs"),
+            home.appendingPathComponent("miniconda3/pkgs"),
+            home.appendingPathComponent("miniforge3/pkgs"),
+            // Keras's model and dataset stores behind its tier rule.
+            home.appendingPathComponent(".keras"),
+            // Xcode's signed release archives (`.xcarchive` + dSYMs): scan and explain
+            // only — deleting them removes the ability to symbolicate shipped builds.
+            home.appendingPathComponent("Library/Developer/Xcode/Archives"),
         ]
         return urls
     }

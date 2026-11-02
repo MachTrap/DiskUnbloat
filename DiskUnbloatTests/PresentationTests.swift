@@ -82,18 +82,26 @@ import DiskCore
 
     @Test func cleanupQueueAcceptsCuratedManagedCacheLocationsOnly() async throws {
         let service = RecordingCleanupService()
-        let model = CleanupViewModel(service: service, homePath: "/Users/xdbtest")
-        let root = URL(fileURLWithPath: "/Users/xdbtest")
-        let parent = FileNode(id: 10, parentID: nil, path: "/Users/xdbtest/Library/Application Support/Code - Insiders", name: "Code - Insiders", isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "10")
-        let telegram = FileNode(id: 11, parentID: nil, path: "/Users/xdbtest/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram", name: "6N38VWS5BX.ru.keepcoder.Telegram", isDirectory: true, logicalSize: 5, allocatedSize: 5, modified: Date().addingTimeInterval(-90 * 86400), identity: "11")
-        // The managed parent stays protected; the curated cache location can join the queue.
+        // The wildcard root needs the real Telegram media tree on disk.
+        let homePath = "/Users/Shared/DiskUnbloat-tgcache-" + UUID().uuidString
+        let media = homePath + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable/account-3/postbox/media"
+        try FileManager.default.createDirectory(atPath: media, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: homePath) }
+        let model = CleanupViewModel(service: service, homePath: homePath, activity: FixedActivity(paths: []))
+        let root = URL(fileURLWithPath: homePath)
+        let parent = FileNode(id: 10, parentID: nil, path: homePath + "/Library/Application Support/Code - Insiders", name: "Code - Insiders", isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "10")
+        let account = FileNode(id: 11, parentID: nil, path: homePath + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable/account-3", name: "account-3", isDirectory: true, logicalSize: 5, allocatedSize: 5, modified: Date().addingTimeInterval(-90 * 86400), identity: "11")
+        let mediaNode = FileNode(id: 12, parentID: 11, path: media, name: "media", isDirectory: true, logicalSize: 5, allocatedSize: 5, modified: Date().addingTimeInterval(-90 * 86400), identity: "12")
+        // The managed parent stays protected; the curated media cache joins the queue,
+        // and the account parent beside it is refused like any other managed data.
         #expect(model.add(parent, root: root) != nil)
-        #expect(model.add(telegram, root: root) == nil)
-        #expect(model.basket.map { $0.node.id } == [11])
+        #expect(model.add(mediaNode, root: root) == nil)
+        #expect(model.add(account, root: root) != nil)
+        #expect(model.basket.map { $0.node.id } == [12])
         let items = try #require(model.begin())
         await model.execute(items, root: root, index: try await index(name: "unused"), mode: .trash)
         let plans = await service.plans
-        #expect(plans.first?.knownCacheRoots.contains { $0.hasSuffix("/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram") } == true)
+        #expect(plans.first?.knownCacheRoots.contains { $0.hasSuffix("/postbox/media") } == true)
     }
 
     @Test func scanRootsQueueAsCleanContentsKeepingTheFolder() async throws {

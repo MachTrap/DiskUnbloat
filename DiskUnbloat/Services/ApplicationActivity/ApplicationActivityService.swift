@@ -22,6 +22,9 @@ import DiskCore
         ("com.adobe.AfterEffects", "/Adobe/Common/"),
         ("com.adobe.mediaencoder", "/Adobe/Common/"),
         ("com.adobe.Audition", "/Adobe/Common/"),
+        // Message-app stores: Telegram Desktop's curated cache paths (the per-account
+        // postbox media) arrive as cached media being written while it runs.
+        ("ru.keepcoder.Telegram", "/6N38VWS5BX.ru.keepcoder.Telegram/"),
         // Game engines and image generators hold their caches in Application Support:
         // the shared DDC store writes while any Epic-owned app runs, Godot writes while
         // the editor or an exported run is open, and Comfy Desktop holds its Chromium

@@ -2,6 +2,19 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Phase F — Telegram media fix, Ollama rule, Unity/Resolve/Figma/Conda/leftover stores, guardrail hovers — 2026-11-02
+
+The planned remaining catalog work shipped as Phase F:
+
+- **Telegram media-preserve (P5 fix):** a new `CleanupRoot` wildcard shape (`Library/Group Containers/…/Telegram/stable` + `account-*/postbox/media`) resolves each match against the real filesystem inside `roots(relativeTo:)` — only existing accounts' media folders are curated `rootItself` candidates in both tiers, and the whole-container delete (which could log the user out of Telegram Desktop) is gone. The running-app guard now keys on `ru.keepcoder.Telegram`, and the managed-data exemption covers only the resolved media paths (the container and the `account-*` data beside it stay `.managedData`). Two tests pin the behavior: a filesystem-resolution unit test (accounts matched by prefix, lookalikes/skip-file/empty layouts rejected) and an end-to-end suggestion + safety test with a materialized tree.
+- **Ollama:** `~/.ollama` rule with `eligibleChildNames: ["models"]`, tier-2-only — the rebuildable tier can clear model blobs; `id_ed25519` and every other child stay structurally unreachable.
+- **Game engines and image generators:** Unity's UPM cache and DaVinci Resolve's Fusion/DiskCache (`rootItself`, tier 1), `CacheClip` in the rebuildable names (tier 2), Figma's `DesktopProfile` Chromium caches, plus Zotero-independent Adobe `Common/Peak Files`/`PTX` children and `~/Library/Caches/Adobe/…` hover entries. **Unity/Resolve/Figma ship without running-app guards** — no bundle ID could be verified from primary sources after three targeted searches (Unity's editor IDs are version-qualified; Figma/Resolve didn't surface); documented in code, ARCHITECTURE, and this document.
+- **Leftover stores:** Deno, Ivy2, Terraform plugin cache, sccache, Composer (all tier-1 `rootItself`), Conda's four `pkgs` layouts (tier-2-only children rules + Dev-tools roots), the editors' `Code Cache` + `Service Worker/CacheStorage` (tier-1 `rootItself`), `~/.cache/clip` and `~/.keras` (tier-1 `unusedOnly`, closed eligible children for Keras, tier-2 full).
+- **Guardrail visibility:** Xcode Archives joins Dev tools + a hover explanation (never a rule); agent roots `.claude`/`.codex`/`.cursor` earned protective hover entries; the blanket-caches hover list gained go-build, Coursier, pypoetry, pdm, pipenv, CocoaPods, Carthage, and the Deno default store.
+- **Final Cut hover:** a name-suffix KnownLocation mechanism explains `.fcpbundle` bundles wherever they live (hover-only; the bundle interior stays package-protected).
+- **Deliberately out:** Selenium and Weights & Biases (layouts unverified), Blender (unverified), the Homebrew-Caskroom Conda variant (outside the home scan's reach), `~/.ccache` (mixes user config — the blanket caches already cover the default dir). All documented in the plan.
+- Tests: core 65 pass — `wildcardRootsResolveRealDirectoriesOnly`, `phaseFRulesMatchTheTierSets` (per-account Telegram, Ollama models, Unity Asset Store tier 2, Conda tier 2, CLIP/Keras contracts, `CacheClip`, with `id_ed25519`/`user-notes` exclusions), and the rewritten `curatedAppCachesSuggestManagedLocationsAndKeepNewestDeviceSupport` (media-dir candidates + the container staying blocked). Hosted app tests 64 pass, including a hermetic rewrite of `cleanupQueueAcceptsCuratedManagedCacheLocationsOnly` (media joins the queue, parent/account refused) and `nameSuffixLocationsHoverLibraries`. Universal Release build passes; localization audit validates 457 entries.
+
 ## Phase E — Godot, Unreal Engine, ComfyUI, and CI caches — 2026-11-02
 
 All four stores researched against official/primary sources and shipped:

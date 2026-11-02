@@ -93,7 +93,10 @@ import DiskCore
         #expect(caches.grouped && tools.grouped)
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Caches")))
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Code - Insiders/WebStorage")))
-        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram")))
+        // Telegram's container root is no longer a static root: only the per-account
+        // postbox media directories resolve against the real filesystem, so a fixture
+        // home without an install lists no Telegram location at all.
+        #expect(!caches.roots.contains { $0.path.contains("6N38VWS5BX.ru.keepcoder.Telegram") })
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.npm/_cacache")))
         // The Phase A expansions join the grouped caches: Adobe's shared media cache,
         // the Cargo/bun package caches, the editors' Chromium caches, and the
@@ -141,6 +144,15 @@ import DiskCore
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Comfy Desktop/Cache")))
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/ComfyUI/GPUCache")))
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.cache/act")))
+        // Phase F: Unity, Resolve, Figma's Chromium caches, and the leftover stores
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Unity/cache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/DiskCache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Figma/DesktopProfile/GPUCache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.terraform.d/plugin-cache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.ivy2/cache")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Unity/Asset Store-5.x")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/Xcode/Archives")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/miniconda3/pkgs")))
         let homeTarget = try #require(catalog.targets.first { $0.id == "home" })
         #expect(!homeTarget.grouped && homeTarget.roots == [homeTarget.url])
         let model = LocationSelectionViewModel(catalog: catalog)
@@ -150,6 +162,16 @@ import DiskCore
         try Data([1]).write(to: file)
         defer { try? FileManager.default.removeItem(at: file) }
         #expect(throws: (any Error).self) { try model.directory(from: [file]) }
+    }
+    @Test func nameSuffixLocationsHoverLibraries() {
+        let catalog = LocationCatalog(home: URL(fileURLWithPath: "/Users/tester"))
+        // The Final Cut library bundle lives anywhere, so it hovers by name suffix and
+        // points users at Final Cut's own generated-files control.
+        let hover = try? catalog.knownLocation(for: "/Users/tester/Movies/My Project.fcpbundle")
+        #expect(hover?.id == "finalCutLibrary")
+        #expect(catalog.knownLocation(for: "/Users/tester/.claude")?.id == "claudeData")
+        // Downloads and Desktop are not curated locations; hovering stays quiet there.
+        #expect(catalog.knownLocation(for: "/Users/tester/Downloads/notes.txt") == nil)
     }
 }
 
@@ -174,13 +196,21 @@ import DiskCore
 
     /// Every owner's path marker must actually resolve inside the curated cleanup rule,
     /// so an app-owned blocklist entry can never go stale while the rule drifts.
-    @Test func appOwnedMarkersResolveInsideTheCuratedRule() {
-        let home = "/Users/tester"
+    @Test func appOwnedMarkersResolveInsideTheCuratedRule() throws {
+        // Telegram's root resolves per-account against the real filesystem, so the
+        // fixture home materializes the postbox-media tree.
+        let home = "/Users/Shared/DiskUnbloat-activity-" + UUID().uuidString
+        let account = home + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable/account-9/postbox/media"
+        try FileManager.default.createDirectory(atPath: account, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: home) }
         let userCaches = CleanupRule.userCaches.roots(relativeTo: home).map(\.path)
         for (owner, marker) in ApplicationActivityService.appOwnedCaches {
             #expect(userCaches.contains { $0.contains(marker) },
                     "the \(owner) marker '\(marker)' must match a curated cache location")
         }
+        // The per-account media path itself must be inside the resolved root list.
+        #expect(userCaches.contains { $0.hasSuffix("/postbox/media") },
+                "the wildcard-resolved Telegram media cache belongs to the curated rule")
         // The fork markers stay separate: the stable owner's marker never claims the
         // Insiders tree (and vice versa).
         let insiders = userCaches.filter { $0.contains("/Code - Insiders/") }

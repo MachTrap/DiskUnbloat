@@ -744,6 +744,100 @@ struct AutoSelectionTests {
         await destroy(index)
     }
 
+    @Test func phaseFRulesMatchTheTierSets() async throws {
+        // Ollama's models, Unity's Asset Store packages, Conda's package caches, the
+        // CLIP/Keras stores, and the CacheClip name all follow their tier contracts;
+        // Telegram's per-account media resolves as locationItself via the wildcard.
+        let home = "/tmp/DiskUnbloat-f1-" + UUID().uuidString
+        let stable = home + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable"
+        try FileManager.default.createDirectory(atPath: stable + "/account-9/postbox/media", withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: URL(fileURLWithPath: stable + "/account-9/postbox/media/blob.dat"))
+        defer { try? FileManager.default.removeItem(atPath: home) }
+
+        let now = Date()
+        func d(_ days: Double) -> Date { now.addingTimeInterval(-days * 86400) }
+        var id: Int64 = 10
+        let wrapper = FileNode(id: 1, parentID: nil, path: ScanGroup.path, name: "Dev tools", isDirectory: true,
+                               logicalSize: 0, allocatedSize: 0, modified: nil, identity: "wrapper")
+        var nodes = [wrapper]
+        @discardableResult
+        func node(_ parent: Int64, _ path: String, _ days: Double, dir: Bool = true) -> Int64 {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: dir, logicalSize: 1000, allocatedSize: 1000, modified: d(days), identity: "n\(id)"))
+            return id
+        }
+        // The expanded Telegram media directory is a locationItself cache.
+        node(1, stable + "/account-9/postbox/media", 50)
+        // Ollama: only the models tree is a tier-2 candidate; the keypair stays out.
+        let ollama = node(1, home + "/.ollama", 1)
+        node(ollama, home + "/.ollama/models", 300)
+        node(ollama, home + "/.ollama/id_ed25519", 10, dir: false)
+        // Unity's Asset Store packages: tier-2 only.
+        let store = node(1, home + "/Library/Unity/Asset Store-5.x", 1)
+        node(store, home + "/Library/Unity/Asset Store-5.x/MyAsset", 300)
+        // Conda's package caches: tier-2 only.
+        let conda = node(1, home + "/miniconda3/pkgs", 1)
+        node(conda, home + "/miniconda3/pkgs/numpy", 300)
+        // CLIP: long-unused weights in tier 1.
+        let clip = node(1, home + "/.cache/clip", 1)
+        node(clip, home + "/.cache/clip/ViT-B-32", 300)
+        node(clip, home + "/.cache/clip/ViT-L-14", 10)
+        // Keras: the closed list covers models and datasets only.
+        let keras = node(1, home + "/.keras", 1)
+        node(keras, home + "/.keras/models", 300)
+        node(keras, home + "/.keras/datasets", 300)
+        node(keras, home + "/.keras/user-notes", 300)
+        // The CacheClip name matches anywhere, tier 2 only.
+        node(1, home + "/Movies/CacheClip", 300)
+
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(Set(safe.nodes.map(\.path)) == [
+            home + "/.cache/clip/ViT-B-32",
+            home + "/.keras/datasets",
+            home + "/.keras/models",
+            stable + "/account-9/postbox/media",
+        ])
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.path)) == Set(safe.nodes.map(\.path)).union([
+            home + "/.cache/clip/ViT-L-14",
+            home + "/.ollama/models",
+            home + "/Library/Unity/Asset Store-5.x/MyAsset",
+            home + "/miniconda3/pkgs/numpy",
+            home + "/Movies/CacheClip",
+        ]))
+        #expect(!all.nodes.contains { $0.path.hasSuffix("id_ed25519") })
+        #expect(!all.nodes.contains { $0.path.hasSuffix("user-notes") })
+        await destroy(index)
+    }
+
+    @Test func wildcardRootsResolveRealDirectoriesOnly() async throws {
+        let home = NSTemporaryDirectory() + "DiskUnbloat-wildcard-" + UUID().uuidString
+        let stable = home + "/Library/Group Containers/group.id/stable"
+        for account in ["account-1", "account-2"] {
+            try FileManager.default.createDirectory(atPath: stable + "/\(account)/postbox/media",
+                                                   withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: URL(fileURLWithPath: stable + "/\(account)/postbox/media/blob.dat"))
+        }
+        // Only files and differently-named directories must never resolve.
+        try FileManager.default.createDirectory(atPath: stable + "/accountant-9", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: stable + "/other-3/postbox/media", withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: URL(fileURLWithPath: stable + "/account-3"))
+        defer { try? FileManager.default.removeItem(atPath: home) }
+
+        let root = CleanupRoot(path: stable, wildcardPattern: "account-*/postbox/media")
+        let paths = root.resolved().map(\.path).sorted()
+        #expect(paths == [stable + "/account-1/postbox/media", stable + "/account-2/postbox/media"])
+        #expect(root.resolved().allSatisfy { $0.candidate == .rootItself && $0.wildcard == nil })
+        #expect(CleanupRoot(path: stable, wildcardPattern: "x/*/media").resolved().isEmpty, "only a trailing star is a wildcard segment")
+        // A fresh install without account directories resolves to nothing at all.
+        let empty = CleanupRoot(path: stable + "/empty", wildcardPattern: "account-*/postbox/media")
+        try FileManager.default.createDirectory(atPath: stable + "/empty", withIntermediateDirectories: true)
+        #expect(empty.resolved().isEmpty)
+    }
+
     // MARK: Hidden-range collapse
 
     @Test func hiddenRangesCollapseCompleteSiblingsAndPruneSubsumedPaths() async throws {

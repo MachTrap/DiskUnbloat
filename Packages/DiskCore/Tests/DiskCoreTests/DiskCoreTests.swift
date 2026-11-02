@@ -862,3 +862,90 @@ private actor CleanupGate {
     #expect(bySize.map(\.id) == [6, 5, 4, 3, 2])
     await destroy(index)
 }
+
+@Test func permissionPreflightScopesUpfrontTargetsToSelectedDirectoryAndExclusions() throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let home = f.root.appendingPathComponent("Users/tester", isDirectory: true)
+    let created = [
+        "Desktop",
+        "Documents",
+        "Downloads",
+        "Pictures/Photos Library.photoslibrary/originals",
+        "Pictures/Archive.photoslibrary/database",
+        "Music/Music/Music Library.musiclibrary/Media.localized",
+        "Movies/TV/TV Library.tvlibrary",
+        "Library/Photos/Libraries",
+        "Library/Calendars/ Cal",
+        "Library/Reminders/Container_v1",
+        "Library/Application Support/AddressBook/Sources",
+        "Library/Containers/com.example.app/Data",
+        "Projects/MyApp/Sources",
+    ]
+    for relative in created {
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(relative, isDirectory: true),
+            withIntermediateDirectories: true)
+    }
+
+    let canonicalHome = canonicalURL(home).path
+
+    // 1. Scanning the home directory (or the enclosing disk root) collects every existing
+    // TCC-protected folder upfront in deterministic order.
+    let homeTargets = ScanPermissionPreflight.targets(
+        for: ScanRequest(root: home),
+        homes: [home])
+    let homePaths = homeTargets.map(\.url.path)
+    #expect(homePaths == [
+        canonicalHome + "/Desktop",
+        canonicalHome + "/Documents",
+        canonicalHome + "/Downloads",
+        canonicalHome + "/Pictures",
+        canonicalHome + "/Pictures/Photos Library.photoslibrary",
+        canonicalHome + "/Music",
+        canonicalHome + "/Music/Music",
+        canonicalHome + "/Music/Music/Music Library.musiclibrary",
+        canonicalHome + "/Movies",
+        canonicalHome + "/Movies/TV",
+        canonicalHome + "/Movies/TV/TV Library.tvlibrary",
+        canonicalHome + "/Library/Photos",
+        canonicalHome + "/Library/Application Support/AddressBook",
+        canonicalHome + "/Library/Calendars",
+        canonicalHome + "/Library/Reminders",
+        canonicalHome + "/Library/Containers",
+    ])
+
+    let diskRootTargets = ScanPermissionPreflight.targets(
+        for: ScanRequest(root: f.root),
+        homes: [home])
+    #expect(diskRootTargets == homeTargets)
+
+    // 2. Scanning only ~/Pictures requests only Pictures/Photos access upfront — never Music,
+    // Desktop, Documents, Downloads, or Library services.
+    let picturesRoot = home.appendingPathComponent("Pictures", isDirectory: true)
+    let picturesTargets = ScanPermissionPreflight.targets(
+        for: ScanRequest(root: picturesRoot),
+        homes: [home])
+    #expect(picturesTargets.map(\.url.path) == [
+        canonicalHome + "/Pictures",
+        canonicalHome + "/Pictures/Photos Library.photoslibrary",
+    ])
+
+    // 3. Scanning an ordinary project folder needs no TCC preflight at all.
+    let projectsRoot = home.appendingPathComponent("Projects", isDirectory: true)
+    #expect(ScanPermissionPreflight.targets(for: ScanRequest(root: projectsRoot), homes: [home]).isEmpty)
+
+    // 4. User-configured exclusions skip preflighting excluded TCC subtrees.
+    var options = ScanOptions()
+    options.exclusions = [canonicalHome + "/Pictures", canonicalHome + "/Music"]
+    let filteredTargets = ScanPermissionPreflight.targets(
+        for: ScanRequest(root: home, options: options),
+        homes: [home])
+    #expect(!filteredTargets.contains { $0.url.path.hasPrefix(canonicalHome + "/Pictures") })
+    #expect(!filteredTargets.contains { $0.url.path.hasPrefix(canonicalHome + "/Music") })
+    #expect(filteredTargets.contains { $0.url.path == canonicalHome + "/Library/Calendars" })
+
+    // 5. Probing traverses immediate children, custom-named media bundles, and container Data.
+    for target in homeTargets {
+        ScanPermissionPreflight.probe(target, excludedPaths: options.exclusions)
+    }
+}

@@ -27,6 +27,19 @@ private final class EnumerationWorker: @unchecked Sendable {
     private var rootActive = false
     private let keys: [URLResourceKey] = [.isPackageKey, .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey]
     init(_ request: ScanRequest) { self.request = request; self.excludedPaths = request.options.exclusions.map { canonicalURL(URL(fileURLWithPath: $0)).path } }
+    func preflightTargets() async -> [ScanPermissionPreflight.Target] {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: ScanPermissionPreflight.targets(for: self.request)) }
+        }
+    }
+    func probe(_ target: ScanPermissionPreflight.Target) async {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                ScanPermissionPreflight.probe(target, excludedPaths: self.excludedPaths)
+                continuation.resume()
+            }
+        }
+    }
     func next() async -> WorkerBatch {
         await withCheckedContinuation { continuation in
             queue.async { continuation.resume(returning: self.readBatch()) }
@@ -133,6 +146,10 @@ public actor ScanCoordinator: ScanServing {
                 let start = Date(); var lastUpdate = Date.distantPast
                 var count = 0; var bytes: Int64 = 0; var errors = 0; var folders = 0; var currentFolder = request.root.path
                 continuation.yield(.stage(.reading))
+                for target in await worker.preflightTargets() {
+                    if Task.isCancelled { break }
+                    await worker.probe(target)
+                }
                 do {
                     while !Task.isCancelled {
                         let batch = await worker.next()

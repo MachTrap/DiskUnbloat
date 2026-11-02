@@ -16,7 +16,7 @@ struct ScanningView: View {
             Spacer()
             ScanMosaic(active: scenePhase == .active && !reduceMotion).frame(width: 300, height: 230).scaleEffect(compact ? 0.7 : 1).frame(height: compact ? 155 : 230).accessibilityHidden(true)
             VStack(spacing: 10) {
-                Text(model.cancellationRequested ? "Finishing partial results" : preparing ? "A clearer picture is almost ready." : "Finding your space.")
+                Text(model.cancellationRequested ? "Finishing partial results" : preparing ? "A clearer picture is almost ready." : "Scanning in progress.")
                     .font(.system(size: compact ? 27 : 32, weight: .semibold, design: .rounded))
                 Text((model.refreshNode?.url ?? model.root)?.lastPathComponent ?? "Selected disk").font(.title3).foregroundStyle(.secondary)
             }

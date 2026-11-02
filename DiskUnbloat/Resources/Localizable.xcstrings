@@ -2133,22 +2133,6 @@
         }
       }
     },
-    "Finding your space." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finding your space."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Исследуем ваше пространство."
-          }
-        }
-      }
-    },
     "Finishing partial results" : {
       "localizations" : {
         "en" : {
@@ -9001,6 +8985,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Где приложения хранят всё, чем пользуются между запусками: настройки, профили, историю, локальные базы данных и созданные файлы. У каждого приложения своя подпапка; удалить её — значит удалить данные приложения, а не просто кэш."
+          }
+        }
+      }
+    },
+    "Scanning in progress." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning in progress."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Идёт сканирование."
           }
         }
       }

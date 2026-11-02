@@ -40,7 +40,7 @@ enum WorkspacePhase: Equatable {
         self.filePresentation = filePresentation
         scan = ScanViewModel(coordinator: coordinator)
         explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
-        cleanup = CleanupViewModel(service: cleanupService)
+        cleanup = CleanupViewModel(service: cleanupService, diagnostics: CleanupDiagnosticsService())
         queue = CleanupQueueModel(cleanup: cleanup)
     }
 

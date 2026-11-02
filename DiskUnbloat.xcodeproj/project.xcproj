@@ -196,6 +196,12 @@
               ],
             }, {
               "kind": "group",
+              "path": "Diagnostics",
+              "children": [
+                { "path": "CleanupDiagnostics.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+              ],
+            }, {
+              "kind": "group",
               "path": "FilePresentation",
               "children": [
                 { "path": "FilePresentationService.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
@@ -264,6 +270,7 @@
         { "path": "AnalysisFeatureTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "AuthorizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "AutoSelectionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "CleanupDiagnosticsTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "CleanupQueueTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "GroupedScanTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "LocalizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

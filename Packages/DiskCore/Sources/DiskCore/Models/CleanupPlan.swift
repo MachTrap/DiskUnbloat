@@ -10,6 +10,21 @@ public enum CleanupOperation: Sendable, Hashable {
     case emptyContents
 }
 
+/// One diagnostics event a cleanup run emits while executing, in order. The app
+/// persists these beyond the returned results so a post-mortem log shows exactly
+/// which paths failed and why — including inner failures of an emptied folder, which
+/// the aggregate result message counts but cannot name.
+public enum CleanupEvent: Sendable {
+    /// An entry entered the executing plan with its operation.
+    case itemQueued(path: String, operation: String)
+    /// An exact entry was removed or a folder was emptied in place.
+    case itemSucceeded(path: String, message: String)
+    /// An exact entry (preflight refusal, validation, or filesystem error) failed.
+    case itemFailed(path: String, message: String)
+    /// One child of an emptied folder stayed in place with the stated reason.
+    case childFailed(parent: String, path: String, message: String)
+}
+
 /// One reviewed deletion-queue entry: the scanned node plus what its removal means.
 public struct CleanupEntry: Sendable, Identifiable, Equatable {
     public let node: FileNode
@@ -29,21 +44,27 @@ public struct CleanupPlan: Sendable {
     public let ancestorIdentities: [String: String]
     /// Curated cache locations allowed through the managed-data protection for this plan.
     public let knownCacheRoots: [String]
+    /// Optional diagnostics hook receiving the run's trail while it executes, so the
+    /// app can persist exactly which paths failed and why — including child failures
+    /// inside emptied folders that the aggregate result message counts but cannot name.
+    /// `nil` keeps execution silent.
+    public let diagnostics: (@Sendable (CleanupEvent) -> Void)?
     public var root: URL { roots.first ?? URL(fileURLWithPath: "/") }
-    public init(root: URL, items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (String) async -> String?)? = nil, knownCacheRoots: [String] = []) {
-        self.init(roots: [root], items: items, mode: mode, ancestorIdentities: ancestorIdentities, preflight: preflight, knownCacheRoots: knownCacheRoots)
+    public init(root: URL, items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (String) async -> String?)? = nil, knownCacheRoots: [String] = [], diagnostics: (@Sendable (CleanupEvent) -> Void)? = nil) {
+        self.init(roots: [root], items: items, mode: mode, ancestorIdentities: ancestorIdentities, preflight: preflight, knownCacheRoots: knownCacheRoots, diagnostics: diagnostics)
     }
     /// Multi-scope plans authorize candidates under every scanned root, as grouped scans do.
-    public init(roots: [URL], items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (String) async -> String?)? = nil, knownCacheRoots: [String] = []) {
-        self.init(roots: roots, entries: items.map { CleanupEntry(node: $0, operation: .remove) }, mode: mode, ancestorIdentities: ancestorIdentities, preflight: preflight, knownCacheRoots: knownCacheRoots)
+    public init(roots: [URL], items: [FileNode], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (String) async -> String?)? = nil, knownCacheRoots: [String] = [], diagnostics: (@Sendable (CleanupEvent) -> Void)? = nil) {
+        self.init(roots: roots, entries: items.map { CleanupEntry(node: $0, operation: .remove) }, mode: mode, ancestorIdentities: ancestorIdentities, preflight: preflight, knownCacheRoots: knownCacheRoots, diagnostics: diagnostics)
     }
     /// Entries keep their per-item operation; the same containment rules apply.
-    public init(roots: [URL], entries: [CleanupEntry], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (String) async -> String?)? = nil, knownCacheRoots: [String] = []) {
+    public init(roots: [URL], entries: [CleanupEntry], mode: CleanupMode, ancestorIdentities: [String: String] = [:], preflight: (@Sendable (String) async -> String?)? = nil, knownCacheRoots: [String] = [], diagnostics: (@Sendable (CleanupEvent) -> Void)? = nil) {
         self.preflight = preflight
         self.roots = roots.map(canonicalURL)
         self.mode = mode
         self.ancestorIdentities = ancestorIdentities
         self.knownCacheRoots = knownCacheRoots
+        self.diagnostics = diagnostics
         let sorted = entries.sorted { $0.node.path < $1.node.path }
         var normalized: [CleanupEntry] = []
         for item in sorted {

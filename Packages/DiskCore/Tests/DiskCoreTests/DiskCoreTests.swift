@@ -757,6 +757,67 @@ private actor CleanupGate {
     #expect(above.items.map(\.operation) == [.remove])
 }
 
+@Test func cleanupDiagnosticsHookReceivesTheRunTrail() async throws {
+    let fixture = try Fixture(); defer { fixture.dispose() }
+    let disposable = try fixture.file("allowed.bin")
+    let refused = try fixture.file("refused.bin")
+    func node(_ url: URL) throws -> FileNode {
+        let identity = try FileIdentity.read(url)
+        return FileNode(id: Int64(url.hashValue), parentID: nil, path: url.path, name: url.lastPathComponent, isDirectory: false,
+                        logicalSize: identity.size, allocatedSize: identity.allocated, modified: identity.modified, identity: identity.identity)
+    }
+    final class Trail: @unchecked Sendable {
+        private let lock = NSLock()
+        private(set) var events: [CleanupEvent] = []
+        func emit(_ event: CleanupEvent) { lock.lock(); events.append(event); lock.unlock() }
+    }
+    let trail = Trail()
+    let plan = CleanupPlan(roots: [fixture.root],
+                           entries: [CleanupEntry(node: try node(disposable), operation: .remove),
+                                     CleanupEntry(node: try node(refused), operation: .remove)],
+                           mode: .permanent,
+                           preflight: { path in path == refused.path ? "guarded away" : nil },
+                           diagnostics: { trail.emit($0) })
+    let results = await CleanupService().execute(plan)
+    // Allowed entry first (paths sort ascending): queued then a success with the mode's wording.
+    #expect(trail.events.contains { if case .itemQueued(let path, let operation) = $0 { return path == disposable.path && operation == "remove" }; return false })
+    #expect(trail.events.firstIndex(where: { if case .itemSucceeded = $0 { return true }; return false }) != nil)
+    #expect(trail.events.contains { if case .itemQueued(let path, let operation) = $0 { return path == refused.path && operation == "remove" }; return false })
+    #expect(trail.events.contains { if case .itemFailed(let path, let message) = $0 { return path == refused.path && message == "guarded away" }; return false })
+    #expect(trail.events.contains { if case .itemSucceeded(let path, _) = $0 { return path == disposable.path }; return false })
+    #expect(results.filter(\.succeeded).count == 1 && results.count == 2)
+    #expect(!FileManager.default.fileExists(atPath: disposable.path))
+}
+
+@Test func emptiedFolderChildFailureIsEmittedAndTheFolderStays() async throws {
+    let fixture = try Fixture(); defer { fixture.dispose() }
+    let target = fixture.root.appendingPathComponent("Emptied")
+    _ = try fixture.file("Emptied/loose.bin")
+    let stuck = try fixture.file("Emptied/stuck.bin")
+    // A user-set immutable flag makes the child removal fail deterministically.
+    #expect(chflags(stuck.path, UInt32(UF_IMMUTABLE)) == 0)
+    defer { _ = chflags(stuck.path, 0) }
+    let identity = try FileIdentity.read(target)
+    let node = FileNode(id: 1, parentID: nil, path: target.path, name: target.lastPathComponent, isDirectory: true,
+                        logicalSize: nil, allocatedSize: nil, modified: identity.modified, identity: identity.identity)
+    final class Trail: @unchecked Sendable {
+        private let lock = NSLock()
+        private(set) var events: [CleanupEvent] = []
+        func emit(_ event: CleanupEvent) { lock.lock(); events.append(event); lock.unlock() }
+    }
+    let trail = Trail()
+    let plan = CleanupPlan(roots: [target], entries: [CleanupEntry(node: node, operation: .emptyContents)], mode: .permanent,
+                           diagnostics: { trail.emit($0) })
+    let results = await CleanupService().execute(plan)
+    // The failing child is named with its reason and stays in place...
+    #expect(trail.events.contains { if case .childFailed(let parent, let path, let message) = $0 { return parent == target.path && path == stuck.path && !message.isEmpty }; return false })
+    // ...the untouched sibling still went through, and the aggregate result reports the kept folder.
+    #expect(!FileManager.default.fileExists(atPath: fixture.root.appendingPathComponent("Emptied/loose.bin").path))
+    #expect(FileManager.default.fileExists(atPath: stuck.path))
+    #expect(results.count == 1 && results[0].path == target.path && !results[0].succeeded)
+    #expect(results[0].message == "The folder was kept, but some contents could not be removed.")
+}
+
 @Test func thirdPartyAppsDirectInApplicationsAreRemovable() {
     func node(_ path: String, directory: Bool, isPackage: Bool, packageAncestor: Bool = false) -> FileNode {
         FileNode(id: 1, parentID: 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: directory,

@@ -8,9 +8,13 @@ public actor CleanupService: CleanupServing {
     public func execute(_ plan: CleanupPlan) async -> [CleanupResult] {
         let queue = DispatchQueue(label: "DiskUnbloat.cleanup", qos: .userInitiated)
         var results: [CleanupResult] = []
+        func emit(_ event: CleanupEvent) { plan.diagnostics?(event) }
         for entry in plan.items {
+            emit(.itemQueued(path: entry.node.path, operation: String(describing: entry.operation)))
             if let reason = await plan.preflight?(entry.node.path) {
-                results.append(CleanupResult(id: entry.node.id,path: entry.node.path,succeeded: false,message: reason))
+                let refused = CleanupResult(id: entry.node.id,path: entry.node.path,succeeded: false,message: reason)
+                emit(.itemFailed(path: refused.path, message: refused.message))
+                results.append(refused)
                 continue
             }
             switch entry.operation {
@@ -18,9 +22,16 @@ public actor CleanupService: CleanupServing {
                 let result: CleanupResult = await withCheckedContinuation { continuation in
                     queue.async { continuation.resume(returning: Self.remove(entry.node, plan: plan)) }
                 }
+                emit(result.succeeded ? .itemSucceeded(path: result.path, message: result.message)
+                                      : .itemFailed(path: result.path, message: result.message))
                 results.append(result)
             case .emptyContents:
-                results += await emptyContents(entry.node, plan: plan, queue: queue)
+                let emptied = await emptyContents(entry.node, plan: plan, queue: queue)
+                for result in emptied {
+                    emit(result.succeeded ? .itemSucceeded(path: result.path, message: result.message)
+                                          : .itemFailed(path: result.path, message: result.message))
+                }
+                results += emptied
             }
         }
         return results
@@ -58,9 +69,20 @@ public actor CleanupService: CleanupServing {
             for child in contents.children {
                 // Recheck the per-mutation guard before every child: running-application
                 // caches among the contents stay protected even while the folder is emptied.
-                if await plan.preflight?(child.path) != nil { failures += 1; continue }
-                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                    queue.async { continuation.resume(with: Self.removeChild(child, plan: plan)) }
+                if let reason = await plan.preflight?(child.path) {
+                    failures += 1
+                    plan.diagnostics?(.childFailed(parent: node.path, path: child.path, message: reason))
+                    continue
+                }
+                // Per-child semantics: a child that cannot be removed stays in place and
+                // the run continues with the remaining contents — the failing child and
+                // its reason are emitted for the diagnostics log, never swallowed.
+                let outcome: Result<Void, CleanupError> = await withCheckedContinuation { (continuation: CheckedContinuation<Result<Void, CleanupError>, Never>) in
+                    queue.async { continuation.resume(returning: Self.removeChild(child, plan: plan)) }
+                }
+                if case .failure(let error) = outcome {
+                    failures += 1
+                    plan.diagnostics?(.childFailed(parent: node.path, path: child.path, message: error.errorDescription ?? "Failed"))
                 }
             }
             guard failures == 0 else { return [CleanupResult(id: node.id, path: node.path, succeeded: false, message: "The folder was kept, but some contents could not be removed.")] }

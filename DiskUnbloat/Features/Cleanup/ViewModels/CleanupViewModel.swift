@@ -14,6 +14,9 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     @ObservationIgnored private let activity: any ApplicationActivityProviding
     private let homePath: String
     @ObservationIgnored private let service: any CleanupServing
+    /// The run's audit trail writer; tests and previews inject the no-op so nothing
+    /// touches the filesystem there.
+    @ObservationIgnored private let diagnostics: any CleanupDiagnosticRecording
     private(set) var cleaning = false
     /// Canonical deletion queue: normalized, topmost entries kept, disjoint subtrees.
     var basket: [CleanupEntry] = [] { didSet { if basket != oldValue { queueRevision += 1 } } }
@@ -33,8 +36,8 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     var estimatedBytes: Int64 { basket.reduce(0) { $0 + $1.node.knownSize(for: .allocated) } }
     var hasUnknownSizes: Bool { basket.contains { $0.node.unknownAllocatedCount > 0 } }
 
-    init(service: any CleanupServing, homePath: String = LocationCatalog().home.path, activity: any ApplicationActivityProviding = ApplicationActivityService()) {
-        self.service = service; self.homePath = homePath; self.activity = activity
+    init(service: any CleanupServing, homePath: String = LocationCatalog().home.path, activity: any ApplicationActivityProviding = ApplicationActivityService(), diagnostics: any CleanupDiagnosticRecording = NullCleanupDiagnostics()) {
+        self.service = service; self.homePath = homePath; self.activity = activity; self.diagnostics = diagnostics
     }
 
     /// Refusal message when a path overlaps a running application's active cache. Static so the
@@ -188,19 +191,26 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     func execute(_ items: [CleanupEntry], roots: [URL], index: ScanIndex, mode: CleanupMode) async -> Bool {
         guard !roots.isEmpty else { return false }
         defer { cleaning = false }
+        diagnostics.runStarted(mode: mode, roots: roots.map { canonicalURL($0).path },
+                               items: items.map { (path: $0.node.path, operation: String(describing: $0.operation)) })
         var eligible: [CleanupEntry] = []
         var refused: [CleanupResult] = []
         for entry in items {
             let reason = entry.operation == .remove ? activityReason(entry.node) : rootActivityReason(entry.node)
-            if let reason { refused.append(CleanupResult(id: entry.node.id,path: entry.node.path,succeeded: false,message: reason)) }
+            if let reason {
+                refused.append(CleanupResult(id: entry.node.id,path: entry.node.path,succeeded: false,message: reason))
+                diagnostics.refused(path: entry.node.path, message: reason)
+            }
             else { eligible.append(entry) }
         }
         let ancestors = await index.ancestorIdentities(for: items.map { $0.node.id })
         let activity = self.activity; let home = homePath
+        let recorder = diagnostics
         let plan = CleanupPlan(roots: roots, entries: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { path in
             await MainActor.run { CleanupViewModel.activityMessage(path, activity: activity, home: home) }
-        }, knownCacheRoots: CleanupRule.knownCacheRoots(home: homePath))
+        }, knownCacheRoots: CleanupRule.knownCacheRoots(home: homePath), diagnostics: { recorder.event($0) })
         results = refused + (await service.execute(plan))
+        diagnostics.runFinished(succeeded: results.filter(\.succeeded).count, failed: results.count - results.filter(\.succeeded).count)
         return results.contains(where: \.succeeded)
     }
 }

@@ -78,6 +78,9 @@ struct LocationCatalog {
             home.appendingPathComponent(".lima"),
             home.appendingPathComponent(".local/share/containers"),
             home.appendingPathComponent(".minikube"),
+            // A home-installed GitHub Actions runner: its tool cache and action checkouts
+            // are covered by tier-2 rules, and the work directory scans for context.
+            home.appendingPathComponent("actions-runner/_work"),
         ]
         return urls
     }

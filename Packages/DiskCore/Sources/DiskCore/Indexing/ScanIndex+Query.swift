@@ -245,17 +245,30 @@ extension ScanIndex {
     }
 
     /// `(name=? AND <sibling evidence>)` — evidence checks the parent folder's real
-    /// children through correlated `EXISTS` subqueries against the `nodes` table.
+    /// children through correlated `EXISTS` subqueries against the `nodes` table. Exact
+    /// markers and suffix markers are alternatives; the `allSiblings` conjunction joins
+    /// when present.
     private func regenerableManifestSQL(_ manifest: CleanupRule.RegenerableManifest, _ strings: inout [String]) -> String {
         strings.append(manifest.name)
         func evidence(_ sibling: String) -> String {
             strings.append(sibling)
             return "EXISTS(SELECT 1 FROM nodes sib WHERE sib.parent=nodes.parent AND sib.name=?)"
         }
-        let requirement = manifest.anySiblings.isEmpty
-            ? "(" + manifest.allSiblings.map { evidence($0) }.joined(separator: " AND ") + ")"
-            : "(" + manifest.anySiblings.map { evidence($0) }.joined(separator: " OR ") + ")"
-        return "(name=? AND \(requirement))"
+        func suffixEvidence(_ suffix: String) -> String {
+            strings.append("%" + escapeLike(suffix))
+            return "EXISTS(SELECT 1 FROM nodes sib WHERE sib.parent=nodes.parent AND sib.name LIKE ? ESCAPE '\\')"
+        }
+        var groups: [String] = []
+        if !manifest.anySiblings.isEmpty {
+            groups.append("(" + manifest.anySiblings.map { evidence($0) }.joined(separator: " OR ") + ")")
+        }
+        if !manifest.anySiblingSuffixes.isEmpty {
+            groups.append("(" + manifest.anySiblingSuffixes.map { suffixEvidence($0) }.joined(separator: " OR ") + ")")
+        }
+        if !manifest.allSiblings.isEmpty {
+            groups.append("(" + manifest.allSiblings.map { evidence($0) }.joined(separator: " AND ") + ")")
+        }
+        return "(name=? AND (\(groups.joined(separator: " OR "))))"
     }
 }
 

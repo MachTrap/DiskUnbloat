@@ -487,6 +487,37 @@ func destroy(_ index: ScanIndex) async {
     await destroy(index)
 }
 
+@Test func unrealBuildFoldersVerifyByUProjectSuffix() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    func dir(_ id: Int64,_ parent: Int64,_ path: String) -> FileNode {
+        FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: true,logicalSize: 10,allocatedSize: 10,modified: nil,identity: "\(id)")
+    }
+    func file(_ id: Int64,_ parent: Int64,_ path: String) -> FileNode {
+        FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: false,logicalSize: 1,allocatedSize: 1,modified: nil,identity: "\(id)")
+    }
+    try await index.insert([
+        FileNode(id: 1,parentID: nil,path: "/home",name: "home",isDirectory: true,logicalSize: 0,allocatedSize: 0,modified: nil,identity: "1"),
+        // A UE project proves itself with the .uproject sibling; the Intermediate and
+        // DerivedDataCache folders match.
+        dir(2,1,"/home/ue"), file(3,2,"/home/ue/MyGame.uproject"), dir(4,2,"/home/ue/Intermediate"), dir(5,2,"/home/ue/DerivedDataCache"),
+        // A plugin folder proves itself with the .uplugin descriptor.
+        dir(6,2,"/home/ue/plugins"), file(7,6,"/home/ue/plugins/Extra.uplugin"), dir(8,6,"/home/ue/plugins/Intermediate"),
+        // A lookalike suffix never counts: the file may merely CONTAIN .uproject.
+        dir(9,1,"/home/lookalike"), file(10,9,"/home/lookalike/old.uproject.txt"), dir(11,9,"/home/lookalike/Intermediate"),
+        // No evidence at all: the folder stays out.
+        dir(12,1,"/home/plain"), dir(13,12,"/home/plain/Intermediate"),
+        // Godot's project cache is a plain distinctive name (no manifest needed).
+        dir(14,1,"/home/godotgame"), dir(15,14,"/home/godotgame/.godot"),
+    ])
+    try await index.aggregate()
+    var q = FileQuery(); q.cleanupRule = .regenerable
+    #expect(await index.query(q).map(\.id).sorted() == [4, 5, 8, 15])
+    q = FileQuery(); q.suggestion = .regenerable
+    #expect(await index.query(q).map(\.id).sorted() == [4, 5, 8, 15])
+    await destroy(index)
+}
+
 @Test func hiddenPathsExcludeSubtreesFromQueriesAndScenes() async throws {
     let f = try Fixture(); defer { f.dispose() }
     let index = try f.index()

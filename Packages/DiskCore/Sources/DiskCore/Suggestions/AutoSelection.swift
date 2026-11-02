@@ -147,6 +147,11 @@ public enum AutoSelectionSpec {
             // Minikube's pure download caches (ISO images, container base images); the
             // cluster VM disk under `~/.minikube` itself is never auto-selected.
             AutoSelectionRule(relativePath: ".minikube/cache", target: .children, coverage: .none),
+            // The default self-hosted GitHub Actions runner layout: the tool cache's SDK
+            // stacks and cached action checkouts are re-downloaded per run. The runner
+            // binaries and configuration above this path are never listed.
+            AutoSelectionRule(relativePath: "actions-runner/_work/_tool", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: "actions-runner/_work/_actions", target: .children, coverage: .none),
             // Name-matched rebuildable folders anywhere in the scan; tier 2 only.
             AutoSelectionRule(relativePath: nil, target: .children, coverage: .none),
         ]

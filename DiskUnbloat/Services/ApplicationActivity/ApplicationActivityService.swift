@@ -22,6 +22,13 @@ import DiskCore
         ("com.adobe.AfterEffects", "/Adobe/Common/"),
         ("com.adobe.mediaencoder", "/Adobe/Common/"),
         ("com.adobe.Audition", "/Adobe/Common/"),
+        // Game engines and image generators hold their caches in Application Support:
+        // the shared DDC store writes while any Epic-owned app runs, Godot writes while
+        // the editor or an exported run is open, and Comfy Desktop holds its Chromium
+        // cache beside the ComfyUI service.
+        ("com.epicgames", "/Epic/"),
+        ("org.godotengine", "/Godot/"),
+        ("com.todesktop.241012ess7yxs0e", "/Comfy Desktop/"),
     ]
 
     /// Ownership match: the exact identifier, or the owner followed by a segmented

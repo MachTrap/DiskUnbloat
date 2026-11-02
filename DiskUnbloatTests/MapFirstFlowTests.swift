@@ -130,6 +130,17 @@ import DiskCore
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/.colima")))
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/.lima")))
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/.local/share/containers")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/.minikube")))
+        // This round: game-engine stores, ComfyUI, and the CI caches. Godot's export
+        // templates and the runner's work directory group under Dev tools; the Zen
+        // store, ComfyUI's Electron caches, and act's cache are curated cache roots
+        // under All caches.
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Godot/export_templates")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/actions-runner/_work")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Epic/UnrealEngine/Common/Zen/Data")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Comfy Desktop/Cache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/ComfyUI/GPUCache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.cache/act")))
         let homeTarget = try #require(catalog.targets.first { $0.id == "home" })
         #expect(!homeTarget.grouped && homeTarget.roots == [homeTarget.url])
         let model = LocationSelectionViewModel(catalog: catalog)

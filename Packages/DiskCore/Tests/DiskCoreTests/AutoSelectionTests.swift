@@ -680,6 +680,70 @@ struct AutoSelectionTests {
         await destroy(index)
     }
 
+    @Test func engineComfyAndCiLocationsMatchTheTierSets() async throws {
+        // Godot, Unreal's shared Zen store, ComfyUI Desktop's Electron caches, and the
+        // CI caches all land in this round; Godot's user-data tree never qualifies.
+        let home = "/Users/engines"
+        let now = Date()
+        func d(_ days: Double) -> Date { now.addingTimeInterval(-days * 86400) }
+        var id: Int64 = 10
+        let wrapper = FileNode(id: 1, parentID: nil, path: ScanGroup.path, name: "All caches", isDirectory: true,
+                               logicalSize: 0, allocatedSize: 0, modified: nil, identity: "wrapper")
+        var nodes = [wrapper]
+        @discardableResult
+        func node(_ parent: Int64, _ path: String, _ days: Double, dir: Bool = true) -> Int64 {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: dir, logicalSize: 1000, allocatedSize: 1000, modified: d(days), identity: "n\(id)"))
+            return id
+        }
+        // Godot: one export template per engine version, the newest kept in tier 1; the
+        // `user://` game data beside it is never a candidate.
+        let godot = node(1, home + "/Library/Application Support/Godot", 1)
+        let templates = node(godot, home + "/Library/Application Support/Godot/export_templates", 1)
+        node(templates, home + "/Library/Application Support/Godot/export_templates/4.2.1.stable", 300)
+        node(templates, home + "/Library/Application Support/Godot/export_templates/4.4.1.stable", 10)
+        let userData = node(godot, home + "/Library/Application Support/Godot/app_userdata", 300)
+        node(userData, home + "/Library/Application Support/Godot/app_userdata/MyGame", 300)
+        // ComfyUI Desktop's Chromium caches: the location itself is a tier-1 candidate.
+        let comfy = node(1, home + "/Library/Application Support/Comfy Desktop", 1)
+        node(comfy, home + "/Library/Application Support/Comfy Desktop/Cache", 50)
+        node(comfy, home + "/Library/Application Support/Comfy Desktop/Code Cache", 50)
+        node(comfy, home + "/Library/Application Support/Comfy Desktop/GPUCache", 50)
+        node(comfy, home + "/Library/Application Support/Comfy Desktop/config.json", 1, dir: false)
+        // Unreal's Zen store: every child qualifies (the folder stays).
+        let zen = node(1, home + "/Library/Application Support/Epic/UnrealEngine/Common/Zen/Data", 1)
+        node(zen, home + "/Library/Application Support/Epic/UnrealEngine/Common/Zen/Data/ue.projectstore", 50, dir: false)
+        node(zen, home + "/Library/Application Support/Epic/UnrealEngine/Common/Zen/Data/group-0", 300)
+        // act: the location itself; the runner's tool and action caches: tier-2 only.
+        node(1, home + "/.cache/act", 50)
+        let work = node(1, home + "/actions-runner/_work", 1)
+        let tool = node(work, home + "/actions-runner/_work/_tool", 200)
+        node(tool, home + "/actions-runner/_work/_tool/node", 200)
+        node(work, home + "/actions-runner/_work/_actions", 200)
+
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(Set(safe.nodes.map(\.path)) == [
+            home + "/.cache/act",
+            home + "/Library/Application Support/Comfy Desktop/Cache",
+            home + "/Library/Application Support/Comfy Desktop/Code Cache",
+            home + "/Library/Application Support/Comfy Desktop/GPUCache",
+            home + "/Library/Application Support/Epic/UnrealEngine/Common/Zen/Data/group-0",
+            home + "/Library/Application Support/Epic/UnrealEngine/Common/Zen/Data/ue.projectstore",
+            home + "/Library/Application Support/Godot/export_templates/4.2.1.stable",
+        ])
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.path)) == Set(safe.nodes.map(\.path)).union([
+            home + "/Library/Application Support/Godot/export_templates/4.4.1.stable",
+            home + "/actions-runner/_work/_tool/node",
+        ]))
+        #expect(!all.nodes.contains { $0.path.hasSuffix("app_userdata") || $0.path.hasSuffix("MyGame") })
+        #expect(!all.nodes.contains { $0.path.hasSuffix("config.json") })
+        await destroy(index)
+    }
+
     // MARK: Hidden-range collapse
 
     @Test func hiddenRangesCollapseCompleteSiblingsAndPruneSubsumedPaths() async throws {

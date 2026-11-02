@@ -8358,6 +8358,652 @@
           }
         }
       }
+    },
+    "Android SDK" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android SDK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android SDK"
+          }
+        }
+      }
+    },
+    "The Android SDK every Android development tool downloads into: platform and build tools, emulator images, and the NDK. Individual versions inside have their own entries." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Android SDK every Android development tool downloads into: platform and build tools, emulator images, and the NDK. Individual versions inside have their own entries."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android SDK, куда все средства разработки Android скачивают компоненты: инструменты платформы и сборки, образы эмулятора и NDK. Отдельные версии внутри описаны в своих пунктах."
+          }
+        }
+      }
+    },
+    "Android emulator images" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android emulator images"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Образы эмулятора Android"
+          }
+        }
+      }
+    },
+    "Emulator OS images, one set per Android version and device profile. Each emulator references one image; deleting it breaks emulators that use it until the image is downloaded again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emulator OS images, one set per Android version and device profile. Each emulator references one image; deleting it breaks emulators that use it until the image is downloaded again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Образы ОС для эмулятора: по набору на каждую версию Android и профиль устройства. Каждый эмулятор ссылается на свой образ; удалив его, вы сломаете использующие его эмуляторы до повторной загрузки образа."
+          }
+        }
+      }
+    },
+    "Android NDK" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android NDK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android NDK"
+          }
+        }
+      }
+    },
+    "Native toolchains for building Android code in C and C++, one folder per version. Old versions can go; projects build against the one they declare." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Native toolchains for building Android code in C and C++, one folder per version. Old versions can go; projects build against the one they declare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Наборы инструментов для сборки нативного кода Android на C и C++, по папке на версию. Старые версии можно удалять; проекты собираются той, которую объявили."
+          }
+        }
+      }
+    },
+    "Xcode documentation" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xcode documentation"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Документация Xcode"
+          }
+        }
+      }
+    },
+    "Documentation packs downloaded for Xcode's documentation window. They re-download when you browse those docs again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Documentation packs downloaded for Xcode's documentation window. They re-download when you browse those docs again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загруженные пакеты документации для окна документации Xcode. Скачаются заново, когда вы снова откроете эти материалы."
+          }
+        }
+      }
+    },
+    "Android tools data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android tools data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные инструментов Android"
+          }
+        }
+      }
+    },
+    "The SDK tools' per-user folder: emulator device metadata, `adb` authentication keys, and emulator state. Emulator images live under `avd` and have their own entry; deleting this removes the device keys and per-device state." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The SDK tools' per-user folder: emulator device metadata, `adb` authentication keys, and emulator state. Emulator images live under `avd` and have their own entry; deleting this removes the device keys and per-device state."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пользовательская папка инструментов Android SDK: метаданные устройств эмулятора, ключи доступа `adb` и состояние эмулятора. Образы эмуляторов лежат в `avd` — у них свой пункт; удаление убирает ключи доступа и состояние устройств."
+          }
+        }
+      }
+    },
+    "Local Unix data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Unix data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локальные данные Unix-утилит"
+          }
+        }
+      }
+    },
+    "A data tree Linux-style tools use on macOS (`.local/share`, `.local/state`): container runtimes, package managers, and other command-line apps keep per-user state here. Check which app created each subfolder before deleting anything." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A data tree Linux-style tools use on macOS (`.local/share`, `.local/state`): container runtimes, package managers, and other command-line apps keep per-user state here. Check which app created each subfolder before deleting anything."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дерево данных, которое Linux-стиль утилиты используют на macOS (`.local/share`, `.local/state`): рантаймы контейнеров, пакетные менеджеры и другие CLI-приложения хранят тут пользовательское состояние. Проверьте, какое приложение создало подпапку, прежде чем что-то удалять."
+          }
+        }
+      }
+    },
+    "Rust toolchains" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rust toolchains"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты Rust"
+          }
+        }
+      }
+    },
+    "Rust toolchains installed by the version manager rustup: compiler, standard libraries, and docs, one folder per channel. Removing it leaves no working rustc — rustup downloads toolchains again on request." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rust toolchains installed by the version manager rustup: compiler, standard libraries, and docs, one folder per channel. Removing it leaves no working rustc — rustup downloads toolchains again on request."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Наборы инструментов Rust, установленные менеджером версий rustup: компилятор, стандартные библиотеки и документация, по папке на канал. После удаления rustc не будет работать — rustup заново скачает цепочки по запросу."
+          }
+        }
+      }
+    },
+    "Gemini CLI data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini CLI data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные Gemini CLI"
+          }
+        }
+      }
+    },
+    "Google's Gemini CLI keeps its settings, per-project session transcripts and shell history, and installed extensions here. Contains user content — reviewed manually, never auto-selected." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google's Gemini CLI keeps its settings, per-project session transcripts and shell history, and installed extensions here. Contains user content — reviewed manually, never auto-selected."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь Gemini CLI от Google хранит настройки, переписки сеансов по проектам, историю shell и установленные расширения. Содержит пользовательские данные — разбираются вручную, никогда не выбираются автоматически."
+          }
+        }
+      }
+    },
+    "npm data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "npm data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные npm"
+          }
+        }
+      }
+    },
+    "The npm package manager's data folder: the package download cache, the npx run cache, and logs." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The npm package manager's data folder: the package download cache, the npx run cache, and logs."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные пакетного менеджера npm: кэш скачанных пакетов, кэш запусков npx и логи."
+          }
+        }
+      }
+    },
+    "Go workspace" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go workspace"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочее дерево Go"
+          }
+        }
+      }
+    },
+    "The Go toolchain's default workspace: the extracted module cache under `go/pkg/mod` and the executables installed by `go install` under `go/bin`. The subfolders have their own entries." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Go toolchain's default workspace: the extracted module cache under `go/pkg/mod` and the executables installed by `go install` under `go/bin`. The subfolders have their own entries."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочее дерево Go по умолчанию: распакованный кэш модулей в `go/pkg/mod` и исполняемые файлы от `go install` в `go/bin`. Подпапки описаны отдельными пунктами."
+          }
+        }
+      }
+    },
+    "Homebrew installs" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew installs"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установки Homebrew"
+          }
+        }
+      }
+    },
+    "The versioned install tree of the Homebrew package manager: one folder per package per installed version. Deleting it uninstalls your packages — use `brew uninstall` and `brew autoremove` instead." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The versioned install tree of the Homebrew package manager: one folder per package per installed version. Deleting it uninstalls your packages — use `brew uninstall` and `brew autoremove` instead."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дерево установок пакетного менеджера Homebrew: по папке на каждый пакет и установленную версию. Удаление — то же, что удаление ваших пакетов; пользуйтесь `brew uninstall` и `brew autoremove`."
+          }
+        }
+      }
+    },
+    "Homebrew itself" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew itself"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сам Homebrew"
+          }
+        }
+      }
+    },
+    "The code of the `brew` command Homebrew runs from. Removing it breaks Homebrew until Homebrew is installed again; your packages live in Cellar." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The code of the `brew` command Homebrew runs from. Removing it breaks Homebrew until Homebrew is installed again; your packages live in Cellar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Код самой команды `brew`. Если удалить, Homebrew перестанет работать до переустановки; пакеты живут в Cellar."
+          }
+        }
+      }
+    },
+    "Homebrew" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew"
+          }
+        }
+      }
+    },
+    "Homebrew's installation root (its 'prefix'): the brew tool itself, installed packages in Cellar, and downloaded caches. On older Intel Macs the same tree lives at /usr/local." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew's installation root (its 'prefix'): the brew tool itself, installed packages in Cellar, and downloaded caches. On older Intel Macs the same tree lives at /usr/local."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Корень установки Homebrew (его «префикс»): сама утилита brew, установленные пакеты в Cellar и скачанные кэши. На старых Mac с Intel это дерево живёт в /usr/local."
+          }
+        }
+      }
+    },
+    "macOS system assets" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS system assets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Системные ресурсы macOS"
+          }
+        }
+      }
+    },
+    "System content downloaded by macOS itself into per-asset folders: on-device AI models (Apple Intelligence), Siri and speech data, dictionaries, fonts, and simulator runtimes. Managed entirely by the system — it decides what to download and clean up; deletion is refused here." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System content downloaded by macOS itself into per-asset folders: on-device AI models (Apple Intelligence), Siri and speech data, dictionaries, fonts, and simulator runtimes. Managed entirely by the system — it decides what to download and clean up; deletion is refused here."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Системное содержимое, которое macOS скачивает сама, по папкам на каждый ресурс: модели ИИ на устройстве (Apple Intelligence), данные Siri и речи, словари, шрифты и рантаймы эмуляторов. Полностью управляется системой — она сама решает, что скачивать и когда чистить; удаление здесь запрещено."
+          }
+        }
+      }
+    },
+    "Docker update staging" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docker update staging"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Промежуточная папка обновления Docker"
+          }
+        }
+      }
+    },
+    "Docker Desktop's updater parks the new app bundle here while swapping it into /Applications. After a successful update it should be empty; content left behind points at a partially finished update, not at space to reclaim." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docker Desktop's updater parks the new app bundle here while swapping it into /Applications. After a successful update it should be empty; content left behind points at a partially finished update, not at space to reclaim."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновлятель Docker Desktop временно кладёт сюда новый бандл приложения перед подменой в /Applications. После успешного обновления папка должна быть пустой; остатки говорят о незавершённом обновлении, а не о свободном месте."
+          }
+        }
+      }
+    },
+    "Whisky Wine libraries" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisky Wine libraries"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Библиотеки Wine (Whisky)"
+          }
+        }
+      }
+    },
+    "The Wine runtime and Game Porting Toolkit libraries Whisky downloaded to run Windows games. Removing them breaks Windows apps until Whisky re-downloads the runtime; your bottles live in the app's container, not here." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Wine runtime and Game Porting Toolkit libraries Whisky downloaded to run Windows games. Removing them breaks Windows apps until Whisky re-downloads the runtime; your bottles live in the app's container, not here."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рантайм Wine и библиотеки Game Porting Toolkit, которые Whisky скачал для запуска Windows-игр. Удаление ломает Windows-приложения до повторной загрузки рантайма; ваши бутылки лежат в контейнере приложения, не здесь."
+          }
+        }
+      }
+    },
+    "Steam library" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam library"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Библиотека Steam"
+          }
+        }
+      }
+    },
+    "The games storage of Steam's default install: installed games under `common`, partial downloads, workshop content, and compiled shader caches. Steam manages this folder; removing it here forces full re-downloads." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The games storage of Steam's default install: installed games under `common`, partial downloads, workshop content, and compiled shader caches. Steam manages this folder; removing it here forces full re-downloads."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранилище игр установки Steam по умолчанию: установленные игры в `common`, недокачанные загрузки, содержимое мастерской и скомпилированные кэши шейдеров. Этой папкой управляет сам Steam; удаление отсюда — заново качать целиком."
+          }
+        }
+      }
+    },
+    "Steam" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam"
+          }
+        }
+      }
+    },
+    "Steam's application data: its configuration, web-interface cache, logs, and the steamapps library with your installed games. The library and its parts have their own entries." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam's application data: its configuration, web-interface cache, logs, and the steamapps library with your installed games. The library and its parts have their own entries."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные приложения Steam: настройки, кэш веб-интерфейса, логи и библиотека steamapps с установленными играми. Библиотека и её части описаны отдельными пунктами."
+          }
+        }
+      }
+    },
+    "Application data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные приложений"
+          }
+        }
+      }
+    },
+    "Where applications keep everything they use between runs: settings, profiles, history, local databases, and files the app produced. Each app owns its own subfolder; deleting one is deleting that app's data, not just a cache." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where applications keep everything they use between runs: settings, profiles, history, local databases, and files the app produced. Each app owns its own subfolder; deleting one is deleting that app's data, not just a cache."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Где приложения хранят всё, чем пользуются между запусками: настройки, профили, историю, локальные базы данных и созданные файлы. У каждого приложения своя подпапка; удалить её — значит удалить данные приложения, а не просто кэш."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

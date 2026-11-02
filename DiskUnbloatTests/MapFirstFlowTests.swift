@@ -179,6 +179,46 @@ import DiskCore
         // Downloads and Desktop are not curated locations; hovering stays quiet there.
         #expect(catalog.knownLocation(for: "/Users/tester/Downloads/notes.txt") == nil)
     }
+
+    @Test func curatedToolAndSystemTreeHoverExplanations() {
+        let catalog = LocationCatalog(home: URL(fileURLWithPath: "/Users/tester"))
+        // The user-specified tool trees resolve to their own entries...
+        for (path, id) in [
+            ("/Users/tester/Library/Developer/Xcode/DocumentationCache", "xcodeDocumentationCache"),
+            ("/Users/tester/Library/Android/sdk/system-images", "androidSystemImages"),
+            ("/Users/tester/Library/Android/sdk/ndk", "androidNdk"),
+            ("/Users/tester/Library/Application Support/com.docker.install/in_progress", "dockerInstaller"),
+            ("/Users/tester/Library/Application Support/com.isaacmarovitz.Whisky/Libraries", "whiskyLibraries"),
+            ("/Users/tester/.rustup/toolchains/stable-aarch64-apple-darwin", "rustup"),
+            ("/Users/tester/.gemini/settings.json", "geminiCli"),
+            ("/Users/tester/.local/share/pnpm/store", "localShare"),
+        ] {
+            #expect(catalog.knownLocation(for: path)?.id == id, "path: \(path)")
+        }
+        // ...every node of the asked-for roots resolves somewhere curatable...
+        for root in ["/System/Library/AssetsV2", "/opt/homebrew/Cellar", "/opt/homebrew/Library/Homebrew",
+                     "/Users/tester/Library/Android/sdk", "/Users/tester/.android", "/Users/tester/.npm",
+                     "/Users/tester/go", "/Users/tester/Library/Application Support",
+                     "/Users/tester/Library/Application Support/Steam/steamapps"] {
+            #expect(catalog.knownLocation(for: root) != nil, "path: \(root)")
+        }
+        // ...and finer-grained entries still win over the new parent-level explanations.
+        #expect(catalog.knownLocation(for: "/Users/tester/go/pkg/mod")?.id == "goModules")
+        #expect(catalog.knownLocation(for: "/Users/tester/.npm/_cacache")?.id == "npmCache")
+        #expect(catalog.knownLocation(for: "/Users/tester/.android/avd")?.id == "androidAvd")
+        #expect(catalog.knownLocation(for: "/Users/tester/Library/Application Support/Steam/steamapps/common")?.id == "steamGames")
+        #expect(catalog.knownLocation(for: "/Users/tester/Library/Application Support/Steam/steamapps/shadercache")?.id == "steamShaderCache")
+        #expect(catalog.knownLocation(for: "/Users/tester/Library/Application Support/Steam/steamapps")?.id == "steamLibrary")
+        #expect(catalog.knownLocation(for: "/Users/tester/Library/Application Support/Steam")?.id == "steamRoot")
+        // Docker's data container lives under Library/Containers; the updater staging
+        // folder is the Application Support piece with its own entry.
+        #expect(catalog.knownLocation(for: "/Users/tester/Library/Containers/com.docker.docker")?.id == "dockerData")
+        #expect(catalog.knownLocation(for: "/opt/homebrew")?.id == "optHomebrew")
+        #expect(catalog.knownLocation(for: "/System/Library/AssetsV2/com_apple_MobileAsset_UAF_FM_Visual")?.id == "assetsV2")
+        // Documents is authored content: the broad Application Support entry never leaks outside it.
+        #expect(catalog.knownLocation(for: "/Users/tester/Documents/report.pdf") == nil)
+        #expect(catalog.knownLocation(for: "/Users/tester/Movies") == nil)
+    }
 }
 
 @MainActor struct ApplicationActivityGuardTests {

@@ -17,6 +17,11 @@ extension LocationCatalog {
         func entry(_ id: String, _ relativePath: String, _ title: String, _ explanation: String) -> KnownLocation {
             KnownLocation(id: id, url: home.appendingPathComponent(relativePath), title: L10n.text(title), explanation: L10n.text(explanation))
         }
+        /// Paths the user-visible tree never nests inside the home: /opt/homebrew and
+        /// /System trees keep absolute locations.
+        func absoluteEntry(_ id: String, _ path: String, _ title: String, _ explanation: String) -> KnownLocation {
+            KnownLocation(id: id, url: URL(fileURLWithPath: path), title: L10n.text(title), explanation: L10n.text(explanation))
+        }
         return [
             entry("userCaches", "Library/Caches", "User caches", "Temporary application data. Removing it can disrupt apps or require downloads."),
             entry("xcodeDerivedData", "Library/Developer/Xcode/DerivedData", "Xcode Derived Data", "Build intermediates produced by Xcode. Removal requires rebuilding your projects."),
@@ -142,7 +147,28 @@ extension LocationCatalog {
             entry("robloxCaches", "Library/Caches/com.Roblox.Roblox", "Roblox cache", "Roblox Player's cached data. Removal is safe while the game is closed; it rebuilds on the next launch."),
             entry("robloxPlayerCache", "Library/Caches/com.roblox.RobloxPlayer", "Roblox Player cache", "Roblox's cached assets (this folder name is case-insensitive). Removal is safe while the game is closed; it rebuilds on the next launch."),
             entry("robloxStudioCache", "Library/Caches/com.Roblox.RobloxStudio", "Roblox Studio cache", "Cached web content and shaders for Roblox Studio. Rebuilt as the studio loads pages."),
-            entry("robloxAutosaves", "Library/Application Support/Roblox/RobloxStudio/AutoSaves", "Roblox Studio recovery files", "Recovery backups for unsaved place edits in Roblox Studio. Keep them until your work is saved — never auto-selected.")
+            entry("robloxAutosaves", "Library/Application Support/Roblox/RobloxStudio/AutoSaves", "Roblox Studio recovery files", "Recovery backups for unsaved place edits in Roblox Studio. Keep them until your work is saved — never auto-selected."),
+            // Broad tool trees and system trees below: parent-level explanations appended
+            // so previously curated children keep hover priority.
+            entry("androidSystemImages", "Library/Android/sdk/system-images", "Android emulator images", "Emulator OS images, one set per Android version and device profile. Each emulator references one image; deleting it breaks emulators that use it until the image is downloaded again."),
+            entry("androidNdk", "Library/Android/sdk/ndk", "Android NDK", "Native toolchains for building Android code in C and C++, one folder per version. Old versions can go; projects build against the one they declare."),
+            entry("xcodeDocumentationCache", "Library/Developer/Xcode/DocumentationCache", "Xcode documentation", "Documentation packs downloaded for Xcode's documentation window. They re-download when you browse those docs again."),
+            entry("androidSdk", "Library/Android/sdk", "Android SDK", "The Android SDK every Android development tool downloads into: platform and build tools, emulator images, and the NDK. Individual versions inside have their own entries."),
+            entry("androidData", ".android", "Android tools data", "The SDK tools' per-user folder: emulator device metadata, `adb` authentication keys, and emulator state. Emulator images live under `avd` and have their own entry; deleting this removes the device keys and per-device state."),
+            entry("localShare", ".local", "Local Unix data", "A data tree Linux-style tools use on macOS (`.local/share`, `.local/state`): container runtimes, package managers, and other command-line apps keep per-user state here. Check which app created each subfolder before deleting anything."),
+            entry("rustup", ".rustup", "Rust toolchains", "Rust toolchains installed by the version manager rustup: compiler, standard libraries, and docs, one folder per channel. Removing it leaves no working rustc — rustup downloads toolchains again on request."),
+            entry("geminiCli", ".gemini", "Gemini CLI data", "Google's Gemini CLI keeps its settings, per-project session transcripts and shell history, and installed extensions here. Contains user content — reviewed manually, never auto-selected."),
+            entry("npmRoot", ".npm", "npm data", "The npm package manager's data folder: the package download cache, the npx run cache, and logs."),
+            entry("goRoot", "go", "Go workspace", "The Go toolchain's default workspace: the extracted module cache under `go/pkg/mod` and the executables installed by `go install` under `go/bin`. The subfolders have their own entries."),
+            absoluteEntry("homebrewCellar", "/opt/homebrew/Cellar", "Homebrew installs", "The versioned install tree of the Homebrew package manager: one folder per package per installed version. Deleting it uninstalls your packages — use `brew uninstall` and `brew autoremove` instead."),
+            absoluteEntry("homebrewHome", "/opt/homebrew/Library/Homebrew", "Homebrew itself", "The code of the `brew` command Homebrew runs from. Removing it breaks Homebrew until Homebrew is installed again; your packages live in Cellar."),
+            absoluteEntry("optHomebrew", "/opt/homebrew", "Homebrew", "Homebrew's installation root (its 'prefix'): the brew tool itself, installed packages in Cellar, and downloaded caches. On older Intel Macs the same tree lives at /usr/local."),
+            absoluteEntry("assetsV2", "/System/Library/AssetsV2", "macOS system assets", "System content downloaded by macOS itself into per-asset folders: on-device AI models (Apple Intelligence), Siri and speech data, dictionaries, fonts, and simulator runtimes. Managed entirely by the system — it decides what to download and clean up; deletion is refused here."),
+            entry("dockerInstaller", "Library/Application Support/com.docker.install/in_progress", "Docker update staging", "Docker Desktop's updater parks the new app bundle here while swapping it into /Applications. After a successful update it should be empty; content left behind points at a partially finished update, not at space to reclaim."),
+            entry("whiskyLibraries", "Library/Application Support/com.isaacmarovitz.Whisky/Libraries", "Whisky Wine libraries", "The Wine runtime and Game Porting Toolkit libraries Whisky downloaded to run Windows games. Removing them breaks Windows apps until Whisky re-downloads the runtime; your bottles live in the app's container, not here."),
+            entry("steamLibrary", "Library/Application Support/Steam/steamapps", "Steam library", "The games storage of Steam's default install: installed games under `common`, partial downloads, workshop content, and compiled shader caches. Steam manages this folder; removing it here forces full re-downloads."),
+            entry("steamRoot", "Library/Application Support/Steam", "Steam", "Steam's application data: its configuration, web-interface cache, logs, and the steamapps library with your installed games. The library and its parts have their own entries."),
+            entry("appSupport", "Library/Application Support", "Application data", "Where applications keep everything they use between runs: settings, profiles, history, local databases, and files the app produced. Each app owns its own subfolder; deleting one is deleting that app's data, not just a cache.")
         ]
     }
 

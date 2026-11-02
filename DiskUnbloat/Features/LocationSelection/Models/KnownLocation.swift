@@ -84,7 +84,8 @@ extension LocationCatalog {
             entry("orbstack", ".orbstack", "OrbStack data", "OrbStack's VM image, containers, and volumes. Removal deletes container data."),
             entry("colima", ".colima", "Colima machine", "Colima's VM disk images. Removal deletes container data on that machine."),
             entry("lima", ".lima", "Lima VMs", "Lima Linux VM disk images. Removal deletes those machines."),
-            entry("podman", ".local/share/containers", "Podman data", "Podman containers, volumes, and machine images. Removal deletes container data.")
+            entry("podman", ".local/share/containers", "Podman data", "Podman containers, volumes, and machine images. Removal deletes container data."),
+            entry("minikube", ".minikube", "Minikube cluster", "Minikube's Kubernetes cluster VM, node data, and image caches. Removal deletes the cluster; the download caches alone rebuild on demand.")
         ]
     }
 

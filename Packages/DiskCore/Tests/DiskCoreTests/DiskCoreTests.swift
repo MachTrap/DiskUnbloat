@@ -454,6 +454,39 @@ func destroy(_ index: ScanIndex) async {
     await destroy(index)
 }
 
+@Test func regenerableManifestsRequireTheirSiblingEvidence() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    func dir(_ id: Int64,_ parent: Int64,_ path: String) -> FileNode {
+        FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: true,logicalSize: 10,allocatedSize: 10,modified: nil,identity: "\(id)")
+    }
+    func file(_ id: Int64,_ parent: Int64,_ path: String) -> FileNode {
+        FileNode(id: id,parentID: parent,path: path,name: URL(fileURLWithPath: path).lastPathComponent,isDirectory: false,logicalSize: 1,allocatedSize: 1,modified: nil,identity: "\(id)")
+    }
+    try await index.insert([
+        FileNode(id: 1,parentID: nil,path: "/home",name: "home",isDirectory: true,logicalSize: 0,allocatedSize: 0,modified: nil,identity: "1"),
+        // Rust and Maven projects: `target` beside Cargo.toml / pom.xml matches.
+        dir(2,1,"/home/rust"), dir(3,2,"/home/rust/target"), file(4,2,"/home/rust/Cargo.toml"),
+        dir(5,1,"/home/maven"), dir(6,5,"/home/maven/target"), file(7,5,"/home/maven/pom.xml"),
+        // A plain folder named target: no project marker, never matches.
+        dir(8,1,"/home/plain"), dir(9,8,"/home/plain/target"),
+        // Python: requirements.txt verifies both .venv and venv; a venv without any
+        // sibling marker stays out.
+        dir(10,1,"/home/py"), file(11,10,"/home/py/requirements.txt"),
+        dir(12,10,"/home/py/.venv"),
+        dir(13,1,"/home/bare"), dir(14,13,"/home/bare/venv"),
+        // Unity: both project siblings verified; a missing sibling disqualifies.
+        dir(15,1,"/home/unity"), dir(16,15,"/home/unity/Library"), dir(17,15,"/home/unity/Assets"), dir(18,15,"/home/unity/ProjectSettings"),
+        dir(19,1,"/home/halfunity"), dir(20,19,"/home/halfunity/Library"), dir(21,19,"/home/halfunity/Assets"),
+    ])
+    try await index.aggregate()
+    var q = FileQuery(); q.cleanupRule = .regenerable
+    #expect(await index.query(q).map(\.id).sorted() == [3, 6, 12, 16])
+    q = FileQuery(); q.suggestion = .regenerable
+    #expect(await index.query(q).map(\.id).sorted() == [3, 6, 12, 16])
+    await destroy(index)
+}
+
 @Test func hiddenPathsExcludeSubtreesFromQueriesAndScenes() async throws {
     let f = try Fixture(); defer { f.dispose() }
     let index = try f.index()

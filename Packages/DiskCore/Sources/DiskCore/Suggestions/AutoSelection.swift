@@ -144,6 +144,9 @@ public enum AutoSelectionSpec {
             AutoSelectionRule(relativePath: ".pnpm-store", target: .children, coverage: .none),
             AutoSelectionRule(relativePath: ".nuget/packages", target: .children, coverage: .none),
             AutoSelectionRule(relativePath: ".pub-cache", target: .children, coverage: .none),
+            // Minikube's pure download caches (ISO images, container base images); the
+            // cluster VM disk under `~/.minikube` itself is never auto-selected.
+            AutoSelectionRule(relativePath: ".minikube/cache", target: .children, coverage: .none),
             // Name-matched rebuildable folders anywhere in the scan; tier 2 only.
             AutoSelectionRule(relativePath: nil, target: .children, coverage: .none),
         ]

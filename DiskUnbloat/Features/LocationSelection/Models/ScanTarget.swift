@@ -77,6 +77,7 @@ struct LocationCatalog {
             home.appendingPathComponent(".colima"),
             home.appendingPathComponent(".lima"),
             home.appendingPathComponent(".local/share/containers"),
+            home.appendingPathComponent(".minikube"),
         ]
         return urls
     }

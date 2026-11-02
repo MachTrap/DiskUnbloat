@@ -229,14 +229,33 @@ extension ScanIndex {
         }
         return result
     }
-    /// Shared name match for regenerable folders, used by both the rule and its suggestion.
+    /// Shared name match for regenerable folders, used by both the rule and its suggestion:
+    /// unambiguous exact names, `regenerableNamePrefixes` patterns, and the manifest list
+    /// where a sibling project marker proves the tool context.
     private func regenerableNameSQL(_ strings: inout [String]) -> String {
         let names = CleanupRule.regenerableNames
         let exact = names.map { _ in "name=?" }.joined(separator: " OR ")
         let prefixes = CleanupRule.regenerableNamePrefixes
         let like = prefixes.map { _ in "name LIKE ? ESCAPE '\\'" }.joined(separator: " OR ")
         strings += names + prefixes.map { escapeLike($0) + "%" }
-        return "(\(exact)\(prefixes.isEmpty ? "" : " OR \(like)"))"
+        let manifests = CleanupRule.regenerableManifests.map { regenerableManifestSQL($0, &strings) }
+        var clause = exact + (prefixes.isEmpty ? "" : " OR \(like)")
+        for manifest in manifests { clause += " OR \(manifest)" }
+        return "(\(clause))"
+    }
+
+    /// `(name=? AND <sibling evidence>)` — evidence checks the parent folder's real
+    /// children through correlated `EXISTS` subqueries against the `nodes` table.
+    private func regenerableManifestSQL(_ manifest: CleanupRule.RegenerableManifest, _ strings: inout [String]) -> String {
+        strings.append(manifest.name)
+        func evidence(_ sibling: String) -> String {
+            strings.append(sibling)
+            return "EXISTS(SELECT 1 FROM nodes sib WHERE sib.parent=nodes.parent AND sib.name=?)"
+        }
+        let requirement = manifest.anySiblings.isEmpty
+            ? "(" + manifest.allSiblings.map { evidence($0) }.joined(separator: " AND ") + ")"
+            : "(" + manifest.anySiblings.map { evidence($0) }.joined(separator: " OR ") + ")"
+        return "(name=? AND \(requirement))"
     }
 }
 

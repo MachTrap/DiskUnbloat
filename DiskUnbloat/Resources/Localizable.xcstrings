@@ -6506,19 +6506,53 @@
         }
       }
     },
-    "Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .next, .cache, __pycache__, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time." : {
+    "Folders that tools can rebuild or download again, such as node_modules, Pods, or local build output — matched by name, or verified by the sibling project files that produced them (Cargo's target, .venv, Unity's Library). Excluded entries stay untouched. Rebuilds and re-downloads take time." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Folders that tools can rebuild or download again, such as node_modules, Pods, DerivedData, .next, .cache, __pycache__, or local build output. Excluded entries stay untouched. Rebuilds and re-downloads take time."
+            "value" : "Folders that tools can rebuild or download again, such as node_modules, Pods, or local build output — matched by name, or verified by the sibling project files that produced them (Cargo's target, .venv, Unity's Library). Excluded entries stay untouched. Rebuilds and re-downloads take time."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Папки, которые инструменты могут собрать или загрузить заново: node_modules, Pods, DerivedData, .next, .cache, __pycache__ или локальные результаты сборки. Исключённые объекты не изменяются. Пересборка и повторная загрузка занимают время."
+            "value" : "Папки, которые инструменты могут собрать или загрузить заново: node_modules, Pods или локальные результаты сборки — по имени или по рядом лежащим файлам проекта, которые их создают (target у Cargo, .venv, Library Unity). Исключённые объекты не изменяются. Пересборка и повторная загрузка занимают время."
+          }
+        }
+      }
+    },
+    "Minikube cluster" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minikube cluster"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кластер Minikube"
+          }
+        }
+      }
+    },
+    "Minikube's Kubernetes cluster VM, node data, and image caches. Removal deletes the cluster; the download caches alone rebuild on demand." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minikube's Kubernetes cluster VM, node data, and image caches. Removal deletes the cluster; the download caches alone rebuild on demand."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виртуальная машина кластера Kubernetes Minikube, данные узлов и кэши образов. Удаление стирает кластер; только кэши загрузок восстанавливаются по требованию."
           }
         }
       }

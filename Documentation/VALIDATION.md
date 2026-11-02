@@ -2,6 +2,13 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Phase D — sibling-verified rebuildable names, Minikube — 2026-11-02
+
+- **Sibling-evidence matching (`CleanupRule.regenerableManifests`):** the context-dependent names that Phase C deliberately deferred now join the rebuildable tier only when the parent's real indexed children prove the tool context — `target` beside `Cargo.toml`/`pom.xml`, `.venv`/`venv` beside one of five Python manifests (`pyproject.toml`, `requirements.txt`, `Pipfile`, `uv.lock`, `poetry.lock`), and Unity's `Library` beside both `Assets` and `ProjectSettings` (so `~/Library` and ordinary data folders can never be shadowed). Implemented as correlated `EXISTS(SELECT 1 FROM nodes sib WHERE sib.parent=nodes.parent AND sib.name=?)` checks in the shared regenerable predicate (`ScanIndex+Query.regenerableNameSQL`), so the Rebuildable filter, the suggestions, and the tier-2 name-matched auto-selection all pick the manifest flow up with no rule plumbing; evidence subqueries are indexed via `nodes(parent)` and only run for rows whose name matched. Names whose ambiguity cannot be bounded even by evidence (Carthage `Build`, Unreal `Intermediate`/`DerivedDataCache`, generic `.output`) stay deferred in the plan.
+- **Minikube:** `~/.minikube` joins the Dev tools scope and hover explanations as scan-explain-only like the other VM runtimes; its pure download tree `~/.minikube/cache` is a tier-2-only children rule, while the cluster VM disk itself is never auto-selected.
+- The Rebuildable filter's explanation now states the matching shapes honestly ("matched by name, or verified by the sibling project files that produced them") in English and Russian; one new hover entry ships in both catalogs (369 entries).
+- Tests: core 61 pass — new `regenerableManifestsRequireTheirSiblingEvidence` (query + suggestion level: marker evidence required per rule, missing sibling disqualifies, a no-marker `venv` stays out) and `manifestVerifiedFoldersJoinTier2Only` (tier 1 empty, tier 2 selects only verified cases — a bare `target` folder without `Cargo.toml` never matches). Hosted app tests 63 pass; universal Release build passes; localization audit validates 369 entries.
+
 ## Phase C coverage expansion — project-local rebuildable names — 2026-11-02
 
 The final roadmap phase of `Documentation/PLANS/CacheAndRebuildableExpansion.md` shipped:

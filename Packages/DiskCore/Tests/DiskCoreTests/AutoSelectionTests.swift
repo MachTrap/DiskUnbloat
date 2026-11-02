@@ -644,6 +644,42 @@ struct AutoSelectionTests {
         await destroy(index)
     }
 
+    @Test func manifestVerifiedFoldersJoinTier2Only() async throws {
+        // Context-dependent names join the rebuildable tier only when a sibling project
+        // marker proves the tool context; tier 1 never touches name-matched folders.
+        let home = "/Users/manifests"
+        let root = FileNode(id: 1, parentID: nil, path: home, name: "manifests", isDirectory: true,
+                            logicalSize: 0, allocatedSize: 0, modified: Date(), identity: "root")
+        var nodes = [root]
+        var id: Int64 = 1
+        func folder(_ parent: Int64, _ path: String, dir: Bool) -> Int64 {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: dir, logicalSize: 10, allocatedSize: 10, modified: Date(), identity: "n\(id)"))
+            return id
+        }
+        let rust = folder(1, home + "/rust", dir: true)
+        folder(rust, home + "/rust/Cargo.toml", dir: false)
+        folder(rust, home + "/rust/target", dir: true)
+        let plain = folder(1, home + "/plain", dir: true)
+        folder(plain, home + "/plain/notes.txt", dir: false)
+        folder(plain, home + "/plain/target", dir: true) // no Cargo.toml sibling → out
+        let unity = folder(1, home + "/unity", dir: true)
+        folder(unity, home + "/unity/Assets", dir: true)
+        folder(unity, home + "/unity/ProjectSettings", dir: true)
+        folder(unity, home + "/unity/Library", dir: true)
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(safe.nodes.isEmpty)
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.path)) == [
+            home + "/rust/target",
+            home + "/unity/Library",
+        ])
+        await destroy(index)
+    }
+
     // MARK: Hidden-range collapse
 
     @Test func hiddenRangesCollapseCompleteSiblingsAndPruneSubsumedPaths() async throws {

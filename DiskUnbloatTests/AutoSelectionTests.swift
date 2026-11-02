@@ -37,6 +37,25 @@ import DiskCore
         #expect(Set(cleanup.basket.map { $0.node.path }) == [manual.path, b.path])
     }
 
+    @Test func clearSelectionEmptiesTheQueueAndForgetsTheRecommendation() {
+        let cleanup = CleanupViewModel(service: SucceedingCleanupService(), homePath: home, activity: FixedActivity(paths: []))
+        let roots = [URL(fileURLWithPath: home)]
+        let manual = node(10, 1, home + "/Documents/keep.zip", dir: false)
+        #expect(cleanup.add(manual, roots: roots) == nil)
+        let a = node(2, 1, home + "/lib/a")
+        let first = AutoSelectionResult(groups: [AutoSelectionGroup(location: node(1, nil, home + "/lib"), nodes: [a], coversAllChildren: false)])
+        _ = cleanup.applyAutoSelection(first, roots: roots)
+        #expect(cleanup.basket.count == 2)
+        // The panel's clear button empties everything at once — manual and recommended.
+        cleanup.clearSelection()
+        #expect(cleanup.basket.isEmpty)
+        // The recommendation is forgotten with it: re-applying selects cleanly again,
+        // and the cleared manual pick does not resurrect.
+        let outcome = cleanup.applyAutoSelection(first, roots: roots)
+        #expect(outcome == AutoSelectionApplyOutcome(applied: 1, skipped: 0))
+        #expect(cleanup.basket.map { $0.node.path } == [a.path])
+    }
+
     @Test func refusedItemsAreCountedNeverForced() {
         let active = home + "/Library/Caches/com.running.app"
         let cleanup = CleanupViewModel(service: SucceedingCleanupService(), homePath: home, activity: FixedActivity(paths: [active]))

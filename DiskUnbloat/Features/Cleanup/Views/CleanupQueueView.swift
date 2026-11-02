@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import DiskCore
 
 /// The right-hand selection panel: the currently open folder's contents as a
@@ -22,6 +23,11 @@ struct CleanupQueueView: View {
     let selectTier: (AutoSelectionTier) -> Void
     /// Computes one tier's recommendation without touching the queue, for the tier-2 warning.
     let previewTier: (AutoSelectionTier) async -> AutoSelectionPreview?
+    /// Map-intent parity for the row context menu.
+    var focusFolder: (FileNode) -> Void = { _ in }
+    var preview: (FileNode) -> Void = { _ in }
+    var reveal: (FileNode) -> Void = { _ in }
+    var refreshFolder: (FileNode) -> Void = { _ in }
     @State private var confirmDelete = false
     @State private var confirmPermanent = false
     @State private var regenerablePreview: AutoSelectionPreview?
@@ -97,6 +103,20 @@ struct CleanupQueueView: View {
             }
             Spacer()
             if model.isLoading { ProgressView().controlSize(.small) }
+            Button {
+                cleanup.clearSelection()
+            } label: {
+                Image(systemName: "xmark.circle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(cleanup.basket.isEmpty || cleanup.cleaning)
+            .help(L10n.text("Clear selection"))
+            .accessibilityLabel(L10n.text("Clear selection"))
+            .accessibilityIdentifier("queueClearSelection")
         }.padding(.horizontal, 16).padding(.vertical, 12)
     }
 
@@ -221,10 +241,35 @@ struct CleanupQueueView: View {
         .background(highlighted ? Color.accentColor.opacity(0.14) : .clear, in: .rect(cornerRadius: 5))
         .contentShape(Rectangle())
         .onTapGesture { highlight(row.node) }
+        .contextMenu { rowMenu(row) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(row.node.name)
         .accessibilityValue(checkStateText(row.checkState))
         .accessibilityIdentifier("queueRow")
+    }
+
+    /// Row context menu, matching the map's: navigate and inspect the item, or change
+    /// its place in the selection.
+    @ViewBuilder private func rowMenu(_ row: CleanupQueueRow) -> some View {
+        let node = row.node
+        if node.isDirectory {
+            Button("Focus folder", systemImage: "arrow.up.left.and.arrow.down.right") { focusFolder(node) }
+        }
+        if node.isDirectory && !node.isSymbolicLink {
+            Button("Rescan folder", systemImage: "arrow.clockwise") { refreshFolder(node) }
+        }
+        Button("Quick Look", systemImage: "eye") { preview(node) }
+        Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { reveal(node) }
+        Button("Copy path", systemImage: "doc.on.doc") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(node.path, forType: .string)
+        }
+        Divider()
+        if row.checkState == .checked {
+            Button("Deselect", systemImage: "tray") { deselect(node) }.disabled(!canClean || cleanup.cleaning)
+        } else {
+            Button("Select", systemImage: "tray.and.arrow.down") { select(node) }.disabled(!canClean || cleanup.cleaning)
+        }
     }
 
     private func checkbox(_ row: CleanupQueueRow) -> some View {

@@ -47,7 +47,7 @@ struct ExplorerView: View {
             legend
         }
         .inspector(isPresented: showQueue) {
-            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, selecting: selecting, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup, selectTier: selectTier, previewTier: previewTier)
+            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, selecting: selecting, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup, selectTier: selectTier, previewTier: previewTier, focusFolder: { model.navigate($0) }, preview: preview, reveal: reveal, refreshFolder: refreshFolder)
                 .inspectorColumnWidth(min: 280, ideal: 340, max: 480)
         }
         .toolbar { toolbar }

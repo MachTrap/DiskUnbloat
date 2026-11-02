@@ -71,6 +71,14 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
         if !preservingReport { results = [] }
     }
 
+    /// Clear the selection: every queued item leaves, manual and recommended alike,
+    /// while the last operation's report stays. The next recommendation starts fresh.
+    func clearSelection() {
+        guard !cleaning else { return }
+        basket = []
+        autoSelectedPaths = []
+    }
+
     func add(_ node: FileNode, root: URL) -> String? { add(node, roots: [root]) }
 
     func add(_ node: FileNode, roots: [URL]) -> String? {

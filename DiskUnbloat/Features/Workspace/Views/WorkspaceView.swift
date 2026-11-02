@@ -60,6 +60,11 @@ struct WorkspaceView: View {
             HStack(spacing: 12) {
                 Button("Choose another location", action: model.chooseAnotherLocation).buttonStyle(.glass)
                 Button("Retry", action: model.retry).buttonStyle(.glass)
+                if !cancelled {
+                    // macOS permission denials persist until fresh user-selected access is
+                    // granted; the picker at the same location is the sandbox-correct fix.
+                    Button("Reauthorize access", action: model.reauthorize).buttonStyle(.glassProminent).accessibilityIdentifier("reauthorizeFailed")
+                }
                 if scan.refreshNode != nil { Button("Return to map", action: model.returnToPreviousMap).buttonStyle(.glassProminent) }
                 else if cancelled { Button("View partial map", action: model.viewPartialMap).buttonStyle(.glassProminent).accessibilityIdentifier("viewPartialMap") }
             }

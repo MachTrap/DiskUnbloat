@@ -280,6 +280,7 @@
         { "path": "PartialRefreshSafetyTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PresentationTestSupport.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PresentationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "WorkspaceRecoveryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
       ],
     },
   ],

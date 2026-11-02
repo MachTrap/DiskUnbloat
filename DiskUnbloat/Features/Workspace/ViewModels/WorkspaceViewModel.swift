@@ -117,23 +117,32 @@ enum WorkspacePhase: Equatable {
             authorization.retainOnly(request.roots)
             do {
                 try await scan.run(request)
-                guard let index = scan.index, await index.node(1) != nil else {
-                    phase = .failed(L10n.text("The selected location couldn’t be read. Check its permissions or choose another folder."))
+                let db = scan.index
+                // The underlying refusal (e.g. a macOS Files-and-Folders denial) is fetched
+                // before the nil check so the else-branch can compose it into the message.
+                let issueDetail = await db?.issues().first.map { "\($0.path): \(L10n.text($0.message))" }
+                guard let db, await db.node(1) != nil else {
+                    phase = .failed(issueDetail.map {
+                        L10n.format("The selected location couldn’t be read. %@", $0)
+                    } ?? L10n.text("The selected location couldn’t be read. Check its permissions or choose another folder."))
                     return
                 }
                 if scan.snapshot?.cancelled == true { phase = .cancelled; return }
                 if request.extraRoots.isEmpty == false {
                     // Grouped scans fail only when every listed location was unreadable.
                     var probe = FileQuery(); probe.parentID = 1; probe.limit = 1
-                    guard !(await index.query(probe)).isEmpty else {
-                        phase = .failed(L10n.text("None of these locations could be read. Check their permissions or scan individual folders."))
+                    guard !(await db.query(probe)).isEmpty else {
+                        let groupDetail = await db.issues().first.map { "\($0.path): \(L10n.text($0.message))" }
+                        phase = .failed(groupDetail.map {
+                            L10n.format("None of these locations could be read. %@", $0)
+                        } ?? L10n.text("None of these locations could be read. Check their permissions or scan individual folders."))
                         return
                     }
                 }
                 phase = .preparingResults
                 scan.stage = .preparingMap
-                await explorer.attach(index, options: request.options, grouped: scan.isGroupScan)
-                queue.attach(IndexCleanupQueueProvider(index: index, inspectPackages: request.options.inspectPackages))
+                await explorer.attach(db, options: request.options, grouped: scan.isGroupScan)
+                queue.attach(IndexCleanupQueueProvider(index: db, inspectPackages: request.options.inspectPackages))
                 cleanup.showQueue = true
                 phase = .exploring
             } catch { phase = .failed(L10n.format("Couldn’t start the scan. %@", error.diagnosticDescription)) }
@@ -169,6 +178,17 @@ enum WorkspacePhase: Equatable {
         if let node = scan.refreshNode {
             scan.finishRefresh(restorePrevious: true); phase = .exploring; refreshFolder(node)
         } else { startScan() }
+    }
+
+    /// Recovery after a failed attempt: macOS may have recorded a permission denial
+    /// (a Files-and-Folders "Don't Allow" from the upfront consent dialogs), and
+    /// repeating the same scan can never revive a denied scope. Presenting the system
+    /// picker at the same location generates fresh user-selected access, which is the
+    /// one sandbox-correct way back — no entitlements are available for this.
+    func reauthorize() {
+        guard !isBusy else { return }
+        guard let root = scan.root.map(canonicalURL) else { return }
+        chooseSuggested(root)
     }
 
     func openLocations(_ urls: [URL]) -> Bool {

@@ -327,14 +327,14 @@ enum WorkspacePhase: Equatable {
         guard canClean, !scan.roots.isEmpty, let index = scan.index, let items = cleanup.begin() else { return }
         cleanupTask = Task {
             if await cleanup.execute(items, roots: scan.roots, index: index, mode: mode) {
-                // The current map is stale after removals; return to the location chooser
-                // instead of re-scanning, dropping the stale index. The deletion report is kept.
-                phase = .choosing
-                explorer.reset()
-                queue.reset()
-                cleanup.reset(preservingReport: true)
+                // The map is stale after removals: rerun the scan of the same scope on the
+                // spot — the deletion report survives the scan — and land back on the
+                // updated map instead of sending the user to the location chooser to
+                // repeat the whole process by hand. `prepare()` reruns exactly this scope
+                // (the combined group scope for grouped scans), and the fresh map keeps
+                // every invariant the full scan already enforces.
+                startScan(preservingCleanupReport: true)
                 cleanup.showReport = true
-                await scan.discardIndex()
             }
         }
     }

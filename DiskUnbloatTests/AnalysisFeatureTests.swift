@@ -11,19 +11,31 @@ import DiskCore
         return root
     }
 
-    @Test func performCleanupReturnsToStartScreenInsteadOfRescanning() async throws {
+    @Test func successfulCleanupRescansTheScopeAndReturnsToTheUpdatedMap() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
         let model = WorkspaceViewModel(cleanupService: SucceedingCleanupService())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
-        let index = try #require(model.scan.index)
-        let branch = try #require(await index.node(path: canonicalURL(root).path + "/branch"))
+        let oldIndex = try #require(model.scan.index)
+        let branch = try #require(await oldIndex.node(path: canonicalURL(root).path + "/branch"))
         // Queue the item directly: this fixture sits under the sandbox container tree, which
         // addToBasket's managed-data safety check refuses. This targets post-cleanup navigation.
         model.cleanup.basket = [CleanupEntry(node: branch, operation: .remove)]
+        // The real cleanup service deletes the entries; simulate that here so the rescan
+        // can assert the map no longer carries the removed branch.
+        try? FileManager.default.removeItem(at: root.appendingPathComponent("branch"))
         model.performCleanup(.trash)
         await model.waitForCleanup()
-        #expect(model.phase == .choosing)
+        await model.waitForScan()
+        // The app reruns the scan of the same scope on the spot and lands on the updated
+        // map: the deleted branch is gone, a fresh index carries the result, and the
+        // deletion report stays available. The chooser is never shown.
+        #expect(model.phase == .exploring)
         #expect(model.cleanup.basket.isEmpty)
+        #expect(model.cleanup.showReport)
+        let newIndex = try #require(model.scan.index)
+        #expect(newIndex !== oldIndex)
+        #expect(await newIndex.node(path: canonicalURL(root).path + "/branch") == nil)
+        #expect(model.canClean)
         await model.shutdown()
     }
 

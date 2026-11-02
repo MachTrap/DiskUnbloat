@@ -36,11 +36,17 @@ struct AutoSelectionTests {
         // No previous versions: the long-unused ones qualify instead.
         #expect(AutoSelection.select(children: [recent, old], rule: keepOne, tier: .safe, unusedBefore: cutoff).map(\.id) == [2])
         #expect(AutoSelection.select(children: [recent], rule: keepOne, tier: .safe, unusedBefore: cutoff).isEmpty)
+        // The single most recent version is preserved even when it is the only one and
+        // long-unused: the long-unused fallback never takes the newest.
         let only = child(4, 0, "only", days: 200)
-        #expect(AutoSelection.select(children: [only], rule: keepOne, tier: .safe, unusedBefore: cutoff).map(\.id) == [4])
-        // Keeping two simulators leaves every version after the two newest.
+        #expect(AutoSelection.select(children: [only], rule: keepOne, tier: .safe, unusedBefore: cutoff).isEmpty)
+        #expect(AutoSelection.select(children: [old, older], rule: keepOne, tier: .safe, unusedBefore: cutoff).map(\.id) == [3])
+        // Keeping two simulators leaves every version after the two newest; with just
+        // two, the long-unused older one qualifies but the newest is still preserved.
         let keepTwo = AutoSelectionRule(relativePath: "x", target: .children, coverage: .previousVersions(keep: 2))
         #expect(AutoSelection.select(children: [recent, old, older], rule: keepTwo, tier: .safe, unusedBefore: cutoff).map(\.id) == [3])
+        #expect(AutoSelection.select(children: [recent, old], rule: keepTwo, tier: .safe, unusedBefore: cutoff).map(\.id) == [2])
+        #expect(AutoSelection.select(children: [only], rule: keepTwo, tier: .safe, unusedBefore: cutoff).isEmpty)
     }
 
     @Test func unusedRulesRespectTheThresholdAndTheKeptNewest() {
@@ -49,9 +55,11 @@ struct AutoSelectionTests {
         let old = child(2, 0, "old", days: 200)
         let older = child(3, 0, "older", days: 300)
         let keepingNewest = AutoSelectionRule(relativePath: "x", target: .children, coverage: .unusedKeepingNewest)
-        // The most recent simulator stays even when it too is long-unused.
+        // The most recent simulator stays even when it too is long-unused — and a sole
+        // simulator is the most recent one, so it always stays.
         #expect(AutoSelection.select(children: [old, older], rule: keepingNewest, tier: .safe, unusedBefore: cutoff).map(\.id) == [3])
         #expect(AutoSelection.select(children: [recent, old], rule: keepingNewest, tier: .safe, unusedBefore: cutoff).map(\.id) == [2])
+        #expect(AutoSelection.select(children: [old], rule: keepingNewest, tier: .safe, unusedBefore: cutoff).isEmpty)
         let unusedOnly = AutoSelectionRule(relativePath: "x", target: .children, coverage: .unusedOnly)
         #expect(AutoSelection.select(children: [recent, old, older], rule: unusedOnly, tier: .safe, unusedBefore: cutoff).map(\.id) == [2, 3])
         // Every tier-2 location is covered in full.
@@ -148,7 +156,10 @@ struct AutoSelectionTests {
                                   isDirectory: false, logicalSize: 10, allocatedSize: 10, modified: d(days), identity: "n\(id)"))
         }
         let models = location(".cache/lm-studio")
-        nodes += [child(models, home + "/.cache/lm-studio/llama-old", 200), child(models, home + "/.cache/lm-studio/llama-new", 10)]
+        // Regenerable children (models, runtime backends, internal caches) are candidates;
+        // the user's chat history and presets never are, in either tier.
+        nodes += [child(models, home + "/.cache/lm-studio/models", 200), child(models, home + "/.cache/lm-studio/extensions", 10),
+                  child(models, home + "/.cache/lm-studio/chats", 300), child(models, home + "/.cache/lm-studio/conversations", 300)]
         // Scan-only developer data: never selected by either tier.
         let docker = location("Library/Containers/com.docker.docker")
         nodes += [child(docker, home + "/Library/Containers/com.docker.docker/Data", 400)]
@@ -162,7 +173,7 @@ struct AutoSelectionTests {
             "CCCC", "DDDD",
             "android-30", "25.2.9519653",
             "pixel-old.avd", "pixel-old.ini",
-            "llama-old",
+            "models",
         ])
         // Full coverage of DerivedData lets a scan root collapse to one emptied entry.
         let derivedGroup = try #require(safe.groups.first { $0.location.path.hasSuffix("DerivedData") })
@@ -175,8 +186,96 @@ struct AutoSelectionTests {
             "AAAA", "BBBB", "CCCC", "DDDD",
             "android-35", "android-30", "27.0.12077973", "25.2.9519653",
             "pixel-new.avd", "pixel-old.avd", "pixel-new.ini", "pixel-old.ini",
-            "llama-old", "llama-new",
+            "models", "extensions",
         ])
+        await destroy(index)
+    }
+
+    @Test func soleVersionsArePreservedByTheSafeTier() async throws {
+        // The real one-version-each machine: a sole system image, NDK, AVD, simulator,
+        // and device-support version must survive "Select safe items" — the single most
+        // recent version is never selected, even when it is long-unused.
+        let home = "/Users/sole"
+        let now = Date()
+        func d(_ days: Double) -> Date { now.addingTimeInterval(-days * 86400) }
+        var id: Int64 = 10
+        let wrapper = FileNode(id: 1, parentID: nil, path: ScanGroup.path, name: "Dev tools", isDirectory: true,
+                               logicalSize: 0, allocatedSize: 0, modified: nil, identity: "wrapper")
+        var nodes = [wrapper]
+        func location(_ path: String) -> Int64 {
+            id += 1
+            let node = FileNode(id: id, parentID: 1, path: home + "/" + path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: d(1), identity: "n\(id)")
+            nodes.append(node)
+            return node.id
+        }
+        func child(_ parent: Int64, _ path: String, _ days: Double, dir: Bool = true) {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: dir, logicalSize: 1000, allocatedSize: 1000, modified: d(days), identity: "n\(id)"))
+        }
+        let images = location("Library/Android/sdk/system-images")
+        child(images, home + "/Library/Android/sdk/system-images/android-37.0", 120)
+        let ndk = location("Library/Android/sdk/ndk")
+        child(ndk, home + "/Library/Android/sdk/ndk/27.1.12297006", 120)
+        let avd = location(".android/avd")
+        child(avd, home + "/.android/avd/Pixel_9.avd", 120)
+        child(avd, home + "/.android/avd/Pixel_9.ini", 120, dir: false)
+        let simulators = location("Library/Developer/CoreSimulator/Devices")
+        child(simulators, home + "/Library/Developer/CoreSimulator/Devices/AAAA", 200)
+        let support = location("Library/Developer/Xcode/iOS DeviceSupport")
+        child(support, home + "/Library/Developer/Xcode/iOS DeviceSupport/iPhone 15 (17.0)", 200)
+
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(safe.nodes.isEmpty)
+        // Tier 2 is allowed to take every version, sole ones included.
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.name)) == [
+            "android-37.0", "27.1.12297006", "Pixel_9.avd", "Pixel_9.ini", "AAAA", "iPhone 15 (17.0)",
+        ])
+        await destroy(index)
+    }
+
+    @Test func lmStudioUserDataIsNeverSelectedByEitherTier() async throws {
+        // ~/.cache/lm-studio holds user-authored content (chats, conversations, presets)
+        // beside regenerable caches. The user content is neither safe junk nor
+        // rebuildable: it is never selected automatically, in either tier.
+        let home = "/Users/lms"
+        let now = Date()
+        func d(_ days: Double) -> Date { now.addingTimeInterval(-days * 86400) }
+        var id: Int64 = 10
+        let wrapper = FileNode(id: 1, parentID: nil, path: ScanGroup.path, name: "Dev tools", isDirectory: true,
+                               logicalSize: 0, allocatedSize: 0, modified: nil, identity: "wrapper")
+        var nodes = [wrapper]
+        id += 1
+        let location = FileNode(id: id, parentID: 1, path: home + "/.cache/lm-studio", name: "lm-studio",
+                                isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: d(1), identity: "loc")
+        nodes.append(location)
+        func child(_ name: String, _ days: Double, dir: Bool = true) {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: location.id, path: home + "/.cache/lm-studio/\(name)", name: name,
+                                  isDirectory: dir, logicalSize: 1000, allocatedSize: 1000, modified: d(days), identity: "n\(id)"))
+        }
+        child("models", 200)
+        child("extensions", 10)
+        child(".internal", 200)
+        child(".session_cache", 10)
+        child("chats", 300)
+        child("conversations", 300)
+        child("config-presets", 300)
+        child("downloads.json", 300, dir: false)
+        child("bin", 300)
+
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        // Tier 1: only long-unused regenerable children. Tier 2: every regenerable
+        // child. The user's chat history and presets stay out of both.
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(Set(safe.nodes.map(\.name)) == ["models", ".internal"])
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.name)) == ["models", "extensions", ".internal", ".session_cache"])
         await destroy(index)
     }
 

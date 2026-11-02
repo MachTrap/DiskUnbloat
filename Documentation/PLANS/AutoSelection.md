@@ -51,7 +51,7 @@ covers**. Nothing outside this table is ever auto-selected.
 | 4 | `Library/Android/sdk/system-images` | all children except the **1** most recent | all children |
 | 5 | `Library/Android/sdk/ndk` | all children except the **1** most recent | all children |
 | 6 | `.android/avd` | children that are **long-unused**, always excluding the single most recent child | all children |
-| 7 | `.cache/lm-studio` | children that are **long-unused** | all children |
+| 7 | `.cache/lm-studio` | children that are **long-unused** — only the known regenerable children (`models`, `extensions`, `.internal`, `.session_cache`) | the same regenerable children in full |
 | 8 | `Library/Caches` | *nothing* | all children |
 | 9 | every remaining `CleanupRule.userCaches` root (`~/.npm/_cacache`, `~/.gradle/caches`, `~/.cache/uv`, the Unreal Tournament cache, Chrome's `OptGuideOnDeviceModel`, the three Code – Insiders caches, the Telegram group-container cache) | in full | in full |
 | 10 | name-matched regenerable folders anywhere in scope (`CleanupRule.regenerableNames`/`regenerableNamePrefixes`: `node_modules`, `Pods`, `DerivedData`, `.cache`, `.artifacts`, `.build`, `.build-cache`, `.derivedData*`) | *nothing* | the folder itself |
@@ -61,10 +61,18 @@ Notes on the table:
 - **Keep-newest guards with a long-unused fallback** (rows 2–5, refined during implementation):
   the spec says "older versions (excluding the most recent one/two)". If previous versions exist
   (children beyond the newest N) they are selected; if the location has no previous versions (at
-  most N children), the long-unused ones qualify instead of being kept as "the most recent". The
+  most N children), the long-unused ones qualify instead of being kept as "the most recent" —
+  but the single most recent version is always preserved either way: the fallback never takes
+  it, so a sole remaining version survives "Select safe items". The
   threshold otherwise applies exactly where the spec says "long-unused" (rows 6–7). Row 6
   combines both: long-unused *and* never the single newest child (even if that one is
   long-unused, it stays).
+- **User content stays out of both tiers** (row 7): `~/.cache/lm-studio` holds the user's
+  chat history (`chats`, `conversations`), presets (`config-presets`), the `lms` CLI, and
+  download state beside the regenerable caches. None of that can be regenerated or restored,
+  so the rule carries a closed eligible-name list (`AutoSelectionRule.eligibleChildNames`) and
+  only the regenerable children are ever candidates; unknown future children are excluded by
+  default.
 - **AVD pairing** (row 6): an emulator is a `<name>.avd` directory plus its `<name>.ini` sidecar.
   Selecting an AVD selects both; the recency ranking uses the `.avd` directory. Other loose files
   in the folder are left alone.

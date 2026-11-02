@@ -9,7 +9,8 @@ public enum AutoSelectionTier: String, Sendable, CaseIterable, Identifiable {
     public var id: String { rawValue }
 }
 
-/// What tier 1 selects from one curated location. Tier 2 always covers the whole location.
+/// What tier 1 selects from one curated location. Tier 2 always covers every eligible
+/// child of the location.
 public enum Tier1Coverage: Sendable, Equatable {
     /// Never selected in tier 1 (the live `~/Library/Caches` tree).
     case none
@@ -17,11 +18,11 @@ public enum Tier1Coverage: Sendable, Equatable {
     case all
     /// Every child except the `keep` most recent ones — "previous versions". When the
     /// location has no previous versions (at most `keep` children), the long-unused ones
-    /// qualify instead.
+    /// qualify instead — but the single most recent version is always preserved.
     case previousVersions(keep: Int)
     /// Long-unused children, never the single most recent one (Android virtual devices).
     case unusedKeepingNewest
-    /// Long-unused children only (LM Studio models).
+    /// Long-unused eligible children only (LM Studio caches).
     case unusedOnly
 }
 
@@ -51,11 +52,20 @@ public struct AutoSelectionRule: Sendable, Equatable {
     public let target: Target
     public let coverage: Tier1Coverage
     public let sidecarPairing: SidecarPairing?
-    public init(relativePath: String?, target: Target, coverage: Tier1Coverage, sidecarPairing: SidecarPairing? = nil) {
+    /// Only these direct children are ever candidates in either tier; `nil` means every
+    /// child. A closed list: user-authored content stored beside the caches (LM Studio
+    /// chats, conversations, presets) never qualifies, and unknown future children stay
+    /// out until added here deliberately.
+    public let eligibleChildNames: Set<String>?
+    public init(
+        relativePath: String?, target: Target, coverage: Tier1Coverage,
+        sidecarPairing: SidecarPairing? = nil, eligibleChildNames: Set<String>? = nil
+    ) {
         self.relativePath = relativePath
         self.target = target
         self.coverage = coverage
         self.sidecarPairing = sidecarPairing
+        self.eligibleChildNames = eligibleChildNames
     }
 }
 
@@ -89,7 +99,12 @@ public enum AutoSelectionSpec {
             AutoSelectionRule(
                 relativePath: ".android/avd", target: .children, coverage: .unusedKeepingNewest,
                 sidecarPairing: SidecarPairing(directorySuffix: ".avd", sidecarSuffix: ".ini")),
-            AutoSelectionRule(relativePath: ".cache/lm-studio", target: .children, coverage: .unusedOnly),
+            AutoSelectionRule(
+                relativePath: ".cache/lm-studio", target: .children, coverage: .unusedOnly,
+                // The store holds user-authored content beside regenerable ones: chat
+                // history and presets can never be regenerated or restored, so only the
+                // known regenerable children ever qualify.
+                eligibleChildNames: ["models", "extensions", ".internal", ".session_cache"]),
             // Name-matched rebuildable folders anywhere in the scan; tier 2 only.
             AutoSelectionRule(relativePath: nil, target: .children, coverage: .none),
         ]
@@ -111,19 +126,26 @@ public enum AutoSelection {
     }
 
     /// Tier-1 selection over one location's direct children. Symlinks and package
-    /// internals never qualify; paired sidecars travel with their directory.
+    /// internals never qualify; paired sidecars travel with their directory; children
+    /// outside the rule's closed name list are never selected in either tier.
     public static func select(
         children: [FileNode], rule: AutoSelectionRule, tier: AutoSelectionTier, unusedBefore cutoff: Date
     ) -> [FileNode] {
+        let eligible: [FileNode]
+        if let names = rule.eligibleChildNames {
+            eligible = children.filter { names.contains($0.name) }
+        } else {
+            eligible = children
+        }
         let primaries: [FileNode]
         var sidecarByName: [String: FileNode] = [:]
         if let pairing = rule.sidecarPairing {
-            primaries = children.filter { $0.isDirectory && !$0.isSymbolicLink && !$0.packageAncestor && $0.name.hasSuffix(pairing.directorySuffix) }
-            for child in children where !child.isDirectory {
+            primaries = eligible.filter { $0.isDirectory && !$0.isSymbolicLink && !$0.packageAncestor && $0.name.hasSuffix(pairing.directorySuffix) }
+            for child in eligible where !child.isDirectory {
                 sidecarByName[child.name] = child
             }
         } else {
-            primaries = children.filter { !$0.isSymbolicLink && !$0.packageAncestor }
+            primaries = eligible.filter { !$0.isSymbolicLink && !$0.packageAncestor }
         }
         let ranked = primaries.sorted { a, b in
             let left = a.latestContentModification ?? .distantPast
@@ -142,10 +164,12 @@ public enum AutoSelection {
                 selected = ranked
             case .previousVersions(let keep):
                 // Previous versions first; when the location has none, the long-unused
-                // ones qualify instead of being kept as "the most recent".
-                selected = ranked.count > keep
-                    ? Array(ranked.dropFirst(keep))
-                    : ranked.filter { isLongUnused($0, before: cutoff) }
+                // ones qualify instead of being kept as "the most recent" — but the
+                // single most recent version is preserved either way.
+                let previous = Array(ranked.dropFirst(keep))
+                selected = previous.isEmpty
+                    ? Array(ranked.dropFirst(1)).filter { isLongUnused($0, before: cutoff) }
+                    : previous
             case .unusedKeepingNewest:
                 selected = ranked.dropFirst(1).filter { isLongUnused($0, before: cutoff) }
             case .unusedOnly:

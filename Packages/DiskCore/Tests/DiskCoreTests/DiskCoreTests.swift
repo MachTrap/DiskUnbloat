@@ -757,6 +757,34 @@ private actor CleanupGate {
     #expect(above.items.map(\.operation) == [.remove])
 }
 
+@Test func thirdPartyAppsDirectInApplicationsAreRemovable() {
+    func node(_ path: String, directory: Bool, isPackage: Bool, packageAncestor: Bool = false) -> FileNode {
+        FileNode(id: 1, parentID: 1, path: path, name: URL(fileURLWithPath: path).lastPathComponent, isDirectory: directory,
+                 isPackage: isPackage, logicalSize: directory ? nil : 10,
+                 allocatedSize: directory ? nil : 10, modified: nil, identity: path, packageAncestor: packageAncestor)
+    }
+    let roots = [URL(fileURLWithPath: "/")]
+    // A regular third-party app the user placed directly in /Applications joins the queue.
+    #expect(CleanupSafety.blockedReasonCode(node("/Applications/Slack.app", directory: true, isPackage: true), roots: roots) == nil)
+    // Apple-pinned apps, the /Applications folder itself, and its sub-trees stay protected.
+    let applications = "/Applications"
+    #expect(CleanupSafety.blockedReasonCode(node(applications, directory: true, isPackage: false), roots: roots) == .systemManaged)
+    #expect(CleanupSafety.blockedReasonCode(node(applications + "/Utilities", directory: true, isPackage: false), roots: roots) == .systemManaged)
+    #expect(CleanupSafety.blockedReasonCode(node(applications + "/Utilities/Disk Utility.app", directory: true, isPackage: true), roots: roots) == .systemManaged)
+    #expect(CleanupSafety.blockedReasonCode(node(applications + "/Group/Inside.app", directory: true, isPackage: true), roots: roots) == .systemManaged)
+    // Contents inside an .app remain package-protected; the whole app is what's removable.
+    #expect(CleanupSafety.blockedReasonCode(node(applications + "/Slack.app/Contents/a", directory: false, isPackage: false, packageAncestor: true), roots: roots) == .packageContents)
+    // Files and symlinks dropped directly into /Applications stay protected too.
+    #expect(CleanupSafety.blockedReasonCode(node(applications + "/notes.txt", directory: false, isPackage: false), roots: roots) == .systemManaged)
+    // Emptying /Applications is refused either way: as the scan root it does not qualify
+    // for contents-emptying outside its own scope, and as a scanned root the folder stays
+    // system-managed (every curated-cache exemption never reaches it).
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node(applications, directory: true, isPackage: false), roots: roots) == .scanRoot)
+    #expect(CleanupSafety.emptyContentsBlockedReasonCode(node(applications, directory: true, isPackage: false), roots: [URL(fileURLWithPath: applications)]) == .systemManaged)
+    // Apps elsewhere in the home are unaffected.
+    #expect(CleanupSafety.blockedReasonCode(node("/Users/artur/Applications/MyApp.app", directory: true, isPackage: true), roots: roots) == nil)
+}
+
 @Test func emptyContentsSafetyQualifiesOnlyScanRoots() {
     let first = URL(fileURLWithPath: "/Users/g/Library/Caches")
     let second = URL(fileURLWithPath: "/Users/g/.gradle/caches")

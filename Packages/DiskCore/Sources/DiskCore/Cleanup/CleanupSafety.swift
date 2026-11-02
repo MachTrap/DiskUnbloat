@@ -13,7 +13,7 @@ public enum CleanupSafety {
         if scopePaths.contains(path) { return .scanRoot }
         // A "/" scope authorizes the whole scanned volume, as plain single-root scans did.
         guard scopePaths.contains(where: { path.isWithin($0) }) else { return .outsideScope }
-        return protectionReason(path: path, packageAncestor: node.packageAncestor, url: node.url, exemptingCacheRoots: exemptingCacheRoots)
+        return protectionReason(path: path, packageAncestor: node.packageAncestor, isPackage: node.isPackage, url: node.url, exemptingCacheRoots: exemptingCacheRoots)
     }
     /// Scan-root folders cannot be removed, but they can be queued to empty their contents
     /// while the folder itself stays. Only exact scan-root folders qualify; "/" and volume
@@ -26,18 +26,31 @@ public enum CleanupSafety {
         guard scopePaths.contains(where: { path.isWithin($0) }) else { return .outsideScope }
         guard scopePaths.contains(path), path != "/" else { return .scanRoot }
         guard node.isDirectory, !node.isSymbolicLink else { return .scanRoot }
-        return protectionReason(path: path, packageAncestor: node.packageAncestor, url: node.url, exemptingCacheRoots: exemptingCacheRoots)
+        return protectionReason(path: path, packageAncestor: node.packageAncestor, isPackage: node.isPackage, url: node.url, exemptingCacheRoots: exemptingCacheRoots)
     }
     /// Shared tail of both checks: curated cache locations (and their contents) may be
     /// cleaned; their managed parents and every other managed tree stay protected.
-    private static func protectionReason(path: String, packageAncestor: Bool, url: URL, exemptingCacheRoots: [String]) -> CleanupReason? {
+    private static func protectionReason(path: String, packageAncestor: Bool, isPackage: Bool, url: URL, exemptingCacheRoots: [String]) -> CleanupReason? {
         let knownCache = exemptingCacheRoots.contains { path.isWithin($0) }
         if !knownCache, isManagedData(path) { return .managedData }
         if packageAncestor { return .packageContents }
         let protected = ["/System", "/Library", "/bin", "/sbin", "/usr", "/dev", "/etc", "/var", "/private/etc", "/private/var/db", "/private/var/root", "/private/var/vm", "/private/var/log", "/Applications", "/System/Volumes/Data/System", "/System/Volumes/Data/Library"]
-        if protected.contains(where: { path.isWithin($0) }) { return .systemManaged }
+        // Regular third-party app bundles the user (or an installer) placed directly
+        // inside /Applications are ordinary removable applications — macOS itself still
+        // refuses anything Apple pins system-wide (and zero-byte failures are reported
+        // per item). Everything else under /Applications — the Applications folder
+        // itself, /Applications/Utilities with the Apple/qualifying mix, grouping
+        // folders, and all nested content — stays protected.
+        if protected.contains(where: { path.isWithin($0) }) {
+            guard isRemovableThirdPartyApp(path: path, isPackage: isPackage, insidePackage: packageAncestor) else { return .systemManaged }
+        }
         if let values = try? url.resourceValues(forKeys: [.isVolumeKey]), values.isVolume == true { return .volumeRoot }
         return nil
+    }
+    /// A direct `.app` package child of `/Applications` is a regular user application.
+    private static func isRemovableThirdPartyApp(path: String, isPackage: Bool, insidePackage: Bool) -> Bool {
+        guard isPackage, !insidePackage, path.hasSuffix(".app") else { return false }
+        return URL(fileURLWithPath: path).deletingLastPathComponent().path == "/Applications"
     }
     private static func isManagedData(_ path: String) -> Bool {
         // Exact volume/user roots, plus the Library root itself.

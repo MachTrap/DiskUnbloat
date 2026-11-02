@@ -20,7 +20,7 @@ Use `@MainActor @Observable` classes named `…ViewModel` for presentation state
 
 Keep blocking enumeration on its dedicated queue, indexing inside its actor, and expensive layout off the main actor. Preserve Sendable contracts, task ownership, cancellation, query-session invalidation, and balanced security-scope lifetimes. Do not add unchecked concurrency annotations without a documented invariant and migration follow-up.
 
-Preserve cleanup protections, identity/fingerprint/ancestry validation, explicit review and irreversible-action confirmation. Never fall back from Trash to permanent deletion. Do not equate age or size with safe deletion or promise unrestricted disk access/exact reclaimed space. Scan roots are never removed; queueing one empties its contents while the folder stays (`/` and volume roots stay refused), and the per-child preflight still guards running-application caches before every removal.
+Preserve cleanup protections, identity/fingerprint/ancestry validation, explicit review and irreversible-action confirmation. Never fall back from Trash to permanent deletion. Do not equate age or size with safe deletion or promise unrestricted disk access/exact reclaimed space. Scan roots are never removed; queueing one empties its contents while the folder stays (`/` and volume roots stay refused), and the per-child preflight still guards running-application caches before every removal. The only system-tree carve-out is regular third-party app bundles placed directly inside `/Applications` (removable like home-folder apps); everything else under `/Applications`, package internals, and managed data stay protected.
 
 ## Project maintenance and verification
 

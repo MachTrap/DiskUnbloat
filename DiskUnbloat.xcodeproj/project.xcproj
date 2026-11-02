@@ -263,6 +263,7 @@
       "children": [
         { "path": "AnalysisFeatureTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "AuthorizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "AutoSelectionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "CleanupQueueTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "GroupedScanTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "LocalizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

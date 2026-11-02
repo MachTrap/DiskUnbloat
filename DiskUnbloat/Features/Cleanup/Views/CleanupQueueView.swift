@@ -11,13 +11,20 @@ struct CleanupQueueView: View {
     let selected: FileNode?
     let selectedIDs: Set<Int64>
     let canClean: Bool
+    /// A quick-select recommendation is being computed.
+    let selecting: Bool
     let select: (FileNode) -> Void
     let deselect: (FileNode) -> Void
     /// Tapping a row highlights the same item on the map.
     let highlight: (FileNode) -> Void
     let performCleanup: (CleanupMode) -> Void
+    /// Selects one tier's recommendation into the queue.
+    let selectTier: (AutoSelectionTier) -> Void
+    /// Computes one tier's recommendation without touching the queue, for the tier-2 warning.
+    let previewTier: (AutoSelectionTier) async -> AutoSelectionPreview?
     @State private var confirmDelete = false
     @State private var confirmPermanent = false
+    @State private var regenerablePreview: AutoSelectionPreview?
 
     private var cleanup: CleanupViewModel { model.cleanup }
 
@@ -27,6 +34,8 @@ struct CleanupQueueView: View {
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
                 header
+                Divider()
+                quickSelect
                 Divider()
                 if model.lines.isEmpty { emptyState } else { list }
                 Divider()
@@ -60,6 +69,21 @@ struct CleanupQueueView: View {
             } message: {
                 Text(L10n.text("This immediately removes the selected items and all contents of selected folders. Scanned folders stay in place but are emptied. This cannot be undone. Files will not be moved to Trash."))
             }
+            .alert(L10n.text("Select everything rebuildable?"), isPresented: Binding(
+                get: { regenerablePreview != nil },
+                set: { if !$0 { regenerablePreview = nil } })) {
+                Button(L10n.text("Select anyway")) {
+                    regenerablePreview = nil
+                    selectTier(.regenerable)
+                }
+                Button(L10n.text("Cancel"), role: .cancel) { regenerablePreview = nil }
+            } message: {
+                if let preview = regenerablePreview {
+                    Text(L10n.format(
+                        "This selects an extensive cleanup: %lld items (%@ estimated), including live caches, simulator and device data, and rebuildable folders. Removing them can interrupt running apps and developer tools, force re-downloads and rebuilds, and some content can only be restored by re-downloading it. Review the selection before deleting.",
+                        preview.items, sizeText(preview.knownBytes)))
+                }
+            }
             .accessibilityIdentifier("cleanupQueue")
         }
     }
@@ -74,6 +98,44 @@ struct CleanupQueueView: View {
             Spacer()
             if model.isLoading { ProgressView().controlSize(.small) }
         }.padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    /// Two-tier quick selection: safe junk first, rebuildable content behind a warning.
+    private var quickSelect: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Button {
+                selectTier(.safe)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.text("Select safe items")).font(.callout.weight(.medium))
+                    Text(L10n.text("Selects caches, old build data, and other junk that is safe to delete."))
+                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.leading)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!canClean || cleanup.cleaning || selecting)
+            .accessibilityIdentifier("selectSafeItems")
+            Button {
+                Task {
+                    if let preview = await previewTier(.regenerable) { regenerablePreview = preview }
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.text("Select rebuildable items")).font(.callout.weight(.medium))
+                    Text(L10n.text("Selects caches, simulator and device data, and rebuildable folders you can restore or rebuild."))
+                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.leading)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!canClean || cleanup.cleaning || selecting)
+            .accessibilityIdentifier("selectRebuildableItems")
+            if selecting {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(L10n.text("Selecting…")).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }.padding(.horizontal, 16).padding(.vertical, 10)
     }
 
     private var emptyState: some View {

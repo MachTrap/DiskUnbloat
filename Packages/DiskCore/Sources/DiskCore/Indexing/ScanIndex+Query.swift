@@ -11,6 +11,7 @@ extension ScanIndex {
         if let suggestion = q.suggestion { applySuggestion(suggestion, q, to: &p) }
         if let rule = q.cleanupRule { applyCleanupRule(rule, q, to: &p) }
         for path in q.hiddenPaths { applyPathExclusion(path, to: &p) }
+        for path in q.hiddenSubtrees { applyDescendantExclusion(path, to: &p) }
         return (p.sql, p.strings)
     }
 
@@ -136,6 +137,11 @@ extension ScanIndex {
     private func applyPathExclusion(_ path: String, to p: inout SQLPredicate) {
         let range = path.pathRange
         p.add("NOT(path=? OR (path>=? COLLATE BINARY AND path<? COLLATE BINARY))", bind: [path, range.lower, range.upper])
+    }
+    /// Hides a container's descendants while the container itself stays on the map.
+    private func applyDescendantExclusion(_ path: String, to p: inout SQLPredicate) {
+        let range = path.pathRange
+        p.add("NOT(path>=? COLLATE BINARY AND path<? COLLATE BINARY)", bind: [range.lower, range.upper])
     }
     public func query(_ q: FileQuery) -> [FileNode] {
         let (whereSQL, strings) = predicate(q)

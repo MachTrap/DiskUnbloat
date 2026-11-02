@@ -11,6 +11,7 @@ struct PendingGroup: Sendable {
 @MainActor @Observable final class ScanViewModel {
     @ObservationIgnored private let coordinator: any ScanServing
     @ObservationIgnored private let storage: ScanSessionStore
+    @ObservationIgnored private let defaults: UserDefaults
     private(set) var index: ScanIndex?
     var root: URL?
     var pendingRoot: URL?
@@ -18,8 +19,13 @@ struct PendingGroup: Sendable {
     var pendingGroup: PendingGroup?
     private(set) var groupTitle: String?
     private(set) var groupRoots: [URL] = []
-    var options = ScanOptions()
+    var options = ScanOptions() {
+        didSet { defaults.set(options.longUnusedDays, forKey: Self.longUnusedDaysKey) }
+    }
     private var sessionOptions = ScanOptions()
+    /// The "long-unused" definition persists across launches; it is a definition, not
+    /// per-scan state, and applies to automatic selection without a rescan.
+    static let longUnusedDaysKey = "longUnusedDays"
     var isGroupScan: Bool { groupRoots.count > 1 }
     /// Every authorized scan scope: the single root, or all locations of a grouped scan.
     var roots: [URL] { groupRoots.isEmpty ? (root.map { [$0] } ?? []) : groupRoots }
@@ -36,10 +42,12 @@ struct PendingGroup: Sendable {
     /// Used space on the scanned volume; the honest denominator for overall progress.
     private(set) var volumeUsedBytes: Int64?
 
-    init(coordinator: any ScanServing, storage: ScanSessionStore = ScanSessionStore()) {
+    init(coordinator: any ScanServing, storage: ScanSessionStore = ScanSessionStore(), defaults: UserDefaults = .standard) {
         self.coordinator = coordinator
         self.storage = storage
+        self.defaults = defaults
         storage.purgeAbandonedIndexes()
+        options.longUnusedDays = defaults.object(forKey: Self.longUnusedDaysKey) as? Int ?? 90
     }
 
     /// Approximate share of the volume's used space already read. Subfolder scans may finish

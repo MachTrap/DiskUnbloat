@@ -54,6 +54,11 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var isLoading = false
     /// Paths queued for deletion; they disappear from the map until removed.
     private(set) var hiddenPaths: [String] = []
+    /// Fully queued containers: their descendants hide while the folder itself stays.
+    private(set) var hiddenSubtrees: [String] = []
+    /// Raw queue paths as handed in, before hidden-range pruning and collapse.
+    @ObservationIgnored private var queuedPaths: [String] = []
+    @ObservationIgnored private var hiddenGeneration = 0
     var hasFilters: Bool { !search.isEmpty || suggestion != nil || minimumGB > 0 || olderDays > 0 || !extensionFilter.isEmpty }
     var availableCategories: [FileCategory] {
         let present = Set(legendCategories)
@@ -71,18 +76,35 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         legendCategories = []; scene = MapScene(); current = nil; selectionIDs = []
         breadcrumbs = []; back = []; forward = []; suggestion = nil; highlightedCategory = nil
         search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current
-        hiddenPaths = []; isLoading = false
+        hiddenPaths = []; hiddenSubtrees = []; queuedPaths = []; hiddenGeneration += 1
+        isLoading = false
     }
 
     /// Hides queued deletion items everywhere the explorer queries, and drops their selections.
+    /// Subsumed entries collapse immediately; complete-container collapses (which need
+    /// child counts) land right after, absorbed by the query debounce.
     func updateHiddenPaths(_ paths: [String]) {
-        guard paths != hiddenPaths else { return }
-        hiddenPaths = paths
-        let hidden = paths
+        guard paths != queuedPaths else { return }
+        queuedPaths = paths
         selectionIDs = selectionIDs.filter { id in
             guard let node = nodesByID[id] else { return true }
-            return !hidden.contains { node.path.isWithin($0) }
+            return !paths.contains { node.path.isWithin($0) }
         }
+        hiddenGeneration += 1
+        let generation = hiddenGeneration
+        applyHidden(HiddenRanges(paths: HiddenRanges.pruneSubsumed(paths), subtrees: []))
+        guard let index else { return }
+        Task {
+            let ranges = await index.coalescedHiddenRanges(for: paths)
+            guard generation == hiddenGeneration else { return }
+            applyHidden(ranges)
+        }
+    }
+
+    private func applyHidden(_ ranges: HiddenRanges) {
+        guard ranges.paths != hiddenPaths || ranges.subtrees != hiddenSubtrees else { return }
+        hiddenPaths = ranges.paths
+        hiddenSubtrees = ranges.subtrees
         sceneCache = [:]; sceneCacheOrder = []
         scheduleRefresh()
     }
@@ -135,7 +157,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     private func makeQueries() -> ExplorerQueries {
         ExplorerQueries(
             current: current, metric: metric, options: options, scope: scope,
-            suggestion: suggestion, hiddenPaths: hiddenPaths,
+            suggestion: suggestion, hiddenPaths: hiddenPaths, hiddenSubtrees: hiddenSubtrees,
             activityExclusions: suggestion != nil ? (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) : [],
             search: search, minimumGB: minimumGB,
             olderDays: olderDays, extensionFilter: extensionFilter,

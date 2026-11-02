@@ -123,7 +123,10 @@ struct SavedLocation: Identifiable, Codable {
     func retainOnly(_ urls: [URL]) {
         let kept = urls.map(canonicalURL)
         func covers(_ item: URL) -> Bool {
-            kept.contains { $0.path.overlaps(item.path) }
+            // Both sides go through realpath, so /var aliases of /private/var paths still
+            // cover their grants.
+            let path = canonicalURL(item).path
+            return kept.contains { $0.path.overlaps(path) }
         }
         for item in active where !covers(item) { bookmarks.stopAccessing(item) }
         active.removeAll { !covers($0) }

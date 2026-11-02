@@ -12,6 +12,8 @@ struct ExplorerQueries {
     let suggestion: Suggestion?
     /// Queued deletion items hidden from the map.
     let hiddenPaths: [String]
+    /// Containers whose every child is queued; their descendants hide, the folder stays.
+    var hiddenSubtrees: [String] = []
     /// Running-application cache exclusions; empty unless a suggestion is active.
     let activityExclusions: [String]
     let search: String
@@ -53,6 +55,7 @@ struct ExplorerQueries {
             q.excludedCandidatePaths = activityExclusions
         }
         q.hiddenPaths = hiddenPaths
+        q.hiddenSubtrees = hiddenSubtrees
         q.search = search; q.minimumSize = Int64(max(0, minimumGB) * 1e9)
         q.olderThan = olderDays > 0 ? Date().addingTimeInterval(-Double(olderDays) * 86400) : nil
         q.fileExtension = extensionFilter

@@ -244,6 +244,59 @@
         }
       }
     },
+    "%lld items were skipped by safety checks." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item was skipped by safety checks."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items were skipped by safety checks."
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Проверки безопасности пропустили %lld объекта."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Проверки безопасности пропустили %lld объектов."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Проверки безопасности пропустили %lld объект."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Проверки безопасности пропустили %lld объекта."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld locations" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1515,6 +1568,22 @@
         }
       }
     },
+    "Defines which old simulators and local AI models the quick selection calls long-unused. No rescan is needed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defines which old simulators and local AI models the quick selection calls long-unused. No rescan is needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задаёт, какие старые симуляторы и локальные модели ИИ быстрый выбор считает давно неиспользуемыми. Повторное сканирование не требуется."
+          }
+        }
+      }
+    },
     "Delete permanently" : {
       "localizations" : {
         "en" : {
@@ -2631,6 +2700,22 @@
         }
       }
     },
+    "Long-unused threshold" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long-unused threshold"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Порог давнего неиспользования"
+          }
+        }
+      }
+    },
     "Make space for what’s next." : {
       "localizations" : {
         "en" : {
@@ -2809,6 +2894,59 @@
         }
       }
     },
+    "Not modified in %lld days" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Not modified in %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Not modified in %lld days"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дня без изменений"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дней без изменений"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld день без изменений"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дня без изменений"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Not selected" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2822,6 +2960,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не выбрано"
+          }
+        }
+      }
+    },
+    "Nothing recommended in this scan." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing recommended in this scan."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом сканировании нет рекомендуемых объектов."
           }
         }
       }
@@ -3954,6 +4109,40 @@
         }
       }
     },
+    "Select anyway" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select anyway"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всё равно выбрать"
+          }
+        }
+      }
+    },
+    "Select everything rebuildable?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select everything rebuildable?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать всё восстанавливаемое?"
+          }
+        }
+      }
+    },
     "Select items to delete" : {
       "localizations" : {
         "en" : {
@@ -3987,6 +4176,40 @@
         }
       }
     },
+    "Select rebuildable items" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select rebuildable items"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать восстанавливаемые объекты"
+          }
+        }
+      }
+    },
+    "Select safe items" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select safe items"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать безопасные объекты"
+          }
+        }
+      }
+    },
     "Selected disk" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4016,6 +4239,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выбрано для удаления"
+          }
+        }
+      }
+    },
+    "Selecting…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecting…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбор…"
+          }
+        }
+      }
+    },
+    "Selects caches, old build data, and other junk that is safe to delete." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selects caches, old build data, and other junk that is safe to delete."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирает кэши, старые данные сборки и другой мусор, который можно безопасно удалить."
+          }
+        }
+      }
+    },
+    "Selects caches, simulator and device data, and rebuildable folders you can restore or rebuild." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selects caches, simulator and device data, and rebuildable folders you can restore or rebuild."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирает кэши, данные симуляторов и устройств, а также папки, которые можно восстановить или пересобрать."
           }
         }
       }
@@ -4599,6 +4873,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выбор включает кэш запущенного приложения или защищённой службы. Закройте приложение и повторите проверку."
+          }
+        }
+      }
+    },
+    "This selects an extensive cleanup: %lld items (%@ estimated), including live caches, simulator and device data, and rebuildable folders. Removing them can interrupt running apps and developer tools, force re-downloads and rebuilds, and some content can only be restored by re-downloading it. Review the selection before deleting." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This selects an extensive cleanup: %lld items (%@ estimated), including live caches, simulator and device data, and rebuildable folders. Removing them can interrupt running apps and developer tools, force re-downloads and rebuilds, and some content can only be restored by re-downloading it. Review the selection before deleting."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будет выбрана обширная очистка: %lld объектов (оценка: %@), включая активные кэши, данные симуляторов и устройств и пересоздаваемые папки. Их удаление может нарушить работу запущенных программ и инструментов разработки, привести к повторным загрузкам и пересборке, а часть данных можно будет восстановить только повторной загрузкой. Проверьте выбор перед удалением."
           }
         }
       }

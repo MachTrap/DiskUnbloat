@@ -5,6 +5,10 @@ public struct ScanOptions: Sendable, Codable {
     public var inspectPackages = false
     public var crossVolumes = false
     public var exclusions: [String] = []
+    /// Days without a recorded content modification after which an item counts as
+    /// "long-unused" for automatic selection (old simulators, local AI models). A
+    /// definition parameter: it shapes selection, never enumeration.
+    public var longUnusedDays = 90
     public init() {}
 }
 public struct ScanRequest: Sendable {

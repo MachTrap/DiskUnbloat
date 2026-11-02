@@ -22,6 +22,8 @@ enum WorkspacePhase: Equatable {
     private(set) var restoringLocation = false
     @ObservationIgnored private var scanTask: Task<Void, Never>?
     @ObservationIgnored private var cleanupTask: Task<Void, Never>?
+    @ObservationIgnored private var selectionTask: Task<Void, Never>?
+    private(set) var selectingItems = false
     private var shuttingDown = false
     var message: String?
     var previewURL: URL?
@@ -55,6 +57,8 @@ enum WorkspacePhase: Equatable {
     func shutdown() async {
         shuttingDown = true
         locationTask?.cancel()
+        selectionTask?.cancel()
+        await selectionTask?.value
         await cleanupTask?.value
         await scan.cancel()
         await scanTask?.value
@@ -266,6 +270,44 @@ enum WorkspacePhase: Equatable {
     }
 
     func addSelectionToBasket() { explorer.normalizedSelection.forEach(addToBasket) }
+
+    /// Computes one tier's recommendation without touching the queue, so the tier-2
+    /// warning can state an honest estimate before anything is selected. Posts a notice
+    /// and returns nil when the scan holds nothing for this tier.
+    func previewSelection(_ tier: AutoSelectionTier) async -> AutoSelectionPreview? {
+        guard canClean, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return nil }
+        let result = await index.autoSelectionCandidates(
+            home: location.catalog.home.path, tier: tier,
+            unusedDays: scan.options.longUnusedDays, inspectPackages: scan.options.inspectPackages)
+        guard !Task.isCancelled, scan.index === index else { return nil }
+        guard !result.isEmpty else {
+            message = L10n.text("Nothing recommended in this scan.")
+            return nil
+        }
+        return AutoSelectionPreview(result)
+    }
+
+    /// Selects one tier's recommendation into the deletion queue. The proposal passes the
+    /// same safety checks as manual selection; refused items are reported, never forced.
+    func selectItems(_ tier: AutoSelectionTier) {
+        guard canClean, !selectingItems, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return }
+        selectingItems = true
+        selectionTask = Task {
+            defer { selectingItems = false }
+            let result = await index.autoSelectionCandidates(
+                home: location.catalog.home.path, tier: tier,
+                unusedDays: scan.options.longUnusedDays, inspectPackages: scan.options.inspectPackages)
+            guard !Task.isCancelled, canClean, scan.index === index, !cleanup.cleaning else { return }
+            if result.isEmpty {
+                message = L10n.text("Nothing recommended in this scan.")
+                return
+            }
+            let outcome = cleanup.applyAutoSelection(result, roots: scan.roots)
+            if outcome.skipped > 0 {
+                message = L10n.count("%lld items were skipped by safety checks.", outcome.skipped)
+            }
+        }
+    }
 
     func cancel() { scan.requestCancellation(); Task { await scan.cancel() } }
 

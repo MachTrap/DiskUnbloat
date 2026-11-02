@@ -17,6 +17,10 @@ struct ExplorerView: View {
     let deselectFromCleanup: (FileNode) -> Void
     let addSelection: () -> Void
     let performCleanup: (CleanupMode) -> Void
+    /// Quick-select recommendations for the cleanup queue panel.
+    let selecting: Bool
+    let selectTier: (AutoSelectionTier) -> Void
+    let previewTier: (AutoSelectionTier) async -> AutoSelectionPreview?
     /// Highlights an item on the map, e.g. when a panel row is tapped.
     let highlight: (FileNode) -> Void
     @State private var showOptions = false
@@ -43,7 +47,7 @@ struct ExplorerView: View {
             legend
         }
         .inspector(isPresented: showQueue) {
-            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup)
+            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, selecting: selecting, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup, selectTier: selectTier, previewTier: previewTier)
                 .inspectorColumnWidth(min: 280, ideal: 340, max: 480)
         }
         .toolbar { toolbar }

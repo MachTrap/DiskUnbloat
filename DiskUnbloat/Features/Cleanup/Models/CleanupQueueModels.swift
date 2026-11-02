@@ -23,9 +23,12 @@ struct CleanupQueueRow: Identifiable, Sendable, Equatable {
     let canPeek: Bool
     let hasHiddenChildren: Bool
     let hiddenChildCount: Int
+    /// Every indexed child of this container is queued: one atomic row whose contents go
+    /// while the folder itself stays.
+    var coversAllChildren = false
     var id: Int64 { node.id }
     var isEntry: Bool { checkState == .checked }
-    var keepsFolder: Bool { operation == .emptyContents }
+    var keepsFolder: Bool { operation == .emptyContents || coversAllChildren }
 }
 
 /// One line of the queue list: the current-folder header, an item row, a "hidden items"
@@ -82,6 +85,7 @@ enum CleanupQueueTree {
     static func lines(_ input: Input) -> [CleanupQueueLine] {
         let entryByID = Dictionary(uniqueKeysWithValues: input.entries.map { ($0.node.id, $0) })
         let structural = structuralChildren(entries: input.entries, nodes: input.nodes, current: input.current)
+        let selectedBytes = selectedBytesByNode(input)
         var out: [CleanupQueueLine] = []
         // The current open folder: a listing of its direct children by known size, so the
         // panel shows content even with an empty queue. Selected descendants of a partial
@@ -90,7 +94,7 @@ enum CleanupQueueTree {
             out.append(.directoryHeader(current))
             let shown = input.directoryChildren
             for child in shown {
-                render(child, depth: 0, input: input, entryByID: entryByID, structural: structural, into: &out)
+                render(child, depth: 0, input: input, entryByID: entryByID, structural: structural, selectedBytes: selectedBytes, into: &out)
             }
             let total = input.directoryCount ?? shown.count
             if shown.count < total { out.append(.showMore(current, depth: 0)) }
@@ -105,8 +109,24 @@ enum CleanupQueueTree {
                 return parent.isGroupRoot
             }
             .sorted(by: bySize)
-        for root in roots { render(root, depth: 0, input: input, entryByID: entryByID, structural: structural, into: &out) }
+        for root in roots { render(root, depth: 0, input: input, entryByID: entryByID, structural: structural, selectedBytes: selectedBytes, into: &out) }
         return out
+    }
+
+    /// Selected bytes per node id: every entry's known size is attributed to itself and
+    /// each ancestor the gather resolved, in one pass instead of a per-row scan over all
+    /// entries.
+    private static func selectedBytesByNode(_ input: Input) -> [Int64: Int64] {
+        var totals: [Int64: Int64] = [:]
+        for entry in input.entries {
+            let bytes = entry.node.knownSize(for: .allocated)
+            var node: FileNode? = entry.node
+            while let current = node {
+                totals[current.id, default: 0] += bytes
+                node = current.parentID.flatMap { input.nodes[$0] }
+            }
+        }
+        return totals
     }
 
     /// Known-size descending, path as the deterministic tie-break.
@@ -139,6 +159,7 @@ enum CleanupQueueTree {
         input: Input,
         entryByID: [Int64: CleanupEntry],
         structural: [Int64: Set<Int64>],
+        selectedBytes: [Int64: Int64],
         into out: inout [CleanupQueueLine]
     ) {
         if let entry = entryByID[node.id] {
@@ -151,15 +172,24 @@ enum CleanupQueueTree {
             return
         }
         let kids = (structural[node.id] ?? []).compactMap { input.nodes[$0] }.sorted(by: bySize)
+        // A container whose every indexed child is queued reads as one atomic checked row:
+        // its contents disappear while the folder itself stays, exactly as an emptied
+        // scan root does.
+        if !kids.isEmpty, let count = input.childCounts[node.id], kids.count == count,
+           kids.allSatisfy({ entryByID[$0.id] != nil }) {
+            out.append(.item(CleanupQueueRow(
+                node: node, depth: depth, checkState: .checked, operation: nil,
+                bytes: selectedBytes[node.id] ?? 0,
+                hasSelectedDescendants: false, canPeek: false, hasHiddenChildren: false, hiddenChildCount: 0,
+                coversAllChildren: true)))
+            return
+        }
         let total = input.childCounts[node.id] ?? kids.count
         let hiddenCount = max(0, total - kids.count)
-        let selectedBytes = input.entries.reduce(Int64(0)) { sum, entry in
-            entry.node.path.isWithin(node.path) ? sum + entry.node.knownSize(for: .allocated) : sum
-        }
         out.append(.item(CleanupQueueRow(
             node: node, depth: depth,
             checkState: kids.isEmpty ? .unchecked : .partial, operation: nil,
-            bytes: kids.isEmpty ? node.knownSize(for: .allocated) : selectedBytes,
+            bytes: kids.isEmpty ? node.knownSize(for: .allocated) : (selectedBytes[node.id] ?? 0),
             hasSelectedDescendants: !kids.isEmpty,
             canPeek: kids.isEmpty && isExpandableContainer(node),
             hasHiddenChildren: hiddenCount > 0, hiddenChildCount: hiddenCount)))
@@ -167,7 +197,7 @@ enum CleanupQueueTree {
             // An unselected plain folder expands to a lazy peek at its largest children.
             if isExpandableContainer(node), let peeked = input.peekChildren[node.id] {
                 for child in peeked {
-                    render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
+                    render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, selectedBytes: selectedBytes, into: &out)
                 }
                 if peeked.count < (input.peekCounts[node.id] ?? peeked.count) {
                     out.append(.showMore(node, depth: depth + 1))
@@ -178,11 +208,11 @@ enum CleanupQueueTree {
         guard !input.collapsed.contains(node.path) else { return }
         // Every structural child here is selected or partially selected; show them by size.
         for child in kids {
-            render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
+            render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, selectedBytes: selectedBytes, into: &out)
         }
         if input.revealed.contains(node.path), let fetched = input.fetchedChildren[node.id] {
             for child in fetched where !kids.contains(where: { $0.id == child.id }) {
-                render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, into: &out)
+                render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, selectedBytes: selectedBytes, into: &out)
             }
             if fetched.count < total { out.append(.showMore(node, depth: depth + 1)) }
         } else if hiddenCount > 0 {

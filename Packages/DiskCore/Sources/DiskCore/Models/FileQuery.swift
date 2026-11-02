@@ -7,6 +7,9 @@ public struct FileQuery: Sendable {
     public var excludedCandidatePaths: [String] = []
     /// Queued deletion items hidden from the map, browser, and statistics.
     public var hiddenPaths: [String] = []
+    /// Containers whose every child is queued: their descendants hide with them, but the
+    /// container folder itself stays visible (it survives an emptied cleanup).
+    public var hiddenSubtrees: [String] = []
     public var metric: SizeMetric = .allocated
     public var knownSizesOnly = false
     public var leafResults = false

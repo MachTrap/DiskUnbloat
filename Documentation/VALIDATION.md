@@ -2,6 +2,13 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Visible centered map-loading status — 2026-11-03
+
+- **Problem:** the map's scene-load indicator (`ExplorerViewModel.isLoading` — focus navigation, filter changes, folder refresh) was a small bare `.small`-size `ProgressView` in a capsule pinned to the bottom edge above the map, which the user reported as barely visible and easy to miss.
+- **Fix:** a centered translucent pill over the map (`MapLoadingStatus` in `ExplorerView`) — a regular-size teal spinner, the localized "Updating the map…" label ("Обновление карты…"), and the name of the folder being loaded when one is known, on `.regularMaterial` with a hairline stroke and soft shadow. Decorative scale+opacity transition (and the smooth duration gate) is disabled under Reduce Motion per the existing invariants; the pill sets `allowsHitTesting(false)` so the map stays clickable during a load and combines children for accessibility. The cleanup-queue panel's header spinner left the bare `.small` form too: regular-size teal spinner plus "Updating the list…" ("Обновление списка…"). Tier-select and cleanup-button inline spinners are unchanged.
+- No behavior change to `isLoading` lifecycle itself; post-cleanup rescans still use the scanning phase, so the pill only covers scene loads. Strings added to English/Russian catalogs (extractionState `stale`, translated). Documentation: ARCHITECTURE's scene-loading paragraph documents the pill.
+- Tests: core 68 pass (no core change; pure presentation), hosted app tests 65 pass, universal Release build passes, localization audit passes with 475 entries.
+
 ## Cleanup-queue rows show selected/total size — 2026-11-02
 
 ## Regular user applications in /Applications are removable — 2026-11-02

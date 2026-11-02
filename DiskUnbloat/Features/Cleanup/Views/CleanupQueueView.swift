@@ -102,7 +102,12 @@ struct CleanupQueueView: View {
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
             Spacer()
-            if model.isLoading { ProgressView().controlSize(.small) }
+            if model.isLoading {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.regular).tint(.teal)
+                    Text("Updating the list…").font(.caption).foregroundStyle(.secondary)
+                }
+            }
             Button {
                 cleanup.clearSelection()
             } label: {

@@ -25,6 +25,7 @@ struct ExplorerView: View {
     let highlight: (FileNode) -> Void
     @State private var showOptions = false
     @FocusState private var searchFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var showQueue: Binding<Bool> {
         Binding(get: { queue.cleanup.showQueue }, set: { queue.cleanup.showQueue = $0 })
@@ -42,7 +43,13 @@ struct ExplorerView: View {
             }
             TreemapView(scene: model.scene, selection: model.selectionIDs, highlighted: model.highlightedCategory, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
-                .overlay(alignment: .bottom) { if model.isLoading { ProgressView().controlSize(.small).padding(12).background(.regularMaterial, in: Capsule()).padding(16) } }
+                .overlay {
+                    if model.isLoading {
+                        MapLoadingStatus(name: model.current?.name)
+                            .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.92)))
+                    }
+                }
+                .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: model.isLoading)
             if !model.selectionIDs.isEmpty { selectionBar }
             legend
         }
@@ -57,6 +64,37 @@ struct ExplorerView: View {
         .onKeyPress(.space) { guard let node = model.selected else { return .ignored }; preview(node); return .handled }
         .onExitCommand { if !model.selectionIDs.isEmpty { model.selectionIDs = [] } else { model.up() } }
         .accessibilityIdentifier("explorerScreen")
+    }
+
+    /// Center-of-map loading status shown while the scene for the current query rebuilds
+    /// (focus navigation, filter changes, folder refresh). Deliberately large and centered
+    /// — it replaced a small bottom-edge spinner that was easy to miss — and names the
+    /// scope being loaded when one is known. It never intercepts clicks on the map.
+    private struct MapLoadingStatus: View {
+        let name: String?
+
+        var body: some View {
+            VStack(spacing: 3) {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.regular).tint(.teal)
+                    Text("Updating the map…").font(.callout.weight(.medium))
+                }
+                if let name {
+                    Text(name)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+            }
+            .padding(.horizontal, 22).padding(.vertical, 14)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.white.opacity(0.12)))
+            .shadow(color: .black.opacity(0.2), radius: 12, y: 4)
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Updating the map…")
+            .allowsHitTesting(false)
+        }
     }
 
     /// Debounced query refreshes keyed to every filter input, extracted to keep `body` tractable.

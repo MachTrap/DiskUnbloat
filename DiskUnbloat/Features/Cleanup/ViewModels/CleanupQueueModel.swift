@@ -165,8 +165,10 @@ import DiskCore
     /// Whether a folder's lazy peek is currently expanded.
     func isPeeked(_ node: FileNode) -> Bool { peeks[node.id] != nil }
 
-    /// Expand or collapse an unselected folder's largest-children peek.
-    func togglePeek(_ node: FileNode) {
+    /// Expand or collapse an unselected folder's largest-children peek. Returns the
+    /// refresh task so callers can await the rebuilt rows deterministically.
+    @discardableResult
+    func togglePeek(_ node: FileNode) -> Task<Void, Never> {
         if peeks[node.id] != nil {
             peeks[node.id] = nil
             peekChildren[node.id] = nil
@@ -174,7 +176,7 @@ import DiskCore
         } else {
             peeks[node.id] = node
         }
-        Task { await refresh() }
+        return Task { await refresh() }
     }
 
     /// Expand the folder chain between the open folder and a selected item so its row
@@ -219,11 +221,13 @@ import DiskCore
         lines = makeLines()
     }
 
-    /// Reveal or hide one folder's unselected direct children.
-    func toggleRevealed(_ node: FileNode) {
+    /// Reveal or hide one folder's unselected direct children. Returns the refresh task
+    /// so callers can await the rebuilt rows deterministically.
+    @discardableResult
+    func toggleRevealed(_ node: FileNode) -> Task<Void, Never> {
         if revealed.contains(node.path) { revealed.remove(node.path) }
         else { revealed.insert(node.path) }
-        Task { await refresh() }
+        return Task { await refresh() }
     }
 
     /// Expand or collapse one partially selected folder's selected children.

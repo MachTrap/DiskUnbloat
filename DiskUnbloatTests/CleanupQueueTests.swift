@@ -301,8 +301,7 @@ import DiskCore
         await model.loadMore(of: nodes[1]!)
         #expect(model.lines.map(\.id) == ["header-1", "item-2", "item-6", "more-2", "item-5", "item-4"])
         // Revealing unselected siblings loads one page of children lazily.
-        model.toggleRevealed(nodes[2]!)
-        try await Task.sleep(for: .milliseconds(30))
+        await model.toggleRevealed(nodes[2]!).value
         #expect(model.lines.map(\.id) == ["header-1", "item-2", "item-6", "item-3", "item-5", "item-4"])
         // Unchecking the entry keeps the listing and empties the selected tree.
         cleanup.basket = []
@@ -318,15 +317,13 @@ import DiskCore
         await model.refresh(current: nodes[1])
         #expect(model.lines.map(\.id) == ["header-1", "item-10"])
         // Expanding shows the three largest children; the rest stay behind Show more.
-        model.togglePeek(nodes[10]!)
-        try await Task.sleep(for: .milliseconds(30))
+        await model.togglePeek(nodes[10]!).value
         #expect(model.lines.map(\.id) == ["header-1", "item-10", "item-11", "item-12", "item-13", "showMore-10"])
         // Show more pages the rest in.
         await model.loadMore(of: nodes[10]!)
         #expect(model.lines.map(\.id) == ["header-1", "item-10", "item-11", "item-12", "item-13", "item-14", "item-15"])
         // Toggling again collapses the peek.
-        model.togglePeek(nodes[10]!)
-        try await Task.sleep(for: .milliseconds(30))
+        await model.togglePeek(nodes[10]!).value
         #expect(model.lines.map(\.id) == ["header-1", "item-10"])
     }
 

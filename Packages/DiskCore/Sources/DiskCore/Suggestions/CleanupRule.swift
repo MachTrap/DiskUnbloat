@@ -33,11 +33,57 @@ public enum CleanupRule: String, CaseIterable, Identifiable, Sendable {
             .init(path: home + "/Library/Application Support/Code - Insiders/CachedExtensionVSIXs", candidate: .rootItself),
             .init(path: home + "/Library/Developer/Xcode/DerivedData"),
             .init(path: home + "/Library/Developer/Xcode/iOS DeviceSupport", candidate: .childrenKeepingNewest),
+            .init(path: home + "/Library/Developer/Xcode/watchOS DeviceSupport", candidate: .childrenKeepingNewest),
+            .init(path: home + "/Library/Developer/Xcode/tvOS DeviceSupport", candidate: .childrenKeepingNewest),
+            .init(path: home + "/Library/Developer/Xcode/visionOS DeviceSupport", candidate: .childrenKeepingNewest),
             .init(path: home + "/Library/Developer/CoreSimulator/Devices", candidate: .childrenKeepingNewest),
+            // Simulator-side throwaways: runtime system caches, SwiftUI preview devices,
+            // and the clones parallel test runs leave behind. Xcode rebuilds all of them.
+            .init(path: home + "/Library/Developer/CoreSimulator/Caches", candidate: .rootItself),
+            .init(path: home + "/Library/Developer/Xcode/UserData/Previews/Simulator Devices"),
+            .init(path: home + "/Library/Developer/XCTestDevices"),
             .init(path: home + "/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram", candidate: .rootItself),
             .init(path: home + "/.cache/uv", candidate: .rootItself),
             .init(path: home + "/.gradle/caches", candidate: .rootItself),
-            .init(path: home + "/.npm/_cacache")
+            .init(path: home + "/.gradle/wrapper/dists", candidate: .childrenKeepingNewest),
+            .init(path: home + "/.npm/_cacache"),
+            // Rust: the registry's downloaded archives and unpacked sources plus the git
+            // dependency caches. `.cargo/bin` is the user's installed executables and is
+            // never listed; deleting these subfolders makes Cargo re-fetch on demand.
+            .init(path: home + "/.cargo/registry/cache", candidate: .rootItself),
+            .init(path: home + "/.cargo/registry/src", candidate: .rootItself),
+            .init(path: home + "/.cargo/git/checkouts", candidate: .rootItself),
+            .init(path: home + "/.cargo/git/db", candidate: .rootItself),
+            // Bun's global package cache; `~/.bun/bin` holds user executables — untouched.
+            .init(path: home + "/.bun/install/cache", candidate: .rootItself),
+            // Automation browser builds: one version per browser family stays (Playwright
+            // accumulates old `chromium-…` builds the same way old device support builds up).
+            .init(path: home + "/Library/Caches/ms-playwright", candidate: .childrenKeepingNewest),
+            .init(path: home + "/Library/Caches/Cypress", candidate: .childrenKeepingNewest),
+            // Chromium caches and downloaded extension archives of VS Code, its Insiders
+            // build, Cursor, and Windsurf; user settings and workspace storage under
+            // `User/` stay protected by the managed-data guard.
+            .init(path: home + "/Library/Application Support/Code/Cache", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Code/CachedData", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Code/CachedExtensionVSIXs", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Code/GPUCache", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Code - Insiders/Cache", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Code - Insiders/CachedData", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Code - Insiders/GPUCache", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Cursor/Cache", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Cursor/CachedData", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Cursor/CachedExtensionVSIXs", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Cursor/GPUCache", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Windsurf/Cache", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Windsurf/CachedData", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Windsurf/CachedExtensionVSIXs", candidate: .rootItself),
+            .init(path: home + "/Library/Application Support/Windsurf/GPUCache", candidate: .rootItself),
+            // Adobe's shared video cache lives in Application Support, so these exact
+            // folders must be listed for the media cache to be cleanable at all. Premiere,
+            // After Effects, Media Encoder, and Audition re-conform everything they need,
+            // and the app-activity guard blocks removal while any of them runs.
+            .init(path: home + "/Library/Application Support/Adobe/Common/Media Cache Files"),
+            .init(path: home + "/Library/Application Support/Adobe/Common/Media Cache"),
         ]
         case .derivedData: [.init(path: home + "/Library/Developer/Xcode/DerivedData")]
         case .swiftPM: [.init(path: home + "/Library/Caches/org.swift.swiftpm")]

@@ -2035,23 +2035,6 @@
         }
       }
     },
-    "Every known cache in your home folder in one scan: user caches, Xcode build data, developer caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every known cache in your home folder in one scan: user caches, Xcode build data, developer caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Все известные кэши домашней папки за одно сканирование: кэши пользователя, данные сборки Xcode, кэши разработчиков, медиафайлы мессенджеров и файлы моделей браузера. Отсутствующие расположения пропускаются и перечисляются во время сканирования."
-          }
-        }
-      }
-    },
     "Exclude folders · one absolute path per line" : {
       "localizations" : {
         "en" : {
@@ -2310,23 +2293,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Кэши Gradle"
-          }
-        }
-      }
-    },
-    "Heavy developer artifacts: simulators, device support, Android SDK, Docker data, virtual machines, and local AI model stores." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heavy developer artifacts: simulators, device support, Android SDK, Docker data, virtual machines, and local AI model stores."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Тяжёлые артефакты разработки: симуляторы, device support, Android SDK, данные Docker, виртуальные машины и хранилища локальных моделей ИИ."
           }
         }
       }
@@ -5227,6 +5193,856 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Индекс файлов остаётся на этом Mac."
+          }
+        }
+      }
+    },
+    "Every known cache in your home folder in one scan: user and application caches, Xcode build data, developer tool caches, editor caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every known cache in your home folder in one scan: user and application caches, Xcode build data, developer tool caches, editor caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все известные кэши домашней папки за одно сканирование: кэши пользователя и приложений, данные сборки Xcode, кэши инструментов разработки, кэши редакторов, медиафайлы мессенджеров и файлы моделей браузера. Отсутствующие расположения пропускаются и перечисляются во время сканирования."
+          }
+        }
+      }
+    },
+    "Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, Docker data, virtual machines, and local AI model stores." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, Docker data, virtual machines, and local AI model stores."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тяжёлые артефакты разработки: симуляторы, поддержка устройств, дистрибутивы Gradle, сборки браузеров для автоматизации, Android SDK, данные Docker, виртуальные машины и локальные хранилища моделей ИИ."
+          }
+        }
+      }
+    },
+    "Xcode watchOS device support" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xcode watchOS device support"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддержка устройств watchOS в Xcode"
+          }
+        }
+      }
+    },
+    "Debug symbols for connected watchOS devices. They can be re-downloaded when needed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debug symbols for connected watchOS devices. They can be re-downloaded when needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Символы отладки для подключённых watchOS-устройств. При необходимости их можно загрузить снова."
+          }
+        }
+      }
+    },
+    "Xcode tvOS device support" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xcode tvOS device support"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддержка устройств tvOS в Xcode"
+          }
+        }
+      }
+    },
+    "Debug symbols for connected tvOS devices. They can be re-downloaded when needed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debug symbols for connected tvOS devices. They can be re-downloaded when needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Символы отладки для подключённых tvOS-устройств. При необходимости их можно загрузить снова."
+          }
+        }
+      }
+    },
+    "Xcode visionOS device support" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xcode visionOS device support"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддержка устройств visionOS в Xcode"
+          }
+        }
+      }
+    },
+    "Debug symbols for connected visionOS devices. They can be re-downloaded when needed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debug symbols for connected visionOS devices. They can be re-downloaded when needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Символы отладки для подключённых visionOS-устройств. При необходимости их можно загрузить снова."
+          }
+        }
+      }
+    },
+    "Simulator cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulator cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш симуляторов"
+          }
+        }
+      }
+    },
+    "System caches built for simulator runtimes. They are rebuilt when simulators run again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System caches built for simulator runtimes. They are rebuilt when simulators run again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Системные кэши, собранные для рантаймов симуляторов. Восстанавливаются при следующем запуске симуляторов."
+          }
+        }
+      }
+    },
+    "SwiftUI preview simulators" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SwiftUI preview simulators"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Симуляторы SwiftUI-превью"
+          }
+        }
+      }
+    },
+    "Simulator devices created for Xcode SwiftUI previews. They are recreated when previews run." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulator devices created for Xcode SwiftUI previews. They are recreated when previews run."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устройства симуляторов, созданные для превью SwiftUI в Xcode. Пересоздаются при запуске превью."
+          }
+        }
+      }
+    },
+    "Xcode test devices" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xcode test devices"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тестовые устройства Xcode"
+          }
+        }
+      }
+    },
+    "Simulator clones left behind by parallel test runs. Removing them frees spent test devices." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulator clones left behind by parallel test runs. Removing them frees spent test devices."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клоны симуляторов, оставшиеся после параллельных тестовых прогонов. Их удаление освобождает отработанные устройства."
+          }
+        }
+      }
+    },
+    "Gradle distributions" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gradle distributions"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дистрибутивы Gradle"
+          }
+        }
+      }
+    },
+    "Full Gradle installations downloaded by project wrappers. Old versions are removed and re-downloaded on demand." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Gradle installations downloaded by project wrappers. Old versions are removed and re-downloaded on demand."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Полные установки Gradle, скачанные врапперами проектов. Старые версии удаляются и при необходимости загружаются заново."
+          }
+        }
+      }
+    },
+    "Cargo registry cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargo registry cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реестровый кэш Cargo"
+          }
+        }
+      }
+    },
+    "Downloaded .crate archives of Rust dependencies. Cargo re-downloads what a build needs." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded .crate archives of Rust dependencies. Cargo re-downloads what a build needs."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачанные архивы .crate зависимостей Rust. Cargo повторно скачивает то, что нужно сборке."
+          }
+        }
+      }
+    },
+    "Cargo crate sources" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargo crate sources"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исходники пакетов Cargo"
+          }
+        }
+      }
+    },
+    "Unpacked Rust dependency sources kept for builds. Cargo restores them from the cache or re-downloads them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unpacked Rust dependency sources kept for builds. Cargo restores them from the cache or re-downloads them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Распакованные исходники зависимостей Rust для сборок. Cargo восстанавливает их из кэша или загружает заново."
+          }
+        }
+      }
+    },
+    "Cargo git checkouts" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargo git checkouts"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клоны git-зависимостей Cargo"
+          }
+        }
+      }
+    },
+    "Checked-out copies of Rust git dependencies. Cargo re-clones them when a build needs them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked-out copies of Rust git dependencies. Cargo re-clones them when a build needs them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Извлечённые копии git-зависимостей Rust. Cargo заново клонирует их, если они нужны сборке."
+          }
+        }
+      }
+    },
+    "Cargo git database" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargo git database"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "База git-репозиториев Cargo"
+          }
+        }
+      }
+    },
+    "Raw git repositories downloaded for Rust dependencies. Cargo re-fetches them when a build needs them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raw git repositories downloaded for Rust dependencies. Cargo re-fetches them when a build needs them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачанные git-репозитории зависимостей Rust. Cargo заново забирает их, если они нужны сборке."
+          }
+        }
+      }
+    },
+    "Bun package cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bun package cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш пакетов Bun"
+          }
+        }
+      }
+    },
+    "Cached npm package files used by Bun. Installing again re-downloads what is missing." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached npm package files used by Bun. Installing again re-downloads what is missing."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные файлы npm-пакетов, используемые Bun. При новой установке недостающее скачивается заново."
+          }
+        }
+      }
+    },
+    "Playwright browsers" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playwright browsers"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Браузеры Playwright"
+          }
+        }
+      }
+    },
+    "Automation browser builds downloaded by Playwright. Tests re-download the version they need." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automation browser builds downloaded by Playwright. Tests re-download the version they need."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сборки браузеров для автоматизации, скачанные Playwright. Тесты докачивают нужную им версию."
+          }
+        }
+      }
+    },
+    "Cypress binary" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cypress binary"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бинарник Cypress"
+          }
+        }
+      }
+    },
+    "Cypress's versioned application bundle. Old versions are removed and re-downloaded on demand." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cypress's versioned application bundle. Old versions are removed and re-downloaded on demand."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Версионированный бандл приложения Cypress. Старые версии удаляются и при необходимости загружаются заново."
+          }
+        }
+      }
+    },
+    "VS Code Insiders web cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code Insiders web cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб-кэш VS Code Insiders"
+          }
+        }
+      }
+    },
+    "VS Code Insiders compiled cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code Insiders compiled cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш скомпилированного кода VS Code Insiders"
+          }
+        }
+      }
+    },
+    "VS Code Insiders GPU cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code Insiders GPU cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш GPU VS Code Insiders"
+          }
+        }
+      }
+    },
+    "The editor's Chromium web cache. Removed entries are rebuilt as needed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The editor's Chromium web cache. Removed entries are rebuilt as needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб-кэш Chromium редактора. Удалённые записи при необходимости отстраиваются заново."
+          }
+        }
+      }
+    },
+    "Cached compiled code used for faster startup. The editor rebuilds it." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached compiled code used for faster startup. The editor rebuilds it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш скомпилированного кода для ускоренного запуска. Редактор отстраивает его заново."
+          }
+        }
+      }
+    },
+    "Cached GPU shader data. The editor rebuilds it." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached GPU shader data. The editor rebuilds it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные данные шейдеров GPU. Редактор отстраивает их заново."
+          }
+        }
+      }
+    },
+    "VS Code web cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code web cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб-кэш VS Code"
+          }
+        }
+      }
+    },
+    "VS Code compiled cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code compiled cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш скомпилированного кода VS Code"
+          }
+        }
+      }
+    },
+    "VS Code GPU cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code GPU cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш GPU VS Code"
+          }
+        }
+      }
+    },
+    "Cursor web cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cursor web cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб-кэш Cursor"
+          }
+        }
+      }
+    },
+    "Cursor compiled cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cursor compiled cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш скомпилированного кода Cursor"
+          }
+        }
+      }
+    },
+    "Cursor GPU cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cursor GPU cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш GPU Cursor"
+          }
+        }
+      }
+    },
+    "Windsurf web cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windsurf web cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб-кэш Windsurf"
+          }
+        }
+      }
+    },
+    "Windsurf compiled cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windsurf compiled cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш скомпилированного кода Windsurf"
+          }
+        }
+      }
+    },
+    "Windsurf GPU cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windsurf GPU cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш GPU Windsurf"
+          }
+        }
+      }
+    },
+    "Downloaded extension packages. Reinstalling extensions re-downloads them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded extension packages. Reinstalling extensions re-downloads them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачанные пакеты расширений. Повторная установка расширений загружает их заново."
+          }
+        }
+      }
+    },
+    "Adobe media cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adobe media cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Медиакэш Adobe"
+          }
+        }
+      }
+    },
+    "Conformed audio and video previews written by Premiere Pro, After Effects, and Media Encoder. Projects recreate them when they reopen." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conformed audio and video previews written by Premiere Pro, After Effects, and Media Encoder. Projects recreate them when they reopen."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подготовленные аудио- и видеопревью, созданные Premiere Pro, After Effects и Media Encoder. Проекты воссоздают их при повторном открытии."
+          }
+        }
+      }
+    },
+    "Adobe media cache database" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adobe media cache database"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "База данных медиакэша Adobe"
+          }
+        }
+      }
+    },
+    "Adobe's database of media cache entries. It is rebuilt when apps work with media again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adobe's database of media cache entries. It is rebuilt when apps work with media again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "База данных записей медиакэша Adobe. Отстраивается заново, когда приложения снова работают с медиа."
           }
         }
       }

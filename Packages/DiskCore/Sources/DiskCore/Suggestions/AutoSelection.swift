@@ -20,6 +20,11 @@ public enum Tier1Coverage: Sendable, Equatable {
     /// location has no previous versions (at most `keep` children), the long-unused ones
     /// qualify instead — but the single most recent version is always preserved.
     case previousVersions(keep: Int)
+    /// Every build except the `keep` most recent ones of each versioned family, where
+    /// `chromium-1148` belongs to the family `chromium` (Playwright's browser builds).
+    /// A family without previous versions never loses its sole build, though its
+    /// long-unused older entries can qualify exactly like `previousVersions`.
+    case previousVersionsPerFamily(keep: Int)
     /// Long-unused children, never the single most recent one (Android virtual devices).
     case unusedKeepingNewest
     /// Long-unused eligible children only (LM Studio caches).
@@ -87,10 +92,15 @@ public enum AutoSelectionSpec {
                 let coverage: Tier1Coverage = root.path == home + "/Library/Caches" ? .none : .all
                 rules.append(AutoSelectionRule(relativePath: relative, target: .children, coverage: coverage))
             case .childrenKeepingNewest:
-                // Older device-support versions (keep the newest) and older simulators
-                // (keep the two newest).
+                // Older device-support versions (keep the newest), older simulator devices
+                // (keep the two newest), and old automation-browser builds (keep one
+                // version of every browser family) fall out of the same roots.
                 let keep = root.path.hasSuffix("CoreSimulator/Devices") ? 2 : 1
-                rules.append(AutoSelectionRule(relativePath: relative, target: .children, coverage: .previousVersions(keep: keep)))
+                rules.append(AutoSelectionRule(
+                    relativePath: relative, target: .children,
+                    coverage: root.path.hasSuffix("ms-playwright")
+                        ? .previousVersionsPerFamily(keep: keep)
+                        : .previousVersions(keep: keep)))
             }
         }
         rules += [
@@ -123,6 +133,14 @@ public enum AutoSelection {
         node.unknownModificationCount == 0
             && node.unknownAllocatedCount == 0
             && (node.latestContentModification ?? .distantPast) < cutoff
+    }
+
+    /// The family of a versioned build entry: `chromium-1148` belongs to `chromium`,
+    /// while names without a trailing dash and digits are families of their own.
+    public static func versionedFamilyKey(_ name: String) -> String {
+        guard let index = name.lastIndex(where: { !$0.isNumber }),
+              name[index...].hasPrefix("-") else { return name }
+        return String(name[..<index])
     }
 
     /// Tier-1 selection over one location's direct children. Symlinks and package
@@ -170,6 +188,19 @@ public enum AutoSelection {
                 selected = previous.isEmpty
                     ? Array(ranked.dropFirst(1)).filter { isLongUnused($0, before: cutoff) }
                     : previous
+            case .previousVersionsPerFamily(let keep):
+                // Per browser family the newest `keep` builds stay; sole builds are always
+                // preserved, and a family's long-unused entries qualify the same way.
+                var familyIDs = Set<Int64>()
+                for versions in Dictionary(grouping: ranked, by: { versionedFamilyKey($0.name) }).values {
+                    let previous = Array(versions.dropFirst(keep))
+                    if previous.isEmpty {
+                        familyIDs.formUnion(versions.dropFirst(1).filter { isLongUnused($0, before: cutoff) }.map(\.id))
+                    } else {
+                        familyIDs.formUnion(previous.map(\.id))
+                    }
+                }
+                selected = ranked.filter { familyIDs.contains($0.id) }
             case .unusedKeepingNewest:
                 selected = ranked.dropFirst(1).filter { isLongUnused($0, before: cutoff) }
             case .unusedOnly:

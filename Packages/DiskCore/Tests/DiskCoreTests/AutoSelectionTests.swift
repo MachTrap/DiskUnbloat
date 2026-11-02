@@ -74,6 +74,43 @@ struct AutoSelectionTests {
         #expect(AutoSelection.select(children: [unknownDate, unknownSize], rule: rule, tier: .safe, unusedBefore: cutoff).isEmpty)
     }
 
+    @Test func versionedFamiliesGroupPerBuildLine() {
+        #expect(AutoSelection.versionedFamilyKey("chromium-1148") == "chromium")
+        #expect(AutoSelection.versionedFamilyKey("chromium_headless_shell-1148") == "chromium_headless_shell")
+        #expect(AutoSelection.versionedFamilyKey("1.41.1") == "1.41.1")
+        #expect(AutoSelection.versionedFamilyKey("27.0.12077973") == "27.0.12077973")
+        #expect(AutoSelection.versionedFamilyKey("DeviceA2") == "DeviceA2")
+        // Only a trailing run of digits after a dash forms a family; anything else stays
+        // a family of its own rather than over-grouping lookalike names.
+        #expect(AutoSelection.versionedFamilyKey("device-A2") == "device-A2")
+    }
+
+    @Test func browserFamiliesKeepOneVersionEachAndSoleBuildsStay() {
+        let cutoff = Date().addingTimeInterval(-30 * 86400)
+        let playwright = AutoSelectionRule(relativePath: "x", target: .children, coverage: .previousVersionsPerFamily(keep: 1))
+        var buildID: Int64 = 400
+        func build(_ name: String, _ days: Double) -> FileNode {
+            buildID += 1
+            return child(buildID, 0, name, days: days)
+        }
+        let chromiumOld = build("chromium-1124", 200)
+        let chromiumNew = build("chromium-1148", 10)
+        let firefoxNewer = build("firefox-1471", 300)
+        let firefoxOlder = build("firefox-1470", 350)
+        let webkitSole = build("webkit-2079", 80)
+        let ffmpegSole = build("ffmpeg-1011", 400)
+        // One version per browser family: the older chromium and the older firefox go,
+        // each family's newest build stays, and sole families keep their only build.
+        let selected = AutoSelection.select(
+            children: [chromiumNew, chromiumOld, firefoxNewer, firefoxOlder, webkitSole, ffmpegSole],
+            rule: playwright, tier: .safe, unusedBefore: cutoff)
+        #expect(Set(selected.map(\.name)) == ["chromium-1124", "firefox-1470"])
+        // Tier 2 covers every build of every family.
+        #expect(AutoSelection.select(
+            children: [chromiumNew, chromiumOld, firefoxNewer, firefoxOlder, webkitSole, ffmpegSole],
+            rule: playwright, tier: .regenerable, unusedBefore: cutoff).count == 6)
+    }
+
     @Test func pairedSidecarsTravelWithTheirSimulator() {
         let cutoff = Date().addingTimeInterval(-90 * 86400)
         let oldAvd = node(1, 0, "/loc/pixel-old.avd", dir: true, modified: Date().addingTimeInterval(-300 * 86400))
@@ -329,6 +366,105 @@ struct AutoSelectionTests {
             home + "/Library/Developer/Xcode/DerivedData",
             home + "/Library/Developer/Xcode/DerivedData/BuildA",
         ])
+        await destroy(index)
+    }
+
+    @Test func phaseALocationsMatchTheTierSets() async throws {
+        // The Phase A additions — per-family browser builds, Gradle distributions, the
+        // Cargo/bun package caches, the editors' Chromium caches, and Adobe's shared
+        // media cache — each follow their per-location coverage in both tiers.
+        let home = "/Users/phasea"
+        let now = Date()
+        func d(_ days: Double) -> Date { now.addingTimeInterval(-days * 86400) }
+        var id: Int64 = 10
+        let wrapper = FileNode(id: 1, parentID: nil, path: ScanGroup.path, name: "All caches", isDirectory: true,
+                               logicalSize: 0, allocatedSize: 0, modified: nil, identity: "wrapper")
+        var nodes = [wrapper]
+        func location(_ path: String) -> Int64 {
+            id += 1
+            let node = FileNode(id: id, parentID: 1, path: home + "/" + path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: d(1), identity: "n\(id)")
+            nodes.append(node)
+            return node.id
+        }
+        func child(_ parent: Int64, _ path: String, _ days: Double, dir: Bool = true) {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: dir, logicalSize: 1000, allocatedSize: 1000, modified: d(days), identity: "n\(id)"))
+        }
+        // Playwright: one version per browser family stays in tier 1; sole families
+        // (webkit, ffmpeg) always keep their only build.
+        let playwright = location("Library/Caches/ms-playwright")
+        child(playwright, home + "/Library/Caches/ms-playwright/chromium-1124", 200)
+        child(playwright, home + "/Library/Caches/ms-playwright/chromium-1148", 10)
+        child(playwright, home + "/Library/Caches/ms-playwright/firefox-1471", 300)
+        child(playwright, home + "/Library/Caches/ms-playwright/firefox-1470", 350)
+        child(playwright, home + "/Library/Caches/ms-playwright/webkit-2079", 80)
+        child(playwright, home + "/Library/Caches/ms-playwright/ffmpeg-1011", 400)
+        // Cypress versions are plain versioned children; the newest stays.
+        let cypress = location("Library/Caches/Cypress")
+        child(cypress, home + "/Library/Caches/Cypress/1.41.1", 10)
+        child(cypress, home + "/Library/Caches/Cypress/1.40.2", 120)
+        child(cypress, home + "/Library/Caches/Cypress/1.39.0", 300)
+        // Gradle wrapper downloads every historical distribution; older ones are previous
+        // versions in tier 1.
+        let gradle = location(".gradle/wrapper/dists")
+        child(gradle, home + "/.gradle/wrapper/dists/gradle-8.10.2", 10)
+        child(gradle, home + "/.gradle/wrapper/dists/gradle-7.6.4", 200)
+        child(gradle, home + "/.gradle/wrapper/dists/gradle-6.9.4", 400)
+        // Pure package caches and the editors' Chromium caches: the location itself is
+        // a tier-1 candidate.
+        location(".cargo/registry/cache")
+        location(".cargo/registry/src")
+        location(".cargo/git/checkouts")
+        location(".cargo/git/db")
+        location(".bun/install/cache")
+        location("Library/Developer/CoreSimulator/Caches")
+        location("Library/Application Support/Code/CachedExtensionVSIXs")
+        // Adobe's shared media cache: children go in full in tier 1 — while an Adobe
+        // video app runs the app-activity guard refuses the removal instead.
+        let adobe = location("Library/Application Support/Adobe/Common/Media Cache Files")
+        child(adobe, home + "/Library/Application Support/Adobe/Common/Media Cache Files/clips.cfa", 5)
+        child(adobe, home + "/Library/Application Support/Adobe/Common/Media Cache Files/old.cfa", 400)
+        let mediaDB = location("Library/Application Support/Adobe/Common/Media Cache")
+        child(mediaDB, home + "/Library/Application Support/Adobe/Common/Media Cache/Media Cache.db", 50, dir: false)
+        // The editors' user data beside the caches never qualifies in either tier.
+        id += 1
+        nodes.append(FileNode(id: id, parentID: 1, path: home + "/Library/Application Support/Code/User", name: "User",
+                              isDirectory: true, logicalSize: 500, allocatedSize: 500, modified: d(1), identity: "user"))
+
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 30)
+        #expect(Set(safe.nodes.map(\.path)) == [
+            home + "/.bun/install/cache",
+            home + "/.cargo/git/checkouts",
+            home + "/.cargo/git/db",
+            home + "/.cargo/registry/cache",
+            home + "/.cargo/registry/src",
+            home + "/.gradle/wrapper/dists/gradle-6.9.4",
+            home + "/.gradle/wrapper/dists/gradle-7.6.4",
+            home + "/Library/Application Support/Adobe/Common/Media Cache Files/clips.cfa",
+            home + "/Library/Application Support/Adobe/Common/Media Cache Files/old.cfa",
+            home + "/Library/Application Support/Adobe/Common/Media Cache/Media Cache.db",
+            home + "/Library/Application Support/Code/CachedExtensionVSIXs",
+            home + "/Library/Caches/Cypress/1.39.0",
+            home + "/Library/Caches/Cypress/1.40.2",
+            home + "/Library/Caches/ms-playwright/chromium-1124",
+            home + "/Library/Caches/ms-playwright/firefox-1470",
+            home + "/Library/Developer/CoreSimulator/Caches",
+        ])
+        // Tier 2 additionally takes every family's newest build.
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 30)
+        let notYetSafe = [
+            home + "/.gradle/wrapper/dists/gradle-8.10.2",
+            home + "/Library/Caches/Cypress/1.41.1",
+            home + "/Library/Caches/ms-playwright/chromium-1148",
+            home + "/Library/Caches/ms-playwright/ffmpeg-1011",
+            home + "/Library/Caches/ms-playwright/firefox-1471",
+            home + "/Library/Caches/ms-playwright/webkit-2079",
+        ]
+        #expect(Set(all.nodes.map(\.path)) == Set(safe.nodes.map(\.path)).union(notYetSafe))
         await destroy(index)
     }
 

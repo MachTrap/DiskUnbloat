@@ -95,8 +95,25 @@ import DiskCore
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Code - Insiders/WebStorage")))
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram")))
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.npm/_cacache")))
+        // The Phase A expansions join the grouped caches: Adobe's shared media cache,
+        // the Cargo/bun package caches, the editors' Chromium caches, and the
+        // simulator-side throwaway trees.
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Adobe/Common/Media Cache Files")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.cargo/registry/cache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.bun/install/cache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Cursor/CachedData")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Windsurf/GPUCache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/CoreSimulator/Caches")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/XCTestDevices")))
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/Xcode/iOS DeviceSupport")))
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/CoreSimulator/Devices")))
+        // The previous-version locations group under dev tools: the new device-support
+        // siblings, Gradle distributions, and the automation-browser builds.
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/Xcode/watchOS DeviceSupport")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/Xcode/visionOS DeviceSupport")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/.gradle/wrapper/dists")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Caches/ms-playwright")))
+        #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Caches/Cypress")))
         let homeTarget = try #require(catalog.targets.first { $0.id == "home" })
         #expect(!homeTarget.grouped && homeTarget.roots == [homeTarget.url])
         let model = LocationSelectionViewModel(catalog: catalog)
@@ -106,5 +123,43 @@ import DiskCore
         try Data([1]).write(to: file)
         defer { try? FileManager.default.removeItem(at: file) }
         #expect(throws: (any Error).self) { try model.directory(from: [file]) }
+    }
+}
+
+@MainActor struct ApplicationActivityGuardTests {
+    /// Ownership boundaries: a base owner matches itself and versioned continuations of
+    /// its own id, never a fork whose id merely starts with the same text.
+    @Test func ownershipMatchesStructureNotPrefixText() {
+        #expect(ApplicationActivityService.isOwned("com.microsoft.VSCode", owner: "com.microsoft.VSCode"))
+        #expect(ApplicationActivityService.isOwned("com.microsoft.VSCodeInsiders", owner: "com.microsoft.VSCodeInsiders"))
+        // The Insiders fork is not owned by the stable owner…
+        #expect(!ApplicationActivityService.isOwned("com.microsoft.VSCodeInsiders", owner: "com.microsoft.VSCode"))
+        // …while versioned Adobe product ids belong to their base owner.
+        #expect(ApplicationActivityService.isOwned("com.adobe.AfterEffects.26", owner: "com.adobe.AfterEffects"))
+        #expect(ApplicationActivityService.isOwned("com.adobe.Premiere.Pro-24", owner: "com.adobe.Premiere.Pro"))
+        #expect(ApplicationActivityService.isOwned("com.adobe.mediaencoder.core", owner: "com.adobe.mediaencoder"))
+        #expect(ApplicationActivityService.isOwned("com.todesktop.230313mzl4w4u92", owner: "com.todesktop.230313mzl4w4u92"))
+        #expect(ApplicationActivityService.isOwned("com.exafunction.windsurf", owner: "com.exafunction.windsurf"))
+        // Unsegmented lookalikes stay foreign.
+        #expect(!ApplicationActivityService.isOwned("com.microsoft.VSCodeExtra", owner: "com.microsoft.VSCode"))
+        #expect(!ApplicationActivityService.isOwned("", owner: "com.microsoft.VSCode"))
+    }
+
+    /// Every owner's path marker must actually resolve inside the curated cleanup rule,
+    /// so an app-owned blocklist entry can never go stale while the rule drifts.
+    @Test func appOwnedMarkersResolveInsideTheCuratedRule() {
+        let home = "/Users/tester"
+        let userCaches = CleanupRule.userCaches.roots(relativeTo: home).map(\.path)
+        for (owner, marker) in ApplicationActivityService.appOwnedCaches {
+            #expect(userCaches.contains { $0.contains(marker) },
+                    "the \(owner) marker '\(marker)' must match a curated cache location")
+        }
+        // The fork markers stay separate: the stable owner's marker never claims the
+        // Insiders tree (and vice versa).
+        let insiders = userCaches.filter { $0.contains("/Code - Insiders/") }
+        let stable = userCaches.filter { $0.contains("/Code/") }
+        #expect(!insiders.isEmpty && !stable.isEmpty)
+        #expect(insiders.allSatisfy { !$0.contains("/Code/") })
+        #expect(stable.allSatisfy { !$0.contains("/Code - Insiders/") })
     }
 }

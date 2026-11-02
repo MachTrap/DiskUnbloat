@@ -55,7 +55,28 @@ struct LocationCatalog {
             home.appendingPathComponent("Library/Containers/com.utmapp.UTM"),
             home.appendingPathComponent(".ollama"),
             home.appendingPathComponent(".cache/huggingface"),
-            home.appendingPathComponent(".cache/lm-studio")
+            home.appendingPathComponent(".cache/lm-studio"),
+            // LM Studio's newer store layout: models, hub, and internal caches beside
+            // the user's conversations and presets.
+            home.appendingPathComponent(".lmstudio"),
+            // Language package stores behind tier-2 selection rules.
+            home.appendingPathComponent("go/pkg/mod"),
+            home.appendingPathComponent("Library/pnpm/store"),
+            home.appendingPathComponent(".local/share/pnpm/store"),
+            home.appendingPathComponent(".m2/repository"),
+            home.appendingPathComponent(".nuget/packages"),
+            home.appendingPathComponent(".pub-cache"),
+            // Local ML/model caches.
+            home.appendingPathComponent(".cache/torch"),
+            home.appendingPathComponent(".cache/mlx"),
+            home.appendingPathComponent(".cache/whisper"),
+            home.appendingPathComponent(".triton/cache"),
+            // Container and Linux-VM runtimes: scan and explain only — a VM disk is
+            // real container data, never auto-selected.
+            home.appendingPathComponent(".orbstack"),
+            home.appendingPathComponent(".colima"),
+            home.appendingPathComponent(".lima"),
+            home.appendingPathComponent(".local/share/containers"),
         ]
         return urls
     }
@@ -68,7 +89,7 @@ struct LocationCatalog {
             ScanTarget(id: "downloads", title: L10n.text("Downloads"), symbol: "arrow.down.circle", detail: L10n.text("Installers, archives, and things you saved for later."), url: home.appendingPathComponent("Downloads")),
             ScanTarget(id: "caches", title: L10n.text("User caches"), symbol: "shippingbox", detail: L10n.text("Temporary application data. Removing it can disrupt apps or require downloads."), url: home.appendingPathComponent("Library/Caches")),
             ScanTarget(id: "allCaches", title: L10n.text("All caches"), symbol: "shippingbox", detail: L10n.text("Every known cache in your home folder in one scan: user and application caches, Xcode build data, developer tool caches, editor caches, messenger media, and browser model files. Missing locations are skipped and listed during the scan."), url: cacheRoots[0], extra: Array(cacheRoots.dropFirst())),
-            ScanTarget(id: "devTools", title: L10n.text("Dev tools"), symbol: "wrench.and.screwdriver", detail: L10n.text("Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, Docker data, virtual machines, and local AI model stores."), url: devToolRoots[0], extra: Array(devToolRoots.dropFirst()))
+            ScanTarget(id: "devTools", title: L10n.text("Dev tools"), symbol: "wrench.and.screwdriver", detail: L10n.text("Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, container runtimes, package stores, local AI models, and virtual machines."), url: devToolRoots[0], extra: Array(devToolRoots.dropFirst()))
         ]
     }
     var additional: [ScanTarget] {

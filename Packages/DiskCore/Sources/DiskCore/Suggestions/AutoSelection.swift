@@ -115,6 +115,35 @@ public enum AutoSelectionSpec {
                 // history and presets can never be regenerated or restored, so only the
                 // known regenerable children ever qualify.
                 eligibleChildNames: ["models", "extensions", ".internal", ".session_cache"]),
+            // The same story for LM Studio's newer store layout: models, the hub, and
+            // the internal cache are regenerable; conversations and presets never are.
+            AutoSelectionRule(
+                relativePath: ".lmstudio", target: .children, coverage: .unusedOnly,
+                eligibleChildNames: ["models", "hub", ".internal"]),
+            // Local model and dataset stores: long-unused weights qualify in tier 1,
+            // everything eligible in tier 2. Auth tokens are never in the closed lists.
+            AutoSelectionRule(
+                relativePath: ".cache/huggingface", target: .children, coverage: .unusedOnly,
+                eligibleChildNames: ["hub", "datasets"]),
+            AutoSelectionRule(relativePath: ".cache/huggingface/xet", target: .children, coverage: .all),
+            AutoSelectionRule(
+                relativePath: ".cache/torch", target: .children, coverage: .unusedOnly,
+                eligibleChildNames: ["hub", "inductor"]),
+            AutoSelectionRule(relativePath: ".cache/mlx", target: .children, coverage: .unusedOnly),
+            AutoSelectionRule(relativePath: ".cache/whisper", target: .children, coverage: .unusedOnly),
+            // Compiled GPU kernels: pure cache, every child qualifies immediately.
+            AutoSelectionRule(relativePath: ".triton/cache", target: .children, coverage: .all),
+            // Go: tier 1 clears the download cache; tier 2 additionally takes every
+            // extracted module tree (read-only files travel to Trash from the writable
+            // parent, and the queue's topmost-only normalization folds the nested cache).
+            AutoSelectionRule(relativePath: "go/pkg/mod", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: "go/pkg/mod/cache", target: .locationItself, coverage: .all),
+            // Polyglot package stores that only the rebuildable tier touches, in full.
+            AutoSelectionRule(relativePath: "Library/pnpm/store", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: ".local/share/pnpm/store", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: ".pnpm-store", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: ".nuget/packages", target: .children, coverage: .none),
+            AutoSelectionRule(relativePath: ".pub-cache", target: .children, coverage: .none),
             // Name-matched rebuildable folders anywhere in the scan; tier 2 only.
             AutoSelectionRule(relativePath: nil, target: .children, coverage: .none),
         ]

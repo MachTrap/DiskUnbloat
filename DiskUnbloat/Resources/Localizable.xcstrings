@@ -5214,23 +5214,6 @@
         }
       }
     },
-    "Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, Docker data, virtual machines, and local AI model stores." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, Docker data, virtual machines, and local AI model stores."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Тяжёлые артефакты разработки: симуляторы, поддержка устройств, дистрибутивы Gradle, сборки браузеров для автоматизации, Android SDK, данные Docker, виртуальные машины и локальные хранилища моделей ИИ."
-          }
-        }
-      }
-    },
     "Xcode watchOS device support" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6043,6 +6026,499 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "База данных записей медиакэша Adobe. Отстраивается заново, когда приложения снова работают с медиа."
+          }
+        }
+      }
+    },
+    "Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, container runtimes, package stores, local AI models, and virtual machines." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, container runtimes, package stores, local AI models, and virtual machines."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тяжёлые артефакты разработки: симуляторы, поддержка устройств, дистрибутивы Gradle, сборки браузеров для автоматизации, Android SDK, контейнерные рантаймы, хранилища пакетов, локальные модели ИИ и виртуальные машины."
+          }
+        }
+      }
+    },
+    "LM Studio (modern store)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio (modern store)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio (новое хранилище)"
+          }
+        }
+      }
+    },
+    "LM Studio's newer store: models, hub, and internal caches beside chats and presets. Only the regenerable parts are ever cleaned." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio's newer store: models, hub, and internal caches beside chats and presets. Only the regenerable parts are ever cleaned."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое хранилище LM Studio: модели, hub и внутренние кэши рядом с чатами и пресетами. Очищаются только регенерируемые части."
+          }
+        }
+      }
+    },
+    "Go module cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go module cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш модулей Go"
+          }
+        }
+      }
+    },
+    "Downloaded and extracted Go module versions. Builds re-fetch what they need; files inside are flagged read-only." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded and extracted Go module versions. Builds re-fetch what they need; files inside are flagged read-only."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачанные и распакованные версии модулей Go. Сборки повторно забирают нужное; файлы внутри помечены как доступные только для чтения."
+          }
+        }
+      }
+    },
+    "pnpm store" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pnpm store"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранилище pnpm"
+          }
+        }
+      }
+    },
+    "pnpm's central package store hard-linked into projects. Active projects keep their links; future installs re-download missing packages." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pnpm's central package store hard-linked into projects. Active projects keep their links; future installs re-download missing packages."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Центральное хранилище пакетов pnpm, жёстко связанное с проектами. Активные проекты сохраняют свои ссылки; при будущих установках недостающие пакеты скачиваются заново."
+          }
+        }
+      }
+    },
+    "Maven repository" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maven repository"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Репозиторий Maven"
+          }
+        }
+      }
+    },
+    "Local Maven artifacts, including jars your own builds installed. Dependencies re-download when missing; local snapshots need rebuilding." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Maven artifacts, including jars your own builds installed. Dependencies re-download when missing; local snapshots need rebuilding."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локальные артефакты Maven, включая jar-файлы ваших сборок. Зависимости скачиваются заново при отсутствии; локальные снапшоты нужно пересобрать."
+          }
+        }
+      }
+    },
+    "NuGet packages" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NuGet packages"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пакеты NuGet"
+          }
+        }
+      }
+    },
+    "Global NuGet package folders. Restores re-download them from the configured sources." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global NuGet package folders. Restores re-download them from the configured sources."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глобальные папки пакетов NuGet. При восстановлении они скачиваются заново из настроенных источников."
+          }
+        }
+      }
+    },
+    "Dart package cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dart package cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш пакетов Dart"
+          }
+        }
+      }
+    },
+    "Downloaded Dart and Flutter packages. Future pub get runs re-fetch them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded Dart and Flutter packages. Future pub get runs re-fetch them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачанные пакеты Dart и Flutter. Последующие запуски pub get загружают их заново."
+          }
+        }
+      }
+    },
+    "PyTorch cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PyTorch cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш PyTorch"
+          }
+        }
+      }
+    },
+    "PyTorch Hub checkpoints and compiled kernel caches. Re-downloaded or recompiled on demand." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PyTorch Hub checkpoints and compiled kernel caches. Re-downloaded or recompiled on demand."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чекпоинты PyTorch Hub и кэши скомпилированных ядер. Загружаются или пересобираются по мере необходимости."
+          }
+        }
+      }
+    },
+    "MLX cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MLX cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш MLX"
+          }
+        }
+      }
+    },
+    "Cached Apple MLX model files. Removed models re-download when used again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached Apple MLX model files. Removed models re-download when used again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные файлы моделей Apple MLX. Удалённые модели скачиваются заново при следующем использовании."
+          }
+        }
+      }
+    },
+    "Whisper models" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper models"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модели Whisper"
+          }
+        }
+      }
+    },
+    "Whisper speech-to-text model checkpoints. They re-download on demand." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whisper speech-to-text model checkpoints. They re-download on demand."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чекпоинты моделей распознавания речи Whisper. Загружаются заново по мере необходимости."
+          }
+        }
+      }
+    },
+    "Triton cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Triton cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш Triton"
+          }
+        }
+      }
+    },
+    "Compiled GPU kernel cache. Kernels recompile when needed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compiled GPU kernel cache. Kernels recompile when needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш скомпилированных ядер GPU. Ядра пересобираются при необходимости."
+          }
+        }
+      }
+    },
+    "OrbStack data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OrbStack data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные OrbStack"
+          }
+        }
+      }
+    },
+    "OrbStack's VM image, containers, and volumes. Removal deletes container data." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OrbStack's VM image, containers, and volumes. Removal deletes container data."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Образ виртуальной машины, контейнеры и тома OrbStack. Удаление стирает данные контейнеров."
+          }
+        }
+      }
+    },
+    "Colima machine" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colima machine"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Машина Colima"
+          }
+        }
+      }
+    },
+    "Colima's VM disk images. Removal deletes container data on that machine." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colima's VM disk images. Removal deletes container data on that machine."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Образы дисков виртуальной машины Colima. Удаление стирает данные контейнеров на этой машине."
+          }
+        }
+      }
+    },
+    "Lima VMs" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lima VMs"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВМ Lima"
+          }
+        }
+      }
+    },
+    "Lima Linux VM disk images. Removal deletes those machines." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lima Linux VM disk images. Removal deletes those machines."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Образы дисков Linux-виртуальных машин Lima. Удаление стирает эти машины."
+          }
+        }
+      }
+    },
+    "Podman data" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podman data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные Podman"
+          }
+        }
+      }
+    },
+    "Podman containers, volumes, and machine images. Removal deletes container data." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podman containers, volumes, and machine images. Removal deletes container data."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контейнеры, тома и образы машин Podman. Удаление стирает данные контейнеров."
           }
         }
       }

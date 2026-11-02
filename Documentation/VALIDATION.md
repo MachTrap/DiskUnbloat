@@ -2,6 +2,17 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Phase B coverage expansion — AI/ML stores, language stores, container runtimes — 2026-11-02
+
+The second roadmap phase of `Documentation/PLANS/CacheAndRebuildableExpansion.md` shipped:
+
+- **LM Studio modern store:** `~/.lmstudio` joins the Dev tools scope with the legacy-store precedent mirrored — tier 1 selects long-unused regenerable children only via the closed list `["models", "hub", ".internal"]`; chats and presets are never selectable in either tier; the `.cache/lm-studio` rule stays for older installs.
+- **Local AI model stores:** Hugging Face (`~/.cache/huggingface`) is now tier-selectable — `hub`/`datasets` children long-unused in tier 1, full in tier 2, auth token files never eligible; the `xet` transfer cache is tier 1 in full. PyTorch (`hub`, TorchInductor via the closed `["hub", "inductor"]` list), MLX, and Whisper join tier 1 as `unusedOnly`; Triton's compiled-kernel cache (`~/.triton/cache`) is tier 1 in full.
+- **Go & polyglot package stores:** tier 1 clears `~/go/pkg/mod/cache` (the module download cache); tier 2 additionally takes every extracted module tree under `~/go/pkg/mod` (read-only files remove to Trash via their writable parent). pnpm's three store layouts, NuGet's global packages, and the Dart pub cache are tier-2-only. Maven's `~/.m2/repository` stays scan-only with no rule — its local contains user-built artifacts.
+- **Container runtimes:** OrbStack, Colima, Lima, and Podman (`~/.local/share/containers`) join the Dev tools scope and known-location explanations as scan-explain-only, matching the Docker/Parallels/UTM precedent — VM disks are real container data, never auto-selected in either tier.
+- Known-location hover cards gained 14 explanation entries for the new stores; 29 new strings exist in both catalogs (367 entries).
+- Tests: core 58 pass — `phaseBStoreRulesMatchTheTierSets` pins both tiers for every new rule, including the token/chat/preset/preserved-user-export exclusion guardrails and Maven's never-selected assertion. Hosted app tests 63 pass with the extended Dev-tools root assertions. Universal Release build passes; localization audit validates 367 entries.
+
 ## Phase A coverage expansion — Cargo/Bun/Gradle, browser builds, editors, Adobe media cache — 2026-11-02
 
 The first phase of the `Documentation/PLANS/CacheAndRebuildableExpansion.md` roadmap shipped, widening the curated cache catalog:

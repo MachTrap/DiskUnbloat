@@ -70,7 +70,21 @@ extension LocationCatalog {
             entry("utm", "Library/Containers/com.utmapp.UTM", "UTM virtual machines", "UTM VM data and disk images."),
             entry("ollama", ".ollama", "Ollama models", "Downloaded local AI models. Removal requires re-pulling them."),
             entry("huggingface", ".cache/huggingface", "Hugging Face cache", "Cached models and datasets. Removal requires re-downloading."),
-            entry("lmStudio", ".cache/lm-studio", "LM Studio models", "Local AI model files used by LM Studio.")
+            entry("lmStudio", ".cache/lm-studio", "LM Studio models", "Local AI model files used by LM Studio."),
+            entry("lmStudioModern", ".lmstudio", "LM Studio (modern store)", "LM Studio's newer store: models, hub, and internal caches beside chats and presets. Only the regenerable parts are ever cleaned."),
+            entry("goModules", "go/pkg/mod", "Go module cache", "Downloaded and extracted Go module versions. Builds re-fetch what they need; files inside are flagged read-only."),
+            entry("pnpmStore", "Library/pnpm/store", "pnpm store", "pnpm's central package store hard-linked into projects. Active projects keep their links; future installs re-download missing packages."),
+            entry("mavenRepository", ".m2/repository", "Maven repository", "Local Maven artifacts, including jars your own builds installed. Dependencies re-download when missing; local snapshots need rebuilding."),
+            entry("nugetPackages", ".nuget/packages", "NuGet packages", "Global NuGet package folders. Restores re-download them from the configured sources."),
+            entry("pubCache", ".pub-cache", "Dart package cache", "Downloaded Dart and Flutter packages. Future pub get runs re-fetch them."),
+            entry("torchCache", ".cache/torch", "PyTorch cache", "PyTorch Hub checkpoints and compiled kernel caches. Re-downloaded or recompiled on demand."),
+            entry("mlxCache", ".cache/mlx", "MLX cache", "Cached Apple MLX model files. Removed models re-download when used again."),
+            entry("whisperCache", ".cache/whisper", "Whisper models", "Whisper speech-to-text model checkpoints. They re-download on demand."),
+            entry("tritonCache", ".triton/cache", "Triton cache", "Compiled GPU kernel cache. Kernels recompile when needed."),
+            entry("orbstack", ".orbstack", "OrbStack data", "OrbStack's VM image, containers, and volumes. Removal deletes container data."),
+            entry("colima", ".colima", "Colima machine", "Colima's VM disk images. Removal deletes container data on that machine."),
+            entry("lima", ".lima", "Lima VMs", "Lima Linux VM disk images. Removal deletes those machines."),
+            entry("podman", ".local/share/containers", "Podman data", "Podman containers, volumes, and machine images. Removal deletes container data.")
         ]
     }
 

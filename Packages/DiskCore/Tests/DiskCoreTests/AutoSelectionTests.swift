@@ -468,6 +468,104 @@ struct AutoSelectionTests {
         await destroy(index)
     }
 
+    @Test func phaseBStoreRulesMatchTheTierSets() async throws {
+        // The Phase B additions: the modern LM Studio store, Hugging Face hub/datasets
+        // plus its xet transfer cache, PyTorch/MLX/Whisper model stores, Triton kernels,
+        // Go modules, and the tier-2-only package stores. Maven stays scan-only.
+        let home = "/Users/phaseb"
+        let now = Date()
+        func d(_ days: Double) -> Date { now.addingTimeInterval(-days * 86400) }
+        var id: Int64 = 10
+        let wrapper = FileNode(id: 1, parentID: nil, path: ScanGroup.path, name: "Dev tools", isDirectory: true,
+                               logicalSize: 0, allocatedSize: 0, modified: nil, identity: "wrapper")
+        var nodes = [wrapper]
+        @discardableResult
+        func node(_ parent: Int64, _ path: String, _ days: Double, dir: Bool = true) -> Int64 {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: dir, logicalSize: 1000, allocatedSize: 1000, modified: d(days), identity: "n\(id)"))
+            return id
+        }
+        // LM Studio's newer store: models and the hub are the closed eligible list,
+        // while chats and presets are user-authored and never selected.
+        let lms = node(1, home + "/.lmstudio", 1)
+        node(lms, home + "/.lmstudio/models", 200)
+        node(lms, home + "/.lmstudio/hub", 10)
+        node(lms, home + "/.lmstudio/chats", 300)
+        node(lms, home + "/.lmstudio/config-presets", 300)
+        // Hugging Face: hub/datasets are the eligible children, the auth token file never
+        // qualifies, and the xet transfer cache is a tier-1 candidate in full.
+        let hf = node(1, home + "/.cache/huggingface", 1)
+        node(hf, home + "/.cache/huggingface/hub", 300)
+        node(hf, home + "/.cache/huggingface/datasets", 200)
+        node(hf, home + "/.cache/huggingface/token", 300, dir: false)
+        let xet = node(hf, home + "/.cache/huggingface/xet", 50)
+        node(xet, home + "/.cache/huggingface/xet/chunks", 5)
+        // PyTorch: hub checkpoints qualify long-unused; compiled-but-recent inductor
+        // kernels and unknown children stay out of tier 1.
+        let torch = node(1, home + "/.cache/torch", 1)
+        node(torch, home + "/.cache/torch/hub", 300)
+        node(torch, home + "/.cache/torch/inductor", 5)
+        node(torch, home + "/.cache/torch/user-exports", 300)
+        // Triton kernels: pure cache in full.
+        let triton = node(1, home + "/.triton/cache", 1)
+        node(triton, home + "/.triton/cache/sm90", 5)
+        // Go: extracted modules are tier-2 only; the download cache joins tier 1.
+        let go = node(1, home + "/go/pkg/mod", 1)
+        node(go, home + "/go/pkg/mod/github.com", 300)
+        node(go, home + "/go/pkg/mod/golang.org", 300)
+        node(go, home + "/go/pkg/mod/cache", 50)
+        // Tier-2-only polyglot package stores.
+        let pnpm = node(1, home + "/Library/pnpm/store", 1)
+        node(pnpm, home + "/Library/pnpm/store/v3", 300)
+        node(pnpm, home + "/Library/pnpm/store/v10", 10)
+        let nuget = node(1, home + "/.nuget/packages", 1)
+        node(nuget, home + "/.nuget/packages/newtonsoft.json", 300)
+        node(nuget, home + "/.nuget/packages/xunit", 10)
+        let pub = node(1, home + "/.pub-cache", 1)
+        node(pub, home + "/.pub-cache/cache", 300)
+        node(pub, home + "/.pub-cache/hosted", 300)
+        node(pub, home + "/.pub-cache/git", 300)
+        // Maven is scan-only: no tier selects it or its children.
+        let maven = node(1, home + "/.m2/repository", 1)
+        node(maven, home + "/.m2/repository/junit.properties", 300)
+
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(Set(safe.nodes.map(\.path)) == [
+            home + "/.cache/huggingface/datasets",
+            home + "/.cache/huggingface/hub",
+            home + "/.cache/huggingface/xet/chunks",
+            home + "/.cache/torch/hub",
+            home + "/.lmstudio/models",
+            home + "/.triton/cache/sm90",
+            home + "/go/pkg/mod/cache",
+        ])
+        // Tier 2 additionally takes the package stores in full, every remaining
+        // eligible model child, and the extracted Go modules; the token file,
+        // user content, and Maven never appear.
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.path)) == Set(safe.nodes.map(\.path)).union([
+            home + "/.cache/torch/inductor",
+            home + "/.lmstudio/hub",
+            home + "/go/pkg/mod/github.com",
+            home + "/go/pkg/mod/golang.org",
+            home + "/Library/pnpm/store/v10",
+            home + "/Library/pnpm/store/v3",
+            home + "/.nuget/packages/newtonsoft.json",
+            home + "/.nuget/packages/xunit",
+            home + "/.pub-cache/cache",
+            home + "/.pub-cache/git",
+            home + "/.pub-cache/hosted",
+        ]))
+        #expect(!all.nodes.contains { $0.path.hasSuffix("token") })
+        #expect(!all.nodes.contains { $0.path.hasSuffix("chats") || $0.path.hasSuffix("config-presets") })
+        #expect(!all.nodes.contains { $0.path.hasSuffix("user-exports") })
+        #expect(!all.nodes.contains { $0.path.hasPrefix(home + "/.m2/repository") })
+        await destroy(index)
+    }
+
     @Test func nameMatchedRebuildableFoldersJoinOnlyTheRegenerableTier() async throws {
         let home = "/Users/rebuild"
         let root = FileNode(id: 1, parentID: nil, path: home, name: "rebuild", isDirectory: true,

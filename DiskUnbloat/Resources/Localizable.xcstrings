@@ -8052,6 +8052,278 @@
           }
         }
       }
+    },
+    "Steam shader cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam shader cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш шейдеров Steam"
+          }
+        }
+      }
+    },
+    "Compiled per-game shader folders keyed by app ID. Steam recompiles them on the next launch; the largest Steam store safe to clear." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compiled per-game shader folders keyed by app ID. Steam recompiles them on the next launch; the largest Steam store safe to clear."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скомпилированные папки шейдеров по каждому приложению (ключ — app ID). Steam пересобирает их при следующем запуске; крупнейший безопасный для очистки магазин Steam."
+          }
+        }
+      }
+    },
+    "Steam depot cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam depot cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш депо Steam"
+          }
+        }
+      }
+    },
+    "Encrypted chunks of partially downloaded games. Clearing forces clean re-downloads; installed games stay untouched." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted chunks of partially downloaded games. Clearing forces clean re-downloads; installed games stay untouched."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зашифрованные куски частично скачанных игр. Очистка вызывает чистые повторные загрузки; установленные игры не затрагиваются."
+          }
+        }
+      }
+    },
+    "Steam games" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam games"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Игры Steam"
+          }
+        }
+      }
+    },
+    "Installed games that Steam manages. Remove them through Steam's own uninstall; deleting here loses no purchases but forces full re-downloads." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed games that Steam manages. Remove them through Steam's own uninstall; deleting here loses no purchases but forces full re-downloads."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установленные игры, которыми управляет Steam. Удаляйте их средствами Steam: удаление здесь не теряет покупку, но требует полной повторной загрузки."
+          }
+        }
+      }
+    },
+    "Steam Cloud saves" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Cloud saves"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Облачные сохранения Steam"
+          }
+        }
+      }
+    },
+    "Local copies of your cloud save games. Keep them unless a game lacks Steam Cloud — never auto-selected." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local copies of your cloud save games. Keep them unless a game lacks Steam Cloud — never auto-selected."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локальные копии облачных сохранений. Храните их, если игра не имеет Steam Cloud — никогда не выбирается автоматически."
+          }
+        }
+      }
+    },
+    "Roblox cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roblox cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш Roblox"
+          }
+        }
+      }
+    },
+    "Roblox Player's cached data. Removal is safe while the game is closed; it rebuilds on the next launch." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roblox Player's cached data. Removal is safe while the game is closed; it rebuilds on the next launch."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные данные Roblox Player. Удаление безопасно при закрытой игре; перестраивается при следующем запуске."
+          }
+        }
+      }
+    },
+    "Roblox Player cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roblox Player cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш Roblox Player"
+          }
+        }
+      }
+    },
+    "Roblox's cached assets (this folder name is case-insensitive). Removal is safe while the game is closed; it rebuilds on the next launch." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roblox's cached assets (this folder name is case-insensitive). Removal is safe while the game is closed; it rebuilds on the next launch."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированные ресурсы Roblox (регистр имени папки не учитывается). Удаление безопасно при закрытой игре; перестраивается при следующем запуске."
+          }
+        }
+      }
+    },
+    "Roblox Studio cache" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roblox Studio cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэш Roblox Studio"
+          }
+        }
+      }
+    },
+    "Cached web content and shaders for Roblox Studio. Rebuilt as the studio loads pages." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached web content and shaders for Roblox Studio. Rebuilt as the studio loads pages."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэшированное веб-содержимое и шейдеры Roblox Studio. Перестраиваются при загрузке страниц редактора."
+          }
+        }
+      }
+    },
+    "Roblox Studio recovery files" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roblox Studio recovery files"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файлы восстановления Roblox Studio"
+          }
+        }
+      }
+    },
+    "Recovery backups for unsaved place edits in Roblox Studio. Keep them until your work is saved — never auto-selected." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery backups for unsaved place edits in Roblox Studio. Keep them until your work is saved — never auto-selected."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Резервные копии для несохранённых правок мест в Roblox Studio. Храните их, пока работа не сохранена — никогда не выбирается автоматически."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

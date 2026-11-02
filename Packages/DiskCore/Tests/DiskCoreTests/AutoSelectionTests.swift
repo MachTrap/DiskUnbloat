@@ -813,6 +813,66 @@ struct AutoSelectionTests {
         await destroy(index)
     }
 
+    @Test func gameStoreCachesMatchTheTierSets() async throws {
+        // Steam's six curated stores are tier-1 candidates in full (guarded while Steam
+        // runs), and the F2 rootItself stores (Unity, Resolve, Figma, Adobe peak files)
+        // get their tier contracts pinned beside them. Games, cloud saves, and workshop
+        // content never qualify in either tier.
+        let home = "/tmp/DiskUnbloat-games-" + UUID().uuidString
+        let now = Date()
+        func d(_ days: Double) -> Date { now.addingTimeInterval(-days * 86400) }
+        var id: Int64 = 10
+        let wrapper = FileNode(id: 1, parentID: nil, path: ScanGroup.path, name: "All caches", isDirectory: true,
+                               logicalSize: 0, allocatedSize: 0, modified: nil, identity: "wrapper")
+        var nodes = [wrapper]
+        @discardableResult
+        func node(_ parent: Int64, _ path: String, _ days: Double, dir: Bool = true) -> Int64 {
+            id += 1
+            nodes.append(FileNode(id: id, parentID: parent, path: path, name: URL(fileURLWithPath: path).lastPathComponent,
+                                  isDirectory: dir, logicalSize: 1000, allocatedSize: 1000, modified: d(days), identity: "n\(id)"))
+            return id
+        }
+        let steam = home + "/Library/Application Support/Steam/steamapps"
+        node(1, home + "/Library/Application Support/Steam/appcache", 50)
+        node(1, home + "/Library/Application Support/Steam/htmlcache", 50)
+        node(1, home + "/Library/Application Support/Steam/depotcache", 50)
+        node(1, steam + "/shadercache", 300)
+        node(1, steam + "/downloading", 50)
+        node(1, steam + "/temp", 50)
+        // Steam's installs, saves, and workshop content are never candidates.
+        node(1, steam + "/common/War Thunder", 300)
+        node(1, home + "/Library/Application Support/Steam/userdata", 300)
+        node(1, steam + "/workshop", 300)
+        // The F2 rootItself stores: tier 1 in full, tier 2 identical.
+        node(1, home + "/Library/Unity/cache", 50)
+        node(1, home + "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/DiskCache", 50)
+        node(1, home + "/Library/Application Support/Figma/DesktopProfile/Cache", 50)
+        let peaks = node(1, home + "/Library/Application Support/Adobe/Common/Peak Files", 1)
+        node(peaks, home + "/Library/Application Support/Adobe/Common/Peak Files/dialog.pek", 200, dir: false)
+        node(peaks, home + "/Library/Application Support/Adobe/Common/Peak Files/voice.cfa", 400, dir: false)
+        let (fixture, index) = try await buildIndex(nodes)
+        defer { fixture.dispose() }
+        let expected = Set([
+            home + "/Library/Application Support/Steam/appcache",
+            home + "/Library/Application Support/Steam/htmlcache",
+            home + "/Library/Application Support/Steam/depotcache",
+            steam + "/shadercache",
+            steam + "/downloading",
+            steam + "/temp",
+            home + "/Library/Unity/cache",
+            home + "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/DiskCache",
+            home + "/Library/Application Support/Figma/DesktopProfile/Cache",
+            home + "/Library/Application Support/Adobe/Common/Peak Files/dialog.pek",
+            home + "/Library/Application Support/Adobe/Common/Peak Files/voice.cfa",
+        ])
+        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        #expect(Set(safe.nodes.map(\.path)) == expected)
+        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        #expect(Set(all.nodes.map(\.path)) == expected)
+        #expect(!all.nodes.contains { $0.path.hasSuffix("War Thunder") || $0.path.hasSuffix("userdata") || $0.path.hasSuffix("workshop") })
+        await destroy(index)
+    }
+
     @Test func wildcardRootsResolveRealDirectoriesOnly() async throws {
         let home = NSTemporaryDirectory() + "DiskUnbloat-wildcard-" + UUID().uuidString
         let stable = home + "/Library/Group Containers/group.id/stable"

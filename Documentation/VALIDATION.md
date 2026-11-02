@@ -2,6 +2,13 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Phase G — Game launcher caches: Steam curated stores and Roblox — 2026-11-02
+
+- **Steam** (verified against Steam's documented macOS layout and a bundle-ID catalog): six curated tier-1 `rootItself` stores — `Application Support/Steam/appcache`, `htmlcache`, `depotcache`, `steamapps/shadercache` (per-game folders keyed by app ID, recompiled on the next launch), `steamapps/downloading`, and `steamapps/temp` — all grouped under All caches, with removal refused while Steam runs through the verified `com.valvesoftware.steam` ID. Protective hover entries cover `steamapps/common` (games: use Steam's own uninstall; no purchases lost, only re-downloads) and `userdata` (Steam Cloud saves — never auto-selected). `steamapps/common`, `userdata`, and `workshop` are pinned as never-selected in `gameStoreCachesMatchTheTierSets`, which also inherits tier coverage for the Phase F stores that lacked it (Unity UPM cache, Resolve Fusion/DiskCache, Figma Chromium cache, Adobe Peak Files children — identical sets in both tiers).
+- **Roblox** (verified against Roblox's support articles): the Player and Studio caches already sit inside the blanket `~/Library/Caches` scan and now carry hover explanations (`com.Roblox.Roblox`, the case-variant `com.roblox.RobloxPlayer`, and `com.Roblox.RobloxStudio`); `RobloxStudio/AutoSaves` is hover-explained as a recovery store that is never auto-selected. No `Versions` folder exists in the macOS Application Support tree (Windows-only layout per Roblox's own docs), so no rule was invented for it.
+- **Out of scope with verified reasons:** Battle.net/WoW (agent data lives in `/Users/Shared/Battle.net`, outside the home folder that grouped scans authorize — the same reach boundary as the Caskroom Conda variant), Minecraft (world saves mixed beside its regenerable `versions`/`assets`/`libraries` trees — needs a dedicated verified pass with per-child protection), and other launcher layouts awaiting verification (Heroic, League). Epic's launcher cache was already covered.
+- Tests: core 66 pass; hosted app tests 64 pass with the new Steam root assertions (and the "never lists games/saves" negative guards). Universal Release build passes; localization audit validates 473 entries.
+
 ## Phase F — Telegram media fix, Ollama rule, Unity/Resolve/Figma/Conda/leftover stores, guardrail hovers — 2026-11-02
 
 The planned remaining catalog work shipped as Phase F:

@@ -141,6 +141,18 @@ public enum CleanupRule: String, CaseIterable, Identifiable, Sendable {
                 // exists, so there is no running-app guard — the cache regenerates even
                 // beside a running editor.
                 .init(path: home + "/Library/Unity/cache", candidate: .rootItself),
+                // Steam's regenerable client and engine caches: app/HTML caches, depot
+                // and partial-download leftovers, update staging, and the per-game shader
+                // folders (keyed by app ID, recompiled on the next launch). The games
+                // under `steamapps/common`, workshop content, and the `userdata` cloud
+                // saves are never listed, and Steam itself blocks removal while it runs
+                // (com.valvesoftware.steam).
+                .init(path: home + "/Library/Application Support/Steam/appcache", candidate: .rootItself),
+                .init(path: home + "/Library/Application Support/Steam/htmlcache", candidate: .rootItself),
+                .init(path: home + "/Library/Application Support/Steam/depotcache", candidate: .rootItself),
+                .init(path: home + "/Library/Application Support/Steam/steamapps/shadercache", candidate: .rootItself),
+                .init(path: home + "/Library/Application Support/Steam/steamapps/downloading", candidate: .rootItself),
+                .init(path: home + "/Library/Application Support/Steam/steamapps/temp", candidate: .rootItself),
                 // DaVinci Resolve's Fusion node disk cache (P5 keeps the project database
                 // and galleries protected under managed-data rules; no verified bundle ID
                 // exists for a running-app guard).

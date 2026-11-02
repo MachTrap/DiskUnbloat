@@ -25,6 +25,9 @@ import DiskCore
         // Message-app stores: Telegram Desktop's curated cache paths (the per-account
         // postbox media) arrive as cached media being written while it runs.
         ("ru.keepcoder.Telegram", "/6N38VWS5BX.ru.keepcoder.Telegram/"),
+        // Game launchers and stores: Steam recompiles shaders and re-downloads what it
+        // lost, but holds its cache files open while it runs.
+        ("com.valvesoftware.steam", "/Steam/"),
         // Game engines and image generators hold their caches in Application Support:
         // the shared DDC store writes while any Epic-owned app runs, Godot writes while
         // the editor or an exported run is open, and Comfy Desktop holds its Chromium

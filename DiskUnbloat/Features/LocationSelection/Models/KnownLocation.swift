@@ -134,7 +134,15 @@ extension LocationCatalog {
             entry("carthageCache", "Library/Caches/Carthage", "Carthage cache", "Prebuilt framework archives Carthage fetched. Builds re-fetch from their git sources."),
             entry("claudeData", ".claude", "Claude Code data", "The coding agent's conversation transcripts, memory files, and configuration. Contains user content — reviewed manually, never auto-selected."),
             entry("codexData", ".codex", "Codex data", "The coding agent's sessions and configuration. Contains user content — reviewed manually, never auto-selected."),
-            entry("cursorCLI", ".cursor", "Cursor CLI data", "The AI editor's agent configuration and MCP settings. Contains user content — reviewed manually, never auto-selected.")
+            entry("cursorCLI", ".cursor", "Cursor CLI data", "The AI editor's agent configuration and MCP settings. Contains user content — reviewed manually, never auto-selected."),
+            entry("steamShaderCache", "Library/Application Support/Steam/steamapps/shadercache", "Steam shader cache", "Compiled per-game shader folders keyed by app ID. Steam recompiles them on the next launch; the largest Steam store safe to clear."),
+            entry("steamDepotCache", "Library/Application Support/Steam/depotcache", "Steam depot cache", "Encrypted chunks of partially downloaded games. Clearing forces clean re-downloads; installed games stay untouched."),
+            entry("steamGames", "Library/Application Support/Steam/steamapps/common", "Steam games", "Installed games that Steam manages. Remove them through Steam's own uninstall; deleting here loses no purchases but forces full re-downloads."),
+            entry("steamUserdata", "Library/Application Support/Steam/userdata", "Steam Cloud saves", "Local copies of your cloud save games. Keep them unless a game lacks Steam Cloud — never auto-selected."),
+            entry("robloxCaches", "Library/Caches/com.Roblox.Roblox", "Roblox cache", "Roblox Player's cached data. Removal is safe while the game is closed; it rebuilds on the next launch."),
+            entry("robloxPlayerCache", "Library/Caches/com.roblox.RobloxPlayer", "Roblox Player cache", "Roblox's cached assets (this folder name is case-insensitive). Removal is safe while the game is closed; it rebuilds on the next launch."),
+            entry("robloxStudioCache", "Library/Caches/com.Roblox.RobloxStudio", "Roblox Studio cache", "Cached web content and shaders for Roblox Studio. Rebuilt as the studio loads pages."),
+            entry("robloxAutosaves", "Library/Application Support/Roblox/RobloxStudio/AutoSaves", "Roblox Studio recovery files", "Recovery backups for unsaved place edits in Roblox Studio. Keep them until your work is saved — never auto-selected.")
         ]
     }
 

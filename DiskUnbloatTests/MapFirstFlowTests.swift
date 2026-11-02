@@ -150,6 +150,12 @@ import DiskCore
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Figma/DesktopProfile/GPUCache")))
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.terraform.d/plugin-cache")))
         #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/.ivy2/cache")))
+        // Phase G: Steam's curated stores join All caches; its games and saves don't.
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Steam/appcache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Steam/steamapps/shadercache")))
+        #expect(caches.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Application Support/Steam/depotcache")))
+        #expect(!caches.roots.contains { $0.path.hasSuffix("steamapps/common") })
+        #expect(!caches.roots.contains { $0.path.hasSuffix("userData") })
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Unity/Asset Store-5.x")))
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/Library/Developer/Xcode/Archives")))
         #expect(tools.roots.contains(URL(fileURLWithPath: "/Users/tester/miniconda3/pkgs")))

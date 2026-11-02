@@ -42,36 +42,39 @@ struct LocationSelectionView: View {
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Quick actions").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                        // Map-like mosaic: tile sizes follow each action's weight, like the
-                        // treemap itself. A hero tile for the big picture, the two grouped
-                        // "everything" scans as wide mid tiles, and the two plain folders
-                        // as a short full-width bottom row.
+                        // Map-like mosaic with two full-height columns: the hero column and
+                        // the grouped column, and the two plain folders lined up underneath
+                        // them on the exact same column edges. Tile sizes follow each
+                        // action's weight, like the treemap itself; every tile uses the
+                        // same icon and label sizes.
                         GeometryReader { geo in
                             let width = geo.size.width
+                            let heroWidth = (width - 8) * 0.45
+                            let rightWidth = width - heroWidth - 8
                             VStack(spacing: 8) {
                                 HStack(alignment: .top, spacing: 8) {
                                     if let home = quickTarget("home") {
-                                        heroTile(home).frame(width: width * 0.49, height: topMosaicHeight)
+                                        heroTile(home).frame(width: heroWidth, height: topMosaicHeight)
                                     }
                                     VStack(spacing: 8) {
                                         if let allCaches = quickTarget("allCaches") {
                                             mosaicTile(allCaches, showsCount: true)
-                                                .frame(height: cachesRowHeight)
+                                                .frame(width: rightWidth, height: topRowHeight)
                                         }
                                         if let devTools = quickTarget("devTools") {
                                             mosaicTile(devTools, showsCount: true)
-                                                .frame(height: topMosaicHeight - cachesRowHeight - 8)
+                                                .frame(width: rightWidth, height: topRowHeight)
                                         }
                                     }
                                 }
                                 HStack(spacing: 8) {
                                     if let downloads = quickTarget("downloads") {
                                         mosaicTile(downloads)
-                                            .frame(width: width * 0.44 - 4, height: smallRowHeight)
+                                            .frame(width: heroWidth, height: smallRowHeight)
                                     }
                                     if let caches = quickTarget("caches") {
                                         mosaicTile(caches)
-                                            .frame(width: width * 0.56 - 4, height: smallRowHeight)
+                                            .frame(width: rightWidth, height: smallRowHeight)
                                     }
                                 }
                             }
@@ -101,14 +104,15 @@ struct LocationSelectionView: View {
         .accessibilityIdentifier("locationScreen")
     }
 
-    @ScaledMetric(relativeTo: .callout) private var mosaicHeight: CGFloat = 172
+    @ScaledMetric(relativeTo: .title3) private var mosaicHeight: CGFloat = 196
 
-    /// Mosaic rows: the hero column and the big tiles take the top, the two plain
-    /// folders share a short full-width bottom row. A single scaled metric drives every
-    /// height, so the proportions hold when text scales; widths come from the container.
-    private var smallRowHeight: CGFloat { mosaicHeight * 0.26 }
+    /// Mosaic rows: the hero column and the grouped column run the full height, the two
+    /// plain folders share a short full-width bottom row on the same column edges. One
+    /// scaled metric drives every height; widths come from the container, and both mid
+    /// tiles are equal so their counts read the same.
+    private var smallRowHeight: CGFloat { mosaicHeight * 0.24 }
     private var topMosaicHeight: CGFloat { mosaicHeight - smallRowHeight - 8 }
-    private var cachesRowHeight: CGFloat { topMosaicHeight * 0.55 }
+    private var topRowHeight: CGFloat { (topMosaicHeight - 8) / 2 }
 
     /// The pinned quick-action target for one mosaic cell.
     private func quickTarget(_ id: String) -> ScanTarget? {
@@ -123,7 +127,7 @@ struct LocationSelectionView: View {
                 Image(systemName: item.symbol).font(.system(size: 18, weight: .medium)).foregroundStyle(.teal)
                 Text(L10n.text(item.title)).font(.title3.weight(.semibold))
                 Text(L10n.text(item.detail))
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
@@ -136,24 +140,24 @@ struct LocationSelectionView: View {
         .buttonStyle(.plain).help(pillHelp(item)).accessibilityIdentifier("target-" + item.id)
     }
 
-    /// A mosaic cell: icon and title leading, the location count pinned bottom on the
-    /// tall tiles. Width and height come from the layout.
+    /// A mosaic cell: the standard icon and label, with the location count pinned to
+    /// the bottom on the tall tiles. Width and height come from the layout.
     private func mosaicTile(_ item: ScanTarget, showsCount: Bool = false) -> some View {
         Button { target(item) } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Image(systemName: item.symbol).font(.system(size: 14, weight: .medium)).foregroundStyle(.teal)
-                    Text(L10n.text(item.title)).font(.callout).lineLimit(2)
-                        .multilineTextAlignment(.leading)
+                    Image(systemName: item.symbol).font(.system(size: 18, weight: .medium)).foregroundStyle(.teal)
+                    Text(L10n.text(item.title)).font(.title3.weight(.semibold))
+                        .lineLimit(1).minimumScaleFactor(0.7)
                 }
-                Spacer(minLength: 0)
                 if showsCount {
+                    Spacer(minLength: 2)
                     Text(L10n.count("%lld locations", item.roots.count))
                         .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
                         .lineLimit(1)
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 7)
+            .padding(.horizontal, 12).padding(.vertical, 9)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.primary.opacity(0.05), in: .rect(cornerRadius: 10))
             .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(.primary.opacity(0.08)) }

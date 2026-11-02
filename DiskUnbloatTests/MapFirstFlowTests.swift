@@ -83,7 +83,10 @@ import DiskCore
         #expect(catalog.targets.first?.url.path == "/Users/tester")
         #expect(catalog.targets.first { $0.id == "downloads" }?.url.path == "/Users/tester/Downloads")
         #expect(catalog.additional.map(\.url.path) == ["/Users/tester/Documents","/Users/tester/Pictures"])
-        #expect(catalog.targets.first { $0.id == "xcode" }?.url.path == "/Users/tester/Library/Developer/Xcode/DerivedData")
+        // The chooser's quick actions are one flat list: home, downloads, caches,
+        // "All caches", and "Dev tools" — the individual developer-cache targets are gone,
+        // their locations already covered by "All caches".
+        #expect(catalog.targets.map(\.id) == ["home", "downloads", "caches", "allCaches", "devTools"])
         // Grouped quick actions stack several known locations under one synthetic map root.
         let caches = try #require(catalog.targets.first { $0.id == "allCaches" })
         let tools = try #require(catalog.targets.first { $0.id == "devTools" })

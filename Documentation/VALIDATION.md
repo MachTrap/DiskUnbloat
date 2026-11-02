@@ -2,6 +2,15 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Chooser quick actions: map-like mosaic, no collapsible developer section — 2026-11-02
+
+The chooser's Quick actions area no longer uses mixed-size pill rows. It now renders a deliberate mosaic — sizes follow each action's weight, echoing the treemap the app produces after a scan: "Home folder" is the hero tile with the teal accent wash and its detail text inline, "All caches" and "Dev tools" (the two grouped "everything" scans) are wide mid tiles showing their location count, and "Downloads"/"User caches" share a short full-width bottom row with unequal widths (44/56). Every tile fills its exact proportional cell, so the mosaic is equal-basin across both catalogs and text scales along one `ScaledMetric` height with container-proportional widths.
+
+The collapsible "Developer caches" section is removed entirely: "Dev tools" moved into the main quick-action list, and the four individual developer-cache targets (Xcode Derived Data, SwiftPM, npm, pip) are dropped because "All caches" already covers exactly those locations. `ScanTarget` lost its unused `developer` flag and `LocationSelectionViewModel` lost `commonTargets`/`developerTargets`/`showDeveloper`.
+
+- Test changes: `MapFirstFlowTests.quickTargetsUseSuppliedRealHomeAndDropsRejectFiles` now asserts the exact quick-action catalog order `["home", "downloads", "caches", "allCaches", "devTools"]` instead of the removed `xcode` target. The four dev-location titles stay in the localization catalog — they still feed cleanup-rule presentations and known-location descriptions ("Developer caches" is the one removed key; the audit validates 291 entries).
+- Hosted app tests, core tests, the universal Release build (`generic/platform=macOS`), and the localization audit pass.
+
 ## Auto-selection corrections — keep-newest preserved, LM Studio user data protected — 2026-11-02
 
 - **Keep-newest correction (reported bug):** "Select safe items" selected even the **sole remaining** version in `~/Library/Android/sdk/system-images`, `~/Library/Android/sdk/ndk`, and — by the same mechanism — `~/Library/Developer/CoreSimulator/Devices` and `~/Library/Developer/Xcode/iOS DeviceSupport`. The `previousVersions` long-unused fallback selected every long-unused child including the newest one; the fallback now drops the single most recent version first, so a sole remaining version always survives tier 1 (tier 2 selecting all versions is unchanged and correct). Empirically pinned against the reported one-version-each layout: the AVD rule (`unusedKeepingNewest`) already preserved its sole version — it never appeared in the tier-1 candidates; a regression test now guards all five locations.

@@ -4,11 +4,8 @@ import Observation
 @MainActor @Observable final class LocationSelectionViewModel {
     let catalog: LocationCatalog
     var showOptions = false
-    var showDeveloper = false
     var dropTargeted = false
     init(catalog: LocationCatalog = LocationCatalog()) { self.catalog = catalog }
-    var commonTargets: [ScanTarget] { catalog.targets.filter { !$0.developer } }
-    var developerTargets: [ScanTarget] { catalog.targets.filter(\.developer) }
     func directory(from urls: [URL]) throws -> URL {
         guard urls.count == 1, let url = urls.first, url.isFileURL else { throw SelectionError.singleFolder }
         let scoped = url.startAccessingSecurityScopedResource()

@@ -16,7 +16,7 @@ The dependency direction is **View → ViewModel → Service/Core → value resu
 | Owner | Responsibility |
 | --- | --- |
 | `WorkspaceViewModel` | Owns explicit screen phases, composes child models, coordinates scan/cleanup lifetimes, authorization handoff, automatic-selection previews and applies, shutdown, shared errors and Quick Look |
-| `LocationSelectionViewModel` | Quick-target catalog, options presentation, developer-group visibility, and folder-drop validation |
+| `LocationSelectionViewModel` | Quick-target catalog, options presentation, and folder-drop validation |
 | `ScanViewModel` | Scan configuration, pending/current location, real scan stages, progress, issues, index lifecycle and cancellation |
 | `ExplorerViewModel` | Bounded map scenes and their queries, filters, scope, multiselection, four-scene cache, legend categories, folder history, breadcrumbs, curated hover descriptions; rejects stale sessions |
 | `CleanupViewModel` | Deletion queue (normalized `CleanupEntry` list), operation state, results and cleanup-report presentation; applies automatic two-tier recommendations in bulk and delegates mutations to `CleanupServing` |

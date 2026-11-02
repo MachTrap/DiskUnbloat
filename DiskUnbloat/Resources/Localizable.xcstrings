@@ -1715,22 +1715,6 @@
         }
       }
     },
-    "Developer caches" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Developer caches"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Кэши разработчика"
-          }
-        }
-      }
-    },
     "Development" : {
       "extractionState" : "stale",
       "localizations" : {

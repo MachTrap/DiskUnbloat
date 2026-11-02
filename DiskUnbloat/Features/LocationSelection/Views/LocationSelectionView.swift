@@ -31,7 +31,7 @@ struct LocationSelectionView: View {
                             Menu("Mounted disks") {
                                 ForEach(FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? [], id: \.path) { url in
                                     Button(url.lastPathComponent.isEmpty ? "Startup disk" : url.lastPathComponent) {
-                                        target(ScanTarget(id: url.path, title: url.lastPathComponent, symbol: "externaldrive", detail: "", url: url, developer: false))
+                                        target(ScanTarget(id: url.path, title: url.lastPathComponent, symbol: "externaldrive", detail: "", url: url))
                                     }
                                 }
                             }
@@ -42,12 +42,41 @@ struct LocationSelectionView: View {
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Quick actions").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                        HStack(spacing: 8) { ForEach(model.commonTargets) { pill($0) } }
-                        DisclosureGroup(isExpanded: $model.showDeveloper) {
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 8) {
-                                ForEach(model.developerTargets) { pill($0) }
-                            }.padding(.top, 8)
-                        } label: { Label("Developer caches", systemImage: "hammer").font(.callout) }
+                        // Map-like mosaic: tile sizes follow each action's weight, like the
+                        // treemap itself. A hero tile for the big picture, the two grouped
+                        // "everything" scans as wide mid tiles, and the two plain folders
+                        // as a short full-width bottom row.
+                        GeometryReader { geo in
+                            let width = geo.size.width
+                            VStack(spacing: 8) {
+                                HStack(alignment: .top, spacing: 8) {
+                                    if let home = quickTarget("home") {
+                                        heroTile(home).frame(width: width * 0.49, height: topMosaicHeight)
+                                    }
+                                    VStack(spacing: 8) {
+                                        if let allCaches = quickTarget("allCaches") {
+                                            mosaicTile(allCaches, showsCount: true)
+                                                .frame(height: cachesRowHeight)
+                                        }
+                                        if let devTools = quickTarget("devTools") {
+                                            mosaicTile(devTools, showsCount: true)
+                                                .frame(height: topMosaicHeight - cachesRowHeight - 8)
+                                        }
+                                    }
+                                }
+                                HStack(spacing: 8) {
+                                    if let downloads = quickTarget("downloads") {
+                                        mosaicTile(downloads)
+                                            .frame(width: width * 0.44 - 4, height: smallRowHeight)
+                                    }
+                                    if let caches = quickTarget("caches") {
+                                        mosaicTile(caches)
+                                            .frame(width: width * 0.56 - 4, height: smallRowHeight)
+                                    }
+                                }
+                            }
+                        }
+                        .frame(height: mosaicHeight)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     HStack(spacing: 18) {
                         Button { model.showOptions = true } label: { Label("Scan options", systemImage: "slider.horizontal.3") }
@@ -72,16 +101,65 @@ struct LocationSelectionView: View {
         .accessibilityIdentifier("locationScreen")
     }
 
-    private func pill(_ item: ScanTarget) -> some View {
+    @ScaledMetric(relativeTo: .callout) private var mosaicHeight: CGFloat = 172
+
+    /// Mosaic rows: the hero column and the big tiles take the top, the two plain
+    /// folders share a short full-width bottom row. A single scaled metric drives every
+    /// height, so the proportions hold when text scales; widths come from the container.
+    private var smallRowHeight: CGFloat { mosaicHeight * 0.26 }
+    private var topMosaicHeight: CGFloat { mosaicHeight - smallRowHeight - 8 }
+    private var cachesRowHeight: CGFloat { topMosaicHeight * 0.55 }
+
+    /// The pinned quick-action target for one mosaic cell.
+    private func quickTarget(_ id: String) -> ScanTarget? {
+        model.catalog.targets.first { $0.id == id }
+    }
+
+    /// The hero cell: "Home folder" — the same teal wash the map uses for its accents,
+    /// carrying the action's detail text because only the largest tile has room for it.
+    private func heroTile(_ item: ScanTarget) -> some View {
         Button { target(item) } label: {
-            HStack(spacing: 6) {
-                Image(systemName: item.symbol).font(.system(size: 13, weight: .medium)).foregroundStyle(.teal)
-                Text(L10n.text(item.title)).font(.callout)
-            }.padding(.horizontal, 12).padding(.vertical, 7)
-                .background(.primary.opacity(0.05), in: .rect(cornerRadius: 9))
-                .overlay { RoundedRectangle(cornerRadius: 9).strokeBorder(.primary.opacity(0.08)) }
-                .contentShape(.rect(cornerRadius: 9))
-        }.buttonStyle(.plain).help(pillHelp(item)).accessibilityIdentifier("target-" + item.id)
+            VStack(alignment: .leading, spacing: 5) {
+                Image(systemName: item.symbol).font(.system(size: 18, weight: .medium)).foregroundStyle(.teal)
+                Text(L10n.text(item.title)).font(.title3.weight(.semibold))
+                Text(L10n.text(item.detail))
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(.teal.opacity(0.12), in: .rect(cornerRadius: 12))
+            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(.teal.opacity(0.25)) }
+            .contentShape(.rect(cornerRadius: 12))
+        }
+        .buttonStyle(.plain).help(pillHelp(item)).accessibilityIdentifier("target-" + item.id)
+    }
+
+    /// A mosaic cell: icon and title leading, the location count pinned bottom on the
+    /// tall tiles. Width and height come from the layout.
+    private func mosaicTile(_ item: ScanTarget, showsCount: Bool = false) -> some View {
+        Button { target(item) } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: item.symbol).font(.system(size: 14, weight: .medium)).foregroundStyle(.teal)
+                    Text(L10n.text(item.title)).font(.callout).lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                if showsCount {
+                    Text(L10n.count("%lld locations", item.roots.count))
+                        .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(.primary.opacity(0.05), in: .rect(cornerRadius: 10))
+            .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(.primary.opacity(0.08)) }
+            .contentShape(.rect(cornerRadius: 10))
+        }
+        .buttonStyle(.plain).help(pillHelp(item)).accessibilityIdentifier("target-" + item.id)
     }
 
     private func pillHelp(_ item: ScanTarget) -> String {

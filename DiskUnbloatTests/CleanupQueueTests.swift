@@ -88,6 +88,8 @@ import DiskCore
             Issue.record("Expected the partial folder then its selected child"); return
         }
         #expect(folderRow.checkState == .partial && folderRow.bytes == 30)
+        // A partially selected folder shows selected over the folder's total.
+        #expect(folderRow.totalBytes == 40)
         #expect(fileRow.checkState == .checked && fileRow.node.id == 6 && fileRow.depth == 1)
     }
 
@@ -152,7 +154,9 @@ import DiskCore
         }
         #expect(rootRow.checkState == .partial && rootRow.hasSelectedDescendants && rootRow.hiddenChildCount == 2)
         #expect(folderRow.checkState == .checked && folderRow.operation == .remove)
-        #expect(folderRow.bytes == 40 && !folderRow.hasHiddenChildren && !folderRow.hasSelectedDescendants)
+        // The partial root shows selected over the root's own known total.
+        #expect(rootRow.bytes == 40 && rootRow.totalBytes == 100)
+        #expect(folderRow.bytes == 40 && folderRow.totalBytes == nil && !folderRow.hasHiddenChildren && !folderRow.hasSelectedDescendants)
     }
 
     @Test func partialSelectionExpandsWithSelectedChildrenFirst() {
@@ -239,10 +243,35 @@ import DiskCore
         #expect(collapsedLines.map(\.id) == ["item-1", "item-2", "more-1"])
         guard case .item(let folderRow) = collapsedLines[1] else { Issue.record("Expected the covered container row"); return }
         #expect(folderRow.coversAllChildren && folderRow.checkState == .checked && folderRow.hasSelectedDescendants)
+        // The covered container's selected children equal the folder's known total, so
+        // the readout stays the single size (no redundant slash).
+        #expect(folderRow.bytes == 40 && folderRow.totalBytes == 40)
         // Expanding reveals the individual entries beneath it.
         let openLines = CleanupQueueTree.lines(.init(
             entries: entries, nodes: nodes, childCounts: [1: 3, 2: 2], coveredExpanded: ["/Users/xqueue/t/folder"]))
         #expect(openLines.map(\.id) == ["item-1", "item-2", "item-6", "item-3", "more-1"])
+    }
+
+    @Test func rowSizeTextShowsSelectedOverTotalOnlyForPartialFolders() {
+        // A partial folder reads "selected/total" through the slash...
+        let selected = Int64(5_200_000_000)
+        let total = Int64(50_000_000_000)
+        let composed = queueRowSizeText(selected: selected, total: total)
+        #expect(composed == sizeText(selected) + "/" + sizeText(total))
+        #expect(composed.contains("/"))
+        // ...identical selected and totals, unknown totals, and unknown selections
+        // render the single size without a slash...
+        #expect(queueRowSizeText(selected: 40, total: 40) == sizeText(40))
+        #expect(queueRowSizeText(selected: 40, total: nil) == sizeText(40))
+        #expect(queueRowSizeText(selected: nil, total: 40) == sizeText(nil))
+        // ...and an unselected folder row (nothing selected inside) has no total at all.
+        let (nodes, children) = fixture()
+        let lines = CleanupQueueTree.lines(.init(
+            entries: [], nodes: nodes, current: nodes[1],
+            directoryChildren: children[1]!.sorted { $0.knownSize(for: .allocated) > $1.knownSize(for: .allocated) },
+            directoryCount: 3))
+        guard case .item(let folderRow) = lines[1] else { Issue.record("Expected the folder row"); return }
+        #expect(folderRow.checkState == .unchecked && folderRow.totalBytes == nil)
     }
 
     @Test func selectionMirrorReachesCoveredEntriesAtTheGroupWrapper() async throws {

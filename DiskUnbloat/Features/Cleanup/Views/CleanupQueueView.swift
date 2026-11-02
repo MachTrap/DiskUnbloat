@@ -233,7 +233,8 @@ struct CleanupQueueView: View {
                 }
             }
             Spacer(minLength: 8)
-            Text(sizeText(row.bytes)).font(.caption).monospacedDigit().foregroundStyle(.secondary)
+            Text(queueRowSizeText(selected: row.bytes, total: row.totalBytes))
+                .font(.caption).monospacedDigit().foregroundStyle(.secondary)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)

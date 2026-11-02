@@ -2,6 +2,12 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Cleanup-queue rows show selected/total size — 2026-11-02
+
+- The right-hand cleanup-queue panel's folder rows now show the selection-attributed size **and the directory's whole known size through a slash** ("`5.2 GB/50 GB`") whenever selection covers only part of the row's subtree: partially selected folders (direct-listing and tree contexts, including the partial group-wrapper root) and fully covered kept-folder containers. When the selected subtree already equals the folder's known total, or the folder's total is unknown (incomplete aggregate), the readout stays the single size without a redundant slash; unselected rows and exact atomic entries are unchanged (their bytes are already the whole story).
+- Implementation: `CleanupQueueRow` gained a `totalBytes` field set from the node's `knownSize(for: .allocated)` in the cleanup-tree projection (per-row formatter `queueRowSizeText` in `Shared/ByteFormatting`), and the panel renders it with the existing `caption`/monospaced-digit secondary style.
+- Tests: core 67 pass (no core change); hosted app tests 65 pass — new assertions pin selected/total on the partial listing row (`30/40`), the covered kept-folder container (`selected == total`, slash suppressed), the partial wrapper root (`40/100`), and the formatter contract, plus the unchanged single-size rows (unchecked folders, exact entries, unknown totals). Universal Release build passes; localization audit passes unchanged (473 entries — the readout reuses existing size formatting).
+
 ## Upfront TCC permission preflight at scan start — 2026-11-02
 
 - **Problem:** When scanning the user's home folder (`~`) or the root disk (`/`), depth-first directory traversal (`FileManager.DirectoryEnumerator`) only reached TCC-gated subtrees (`~/Pictures/Photos Library.photoslibrary`, `~/Music/Music`, `~/Library/Photos`, `~/Library/Calendars`, `~/Library/Reminders`, `~/Library/Application Support/AddressBook`, `~/Library/Mobile Documents`, `~/Library/Containers`, etc.) minutes into the scan — popping up macOS consent dialogs gradually over the course of the scan and pausing progress whenever the user had stepped away.

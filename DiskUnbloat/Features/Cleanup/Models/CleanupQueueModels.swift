@@ -18,6 +18,10 @@ struct CleanupQueueRow: Identifiable, Sendable, Equatable {
     /// Size attributed to this row: an entry's known size, a partial folder's selected
     /// descendants total, or an unselected child's own known size for context.
     let bytes: Int64
+    /// The directory's own known size, shown after the selected part through a slash
+    /// ("5.2/50 GB") when selection covers only part of this row's subtree. `nil` for
+    /// rows where nothing is selected inside or the total is unknown.
+    let totalBytes: Int64?
     let hasSelectedDescendants: Bool
     /// Unselected plain folders can be expanded to peek at their largest children.
     let canPeek: Bool
@@ -172,7 +176,7 @@ enum CleanupQueueTree {
             // stays compact with no expansion controls.
             out.append(.item(CleanupQueueRow(
                 node: node, depth: depth, checkState: .checked, operation: entry.operation,
-                bytes: node.knownSize(for: .allocated),
+                bytes: node.knownSize(for: .allocated), totalBytes: nil,
                 hasSelectedDescendants: false, canPeek: false, hasHiddenChildren: false, hiddenChildCount: 0)))
             return
         }
@@ -186,7 +190,7 @@ enum CleanupQueueTree {
            kids.allSatisfy({ entryByID[$0.id] != nil }) {
             out.append(.item(CleanupQueueRow(
                 node: node, depth: depth, checkState: .checked, operation: nil,
-                bytes: selectedBytes[node.id] ?? 0,
+                bytes: selectedBytes[node.id] ?? 0, totalBytes: node.knownSize(for: .allocated),
                 hasSelectedDescendants: true, canPeek: false, hasHiddenChildren: false, hiddenChildCount: 0,
                 coversAllChildren: true)))
             if input.coveredExpanded.contains(node.path) {
@@ -202,6 +206,7 @@ enum CleanupQueueTree {
             node: node, depth: depth,
             checkState: kids.isEmpty ? .unchecked : .partial, operation: nil,
             bytes: kids.isEmpty ? node.knownSize(for: .allocated) : (selectedBytes[node.id] ?? 0),
+            totalBytes: kids.isEmpty ? nil : node.knownSize(for: .allocated),
             hasSelectedDescendants: !kids.isEmpty,
             canPeek: kids.isEmpty && isExpandableContainer(node),
             hasHiddenChildren: hiddenCount > 0, hiddenChildCount: hiddenCount)))

@@ -24,6 +24,8 @@ import DiskCore
     var revealed: Set<String> = []
     /// Partially selected folder paths the user collapsed.
     var collapsed: Set<String> = []
+    /// Covered containers (all children queued) the user expanded to review entries.
+    var coveredExpanded: Set<String> = []
     private(set) var lines: [CleanupQueueLine] = []
     private(set) var isLoading = false
     var pageSize = 100
@@ -44,6 +46,7 @@ import DiskCore
         provider = nil
         revealed = []
         collapsed = []
+        coveredExpanded = []
         resetCaches()
     }
 
@@ -127,7 +130,7 @@ import DiskCore
             directoryChildren: openFolder?.id == directoryParentID ? directoryChildren : [],
             childCounts: childCounts,
             fetchedChildren: fetchedChildren, peekChildren: peekChildren, peekCounts: peekCounts,
-            revealed: revealed, collapsed: collapsed)
+            revealed: revealed, collapsed: collapsed, coveredExpanded: coveredExpanded)
         if let openFolder, directoryParentID == openFolder.id {
             input.directoryCount = await provider.childCount(of: openFolder.id)
             if gen != generation { return }
@@ -178,7 +181,9 @@ import DiskCore
     /// exists in the panel; pages folders whose target child lies beyond the first page.
     func revealForSelection(_ node: FileNode) async {
         guard let provider, let current else { return }
-        guard node.path != current.path, node.path.isWithin(current.path) else { return }
+        // The synthetic group wrapper is the ancestor of every real path, so lexical
+        // containment cannot express it.
+        guard node.id != current.id, current.isGroupRoot || node.path.isWithin(current.path) else { return }
         var targets: [(folder: FileNode, child: FileNode)] = []
         var cursor = node
         while let parentID = cursor.parentID, let parent = await provider.node(id: parentID) {
@@ -191,6 +196,10 @@ import DiskCore
         guard !targets.isEmpty else { return }
         let gen = generation
         for (folder, child) in targets.reversed() {
+            // Expand the folder chain so the target row exists: open collapsed folders
+            // and uncover covered containers.
+            collapsed.remove(folder.path)
+            coveredExpanded.insert(folder.path)
             if peeks[folder.id] == nil { peeks[folder.id] = folder }
             if peekChildren[folder.id] == nil {
                 let page = await provider.children(of: folder.id, limit: peekLimit, offset: 0, sortByName: false)
@@ -224,6 +233,13 @@ import DiskCore
         lines = makeLines()
     }
 
+    /// Expand or collapse a covered container to review its individual entries.
+    func toggleCoveredExpanded(_ node: FileNode) {
+        if coveredExpanded.contains(node.path) { coveredExpanded.remove(node.path) }
+        else { coveredExpanded.insert(node.path) }
+        lines = makeLines()
+    }
+
     private func makeLines() -> [CleanupQueueLine] {
         let openFolder = current
         return CleanupQueueTree.lines(CleanupQueueTree.Input(
@@ -231,7 +247,7 @@ import DiskCore
             directoryChildren: openFolder?.id == directoryParentID ? directoryChildren : [],
             childCounts: childCounts,
             fetchedChildren: fetchedChildren, peekChildren: peekChildren, peekCounts: peekCounts,
-            revealed: revealed, collapsed: collapsed))
+            revealed: revealed, collapsed: collapsed, coveredExpanded: coveredExpanded))
     }
 
     private func isPartialAncestor(_ node: FileNode, entries: [CleanupEntry]) -> Bool {

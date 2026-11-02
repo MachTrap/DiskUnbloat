@@ -24,7 +24,7 @@ struct CleanupQueueRow: Identifiable, Sendable, Equatable {
     let hasHiddenChildren: Bool
     let hiddenChildCount: Int
     /// Every indexed child of this container is queued: one atomic row whose contents go
-    /// while the folder itself stays.
+    /// while the folder itself stays. Collapsed by default; expanding lists its entries.
     var coversAllChildren = false
     var id: Int64 { node.id }
     var isEntry: Bool { checkState == .checked }
@@ -80,6 +80,8 @@ enum CleanupQueueTree {
         var peekCounts: [Int64: Int] = [:]
         var revealed: Set<String> = []
         var collapsed: Set<String> = []
+        /// Covered containers the user expanded to review their individual entries.
+        var coveredExpanded: Set<String> = []
     }
 
     static func lines(_ input: Input) -> [CleanupQueueLine] {
@@ -100,11 +102,14 @@ enum CleanupQueueTree {
             if shown.count < total { out.append(.showMore(current, depth: 0)) }
         }
         // Entries elsewhere in the scan keep their full ancestor tree above the listing.
+        // Everything the listing already shows belongs to the open folder's subtree —
+        // for the synthetic group wrapper that is the whole scan, since real paths are
+        // never lexically "within" the synthetic path.
         let parents = Set(structural.keys)
         let roots = Set(entryByID.keys).union(parents)
             .compactMap { input.nodes[$0] }
             .filter { node in
-                if let current = input.current, node.path.isWithin(current.path) { return false }
+                if let current = input.current, current.isGroupRoot || node.path.isWithin(current.path) { return false }
                 guard let parentID = node.parentID, let parent = input.nodes[parentID] else { return true }
                 return parent.isGroupRoot
             }
@@ -174,14 +179,21 @@ enum CleanupQueueTree {
         let kids = (structural[node.id] ?? []).compactMap { input.nodes[$0] }.sorted(by: bySize)
         // A container whose every indexed child is queued reads as one atomic checked row:
         // its contents disappear while the folder itself stays, exactly as an emptied
-        // scan root does.
+        // scan root does. It is collapsed by default so a bulk selection stays one row;
+        // expanding reveals the individual entries and keeps the map-selection mirror
+        // able to reach them.
         if !kids.isEmpty, let count = input.childCounts[node.id], kids.count == count,
            kids.allSatisfy({ entryByID[$0.id] != nil }) {
             out.append(.item(CleanupQueueRow(
                 node: node, depth: depth, checkState: .checked, operation: nil,
                 bytes: selectedBytes[node.id] ?? 0,
-                hasSelectedDescendants: false, canPeek: false, hasHiddenChildren: false, hiddenChildCount: 0,
+                hasSelectedDescendants: true, canPeek: false, hasHiddenChildren: false, hiddenChildCount: 0,
                 coversAllChildren: true)))
+            if input.coveredExpanded.contains(node.path) {
+                for child in kids {
+                    render(child, depth: depth + 1, input: input, entryByID: entryByID, structural: structural, selectedBytes: selectedBytes, into: &out)
+                }
+            }
             return
         }
         let total = input.childCounts[node.id] ?? kids.count

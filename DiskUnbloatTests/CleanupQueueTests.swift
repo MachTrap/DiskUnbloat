@@ -211,6 +211,59 @@ import DiskCore
         } == false)
     }
 
+    @Test func groupRootListingNeverDuplicatesContainersAtTheBottom() {
+        // Grouped scans open at the synthetic wrapper, whose listing shows the listed
+        // locations. A nested selection must not re-render its container at the bottom:
+        // real paths are never lexically "within" the synthetic wrapper path.
+        let wrapper = node(100, nil, ScanGroup.path, dir: true)
+        let location = node(1, 100, "/Users/gw/Library/Developer/Xcode/DerivedData", dir: true, size: 100)
+        let build = node(2, 1, "/Users/gw/Library/Developer/Xcode/DerivedData/BuildA", dir: true, size: 60)
+        let obj = node(3, 2, "/Users/gw/Library/Developer/Xcode/DerivedData/BuildA/o.o", dir: false, size: 60)
+        let other = node(4, 2, "/Users/gw/Library/Developer/Xcode/DerivedData/BuildA/keep.o", dir: false, size: 0)
+        let caches = node(5, 100, "/Users/gw/Library/Caches", dir: true, size: 40)
+        let nodes: [Int64: FileNode] = [100: wrapper, 1: location, 2: build, 3: obj, 4: other, 5: caches]
+        let entries = [CleanupEntry(node: obj, operation: .remove)]
+        let lines = CleanupQueueTree.lines(.init(
+            entries: entries, nodes: nodes, current: wrapper,
+            directoryChildren: [location, caches], directoryCount: 2, childCounts: [1: 1, 2: 2]))
+        #expect(lines.map(\.id) == ["header-100", "item-1", "item-2", "item-3", "more-2", "item-5"])
+        // No identity is ever rendered twice.
+        #expect(Set(lines.map(\.id)).count == lines.count)
+    }
+
+    @Test func coveredContainerExpandsToItsEntries() {
+        let (nodes, _) = fixture()
+        // Both children of folder are queued: one atomic kept-folder row by default.
+        let entries = [CleanupEntry(node: nodes[6]!, operation: .remove), CleanupEntry(node: nodes[3]!, operation: .remove)]
+        let collapsedLines = CleanupQueueTree.lines(.init(entries: entries, nodes: nodes, childCounts: [1: 3, 2: 2]))
+        #expect(collapsedLines.map(\.id) == ["item-1", "item-2", "more-1"])
+        guard case .item(let folderRow) = collapsedLines[1] else { Issue.record("Expected the covered container row"); return }
+        #expect(folderRow.coversAllChildren && folderRow.checkState == .checked && folderRow.hasSelectedDescendants)
+        // Expanding reveals the individual entries beneath it.
+        let openLines = CleanupQueueTree.lines(.init(
+            entries: entries, nodes: nodes, childCounts: [1: 3, 2: 2], coveredExpanded: ["/Users/xqueue/t/folder"]))
+        #expect(openLines.map(\.id) == ["item-1", "item-2", "item-6", "item-3", "more-1"])
+    }
+
+    @Test func selectionMirrorReachesCoveredEntriesAtTheGroupWrapper() async throws {
+        let wrapper = node(100, nil, ScanGroup.path, dir: true)
+        let location = node(1, 100, "/Users/gw/Library/Developer/Xcode/DerivedData", dir: true, size: 60)
+        let build = node(2, 1, "/Users/gw/Library/Developer/Xcode/DerivedData/BuildA", dir: true, size: 60)
+        let obj = node(3, 2, "/Users/gw/Library/Developer/Xcode/DerivedData/BuildA/o.o", dir: false, size: 60)
+        let nodes: [Int64: FileNode] = [100: wrapper, 1: location, 2: build, 3: obj]
+        let children: [Int64: [FileNode]] = [100: [location], 1: [build], 2: [obj]]
+        let cleanup = CleanupViewModel(service: RecordingCleanupService(), homePath: "/Users/gw")
+        cleanup.basket = [CleanupEntry(node: obj, operation: .remove)]
+        let model = CleanupQueueModel(cleanup: cleanup)
+        model.attach(StubQueueProvider(nodes: nodes, childrenByID: children))
+        await model.refresh(current: wrapper)
+        // The nested entry hides under its covered container; nothing is duplicated.
+        #expect(model.lines.map(\.id) == ["header-100", "item-1", "item-2"])
+        // The map-selection mirror expands the covered chain so the entry row exists.
+        await model.revealForSelection(obj)
+        #expect(model.lines.map(\.id) == ["header-100", "item-1", "item-2", "item-3"])
+    }
+
     @Test func queueTotalsUseNormalizedEntriesOnce() {
         let service = RecordingCleanupService()
         let cleanup = CleanupViewModel(service: service, homePath: "/Users/xqueue")

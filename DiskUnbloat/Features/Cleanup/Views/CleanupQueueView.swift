@@ -180,9 +180,12 @@ struct CleanupQueueView: View {
         let highlighted = selectedIDs.contains(row.node.id)
         return HStack(spacing: 7) {
             if row.hasSelectedDescendants || row.canPeek {
-                let expanded = row.hasSelectedDescendants ? !model.collapsed.contains(row.node.path) : model.isPeeked(row.node)
+                let expanded = row.coversAllChildren
+                    ? model.coveredExpanded.contains(row.node.path)
+                    : (row.hasSelectedDescendants ? !model.collapsed.contains(row.node.path) : model.isPeeked(row.node))
                 Button {
-                    if row.hasSelectedDescendants { model.toggleCollapsed(row.node) }
+                    if row.coversAllChildren { model.toggleCoveredExpanded(row.node) }
+                    else if row.hasSelectedDescendants { model.toggleCollapsed(row.node) }
                     else { model.togglePeek(row.node) }
                 } label: {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")

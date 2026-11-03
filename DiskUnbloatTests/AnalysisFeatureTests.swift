@@ -56,7 +56,10 @@ import DiskCore
         #expect(model.scan.index === index)
         // The queue panel keeps its open/closed state across a focused refresh.
         #expect(!model.cleanup.showQueue)
-        #expect(model.explorer.selectionIDs == [branch.id])
+        // The queued branch's map selection left with it (queued items cannot stay
+        // selected); the refresh removed it from the queue, so the selection rests
+        // cleared rather than pointing at a stale highlight.
+        #expect(model.explorer.selectionIDs.isEmpty)
         #expect(model.cleanup.basket.isEmpty)
         #expect(await index.node(branch.id)?.logicalSize == 300)
         await model.shutdown()

@@ -18,6 +18,8 @@ struct TreemapView: View {
     let deselectFromCleanup: (FileNode) -> Void
     let queuedPaths: [String]
     let canClean: Bool
+    /// Fast queue membership via the queue model's rebuild-per-change index.
+    var membership: (FileNode) -> QueueMembership = { _ in .none }
     /// Curated description for the hover card, when the node has one.
     var description: (FileNode) -> String? = { _ in nil }
     var refreshFolder: (FileNode) -> Void = { _ in }
@@ -123,7 +125,7 @@ struct TreemapView: View {
         }
     }
     @ViewBuilder private func cleanupMenu(for node: FileNode) -> some View {
-        let membership = queueMembership(path: node.path, queuedPaths: queuedPaths)
+        let membership = membership(node)
         if membership == .selected || membership == .insideSelection {
             Button("Deselect", systemImage: "tray") { deselectFromCleanup(node) }.disabled(!canClean)
         } else {

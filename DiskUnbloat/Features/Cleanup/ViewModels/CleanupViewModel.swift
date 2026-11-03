@@ -17,9 +17,21 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// The run's audit trail writer; tests and previews inject the no-op so nothing
     /// touches the filesystem there.
     @ObservationIgnored private let diagnostics: any CleanupDiagnosticRecording
+    /// Fired on every queue change with the new entries; injected by the workspace so the
+    /// explorer always learns the hidden paths — the queue is normalized inside
+    /// `didSet`, and no view must be relied on as a relay for that handoff.
+    @ObservationIgnored var basketDidUpdate: (([CleanupEntry]) -> Void)?
     private(set) var cleaning = false
     /// Canonical deletion queue: normalized, topmost entries kept, disjoint subtrees.
-    var basket: [CleanupEntry] = [] { didSet { if basket != oldValue { queueRevision += 1 } } }
+    var basket: [CleanupEntry] = [] {
+        didSet {
+            guard basket != oldValue else { return }
+            queueRevision += 1
+            recomputeBasketAttributes()
+            membershipIndex = QueueMembershipIndex(entries: basket)
+            basketDidUpdate?(basket)
+        }
+    }
     /// Paths contributed by the last automatic selection, so a fresh recommendation
     /// replaces the previous one while manually picked items stay untouched.
     @ObservationIgnored private var autoSelectedPaths: Set<String> = []
@@ -32,9 +44,15 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
 
     /// Estimated on-disk bytes of the normalized queue, using the same known-size
     /// accounting the map subtracts when queued items disappear. An estimate, not a
-    /// promise of reclaimed space.
-    var estimatedBytes: Int64 { basket.reduce(0) { $0 + $1.node.knownSize(for: .allocated) } }
-    var hasUnknownSizes: Bool { basket.contains { $0.node.unknownAllocatedCount > 0 } }
+    /// promise of reclaimed space. Recomputed once per queue change.
+    private(set) var estimatedBytes: Int64 = 0
+    private(set) var hasUnknownSizes = false
+    /// Fast membership for rows and map tiles; rebuilt once per queue change.
+    private(set) var membershipIndex: QueueMembershipIndex = QueueMembershipIndex(entries: [])
+    private func recomputeBasketAttributes() {
+        estimatedBytes = basket.reduce(0) { $0 + $1.node.knownSize(for: .allocated) }
+        hasUnknownSizes = basket.contains { $0.node.unknownAllocatedCount > 0 }
+    }
 
     init(service: any CleanupServing, homePath: String = LocationCatalog().home.path, activity: any ApplicationActivityProviding = ApplicationActivityService(), diagnostics: any CleanupDiagnosticRecording = NullCleanupDiagnostics()) {
         self.service = service; self.homePath = homePath; self.activity = activity; self.diagnostics = diagnostics
@@ -172,9 +190,10 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
         basket.removeAll { $0.node.path.overlaps(node.path) }
     }
 
-    /// How a node relates to the queue, for context-menu wording.
+    /// How a node relates to the queue, for context-menu wording — an O(depth) walk over
+    /// the rebuild-per-queue-change index, never a linear scan per render.
     func membership(_ node: FileNode) -> QueueMembership {
-        queueMembership(path: node.path, queuedPaths: basket.map { $0.node.path })
+        membershipIndex.membership(of: node.path)
     }
 
     /// Called synchronously to disable repeated submissions before creating an async task.

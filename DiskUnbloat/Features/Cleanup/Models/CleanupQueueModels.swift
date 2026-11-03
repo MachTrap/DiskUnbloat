@@ -254,6 +254,46 @@ enum QueueMembership: Sendable, Equatable {
     case insideSelection
 }
 
+/// O(depth) membership over the normalized queue instead of one linear scan per render:
+/// every rendered row and every map tile asks once per frame, and a linear scan over a
+/// bulk selection measured whole seconds of repaint jank. The queue is normalized
+/// (topmost kept, disjoint subtrees), so a path's own parent chain answers every
+/// relation — no per-path scan over the queue.
+struct QueueMembershipIndex: Sendable {
+    private let exact: Set<String>
+    /// Folder paths with at least one queue entry strictly below them, collected in one
+    /// pass over each entry's ancestor chain.
+    private let foldersWithEntriesBelow: Set<String>
+
+    init(entries: [CleanupEntry]) {
+        exact = Set(entries.map { $0.node.path })
+        var below = Set<String>()
+        for entry in entries {
+            var parent = URL(fileURLWithPath: entry.node.path).deletingLastPathComponent().path
+            while parent.count > 1 {
+                below.insert(parent)
+                parent = URL(fileURLWithPath: parent).deletingLastPathComponent().path
+            }
+        }
+        foldersWithEntriesBelow = below
+    }
+
+    /// The path's own character: exact entry, covered by an ancestor entry first (the
+    /// item goes with that selection even when other entries also lie below it), then a
+    /// folder containing entries.
+    func membership(of path: String) -> QueueMembership {
+        if exact.contains(path) { return .selected }
+        var parent = URL(fileURLWithPath: path).deletingLastPathComponent().path
+        var containsEntry = false
+        while parent.count > 1 {
+            if exact.contains(parent) { return .insideSelection }
+            if !containsEntry, foldersWithEntriesBelow.contains(parent) { containsEntry = true }
+            parent = URL(fileURLWithPath: parent).deletingLastPathComponent().path
+        }
+        return containsEntry ? .containsSelection : .none
+    }
+}
+
 func queueMembership(path: String, queuedPaths: [String]) -> QueueMembership {
     if queuedPaths.contains(path) { return .selected }
     if queuedPaths.contains(where: { $0.isWithin(path) }) { return .containsSelection }
@@ -267,6 +307,11 @@ protocol CleanupQueueProviding: Sendable {
     func node(id: Int64) async -> FileNode?
     func children(of parentID: Int64, limit: Int, offset: Int, sortByName: Bool) async -> [FileNode]
     func childCount(of parentID: Int64) async -> Int
+    /// Every ancestor row for the given start ids in one indexed round trip. A bulk
+    /// selection gathers hundreds of chains; hop-by-hop looks on the scale of seconds.
+    func ancestors(of ids: [Int64]) async -> [Int64: FileNode]
+    /// Exact direct-child counts for many folders at once (hidden-item badges).
+    func childCounts(of ids: [Int64]) async -> [Int64: Int]
 }
 
 /// `CleanupQueueProviding` backed by the session's `ScanIndex`.
@@ -279,5 +324,11 @@ struct IndexCleanupQueueProvider: CleanupQueueProviding {
     }
     func childCount(of parentID: Int64) async -> Int {
         await index.childCount(of: parentID, inspectPackages: inspectPackages)
+    }
+    func ancestors(of ids: [Int64]) async -> [Int64: FileNode] {
+        await index.nodesWithAncestors(ids: ids)
+    }
+    func childCounts(of ids: [Int64]) async -> [Int64: Int] {
+        await index.childCounts(of: ids, inspectPackages: inspectPackages)
     }
 }

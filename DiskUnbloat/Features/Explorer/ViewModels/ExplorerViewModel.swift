@@ -9,6 +9,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
 }
 
 @MainActor @Observable final class ExplorerViewModel {
+    private var me: String { ObjectIdentifier(self).hashValue != 0 ? String(ObjectIdentifier(self).hashValue) : "" }
     private let settings: SettingsViewModel
     private let activity: any ApplicationActivityProviding
     let homePath: String?
@@ -82,8 +83,10 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
 
     /// Hides queued deletion items everywhere the explorer queries, and drops their selections.
     /// Subsumed entries collapse immediately; complete-container collapses (which need
-    /// child counts) land right after, absorbed by the query debounce.
-    func updateHiddenPaths(_ paths: [String]) {
+    /// child counts) land right after. The scene reloads for each state synchronously:
+    /// a queued-path change is infrequent, and the debounced path can be cancelled by
+    /// unrelated activity, which once left a stale map with no way back.
+    func updateHiddenPaths(_ paths: [String]) async {
         guard paths != queuedPaths else { return }
         queuedPaths = paths
         selectionIDs = selectionIDs.filter { id in
@@ -94,19 +97,21 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         let generation = hiddenGeneration
         applyHidden(HiddenRanges(paths: HiddenRanges.pruneSubsumed(paths), subtrees: []))
         guard let index else { return }
-        Task {
-            let ranges = await index.coalescedHiddenRanges(for: paths)
-            guard generation == hiddenGeneration else { return }
-            applyHidden(ranges)
-        }
+        // The precise ranges need child counts over the index; the pruned list above may
+        // still hide every descendant of a fully queued container until they land.
+        let ranges = await index.coalescedHiddenRanges(for: paths)
+        guard generation == hiddenGeneration else { return }
+        applyHidden(ranges)
+        await loadResults()
     }
 
+    /// State change only: the caller owns the reload (the debounced query can be
+    /// cancelled by unrelated activity, which once left a stale map with no way back).
     private func applyHidden(_ ranges: HiddenRanges) {
         guard ranges.paths != hiddenPaths || ranges.subtrees != hiddenSubtrees else { return }
         hiddenPaths = ranges.paths
         hiddenSubtrees = ranges.subtrees
         sceneCache = [:]; sceneCacheOrder = []
-        scheduleRefresh()
     }
 
     func attach(_ index: ScanIndex, options: ScanOptions, grouped: Bool = false) async {
@@ -117,7 +122,8 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         await loadResults(); await loadBreadcrumbs()
     }
 
-    func suspendQueries() { refreshTask?.cancel(); queryGeneration += 1 }
+    func suspendQueries() {
+        refreshTask?.cancel(); queryGeneration += 1 }
 
     func restoreAfterRefresh() async {
         guard let index else { return }
@@ -155,7 +161,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     /// Snapshot the query-relevant state. Running-application cache exclusions are resolved
     /// here (main actor) so `ExplorerQueries` stays a plain value type.
     private func makeQueries() -> ExplorerQueries {
-        ExplorerQueries(
+        return ExplorerQueries(
             current: current, metric: metric, options: options, scope: scope,
             suggestion: suggestion, hiddenPaths: hiddenPaths, hiddenSubtrees: hiddenSubtrees,
             activityExclusions: suggestion != nil ? (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) : [],
@@ -167,6 +173,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     }
 
     func loadResults() async {
+        print("LOAD entry hidden=\(hiddenPaths.count)")
         guard let index, let current else { return }
         queryGeneration += 1; let generation = queryGeneration
         isLoading = true
@@ -184,7 +191,11 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             let snap = await index.mapSnapshot(
                 rootID: current.id, mapQuery: queries.sceneQuery(),
                 legendQuery: queries.legendQuery(), filtered: filtered)
-            guard !Task.isCancelled, snap.revision == revision, generation == queryGeneration, self.index === index else { return }
+            // Task cancellation never invalidates this computation on its own: a newer
+            // query generation owns fresher state, and an equal generation with the same
+            // index means the result is exactly what was asked for — commit it, or a
+            // cancelled-but-current load silently leaves the previous map in place.
+            guard snap.revision == revision, generation == queryGeneration, self.index === index else { return }
             resolvedScene = snap.scene
             resolvedLegend = snap.legendCategories
             if !filtered {
@@ -197,6 +208,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         nodesByID = Dictionary(resolvedScene.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for n in retainedSelection { nodesByID[n.id] = n }
         selectionIDs.formIntersection(nodesByID.keys); isLoading = false
+        print("LOAD commit entries=\(scene.entries.count) summary=\(scene.summary.knownBytes) rootID=\(scene.rootID) currentID=\(current.id)")
     }
 
     func select(_ id: Int64?) { selection = id }
@@ -226,7 +238,6 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         guard canNavigate(node), node.id != current?.id else { return }
         if record, let current { back.append(current.id); forward = [] }
         current = node; selectionIDs = []; highlightedCategory = nil
-        search = ""; suggestion = nil; minimumGB = 0; olderDays = 0; extensionFilter = ""
         refreshTask?.cancel()
         refreshTask = Task { await loadResults(); await loadBreadcrumbs() }
     }

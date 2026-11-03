@@ -28,5 +28,8 @@ public struct FileQuery: Sendable {
     public var ascending = false
     public var sortByName = false
     public var limit = 2000
+    public var hasPathExclusions: Bool {
+        !hiddenPaths.isEmpty || !hiddenSubtrees.isEmpty || !excludedCandidatePaths.isEmpty
+    }
     public init() {}
 }

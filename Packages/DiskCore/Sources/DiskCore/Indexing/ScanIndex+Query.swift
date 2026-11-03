@@ -3,16 +3,83 @@ import CSQLite
 
 extension ScanIndex {
     public func node(_ id: Int64) -> FileNode? { read("SELECT * FROM nodes WHERE id=\(id)").first }
-    private func predicate(_ q: FileQuery) -> (String, [String]) {
+    private func predicate(_ q: FileQuery, skipExclusions: Bool = false) -> (String, [String]) {
         var p = SQLPredicate()
         p.add("1=1")
+        let hasExclusions = !skipExclusions && q.hasPathExclusions
+        if hasExclusions { refreshHiddenTables(q) }
+        if hasExclusions { applyPathExclusionTables(q, to: &p) }
         applyScope(q, to: &p)
         applyFilters(q, to: &p)
         if let suggestion = q.suggestion { applySuggestion(suggestion, q, to: &p) }
         if let rule = q.cleanupRule { applyCleanupRule(rule, q, to: &p) }
-        for path in q.hiddenPaths { applyPathExclusion(path, to: &p) }
-        for path in q.hiddenSubtrees { applyDescendantExclusion(path, to: &p) }
         return (p.sql, p.strings)
+    }
+
+    /// A bulk selection queues thousands of deletions at once. One SQL clause per path
+    /// cannot represent that: past SQLite's expression-depth limit the whole statement
+    /// fails silently and the map blanks, and even a balanced clause tree costs seconds
+    /// per commit. These temp tables instead hold the exclusion ranges once per state,
+    /// and every query rejects rows with one indexed `NOT EXISTS` lookup.
+    private func signature(of q: FileQuery) -> String {
+        let separator = "\u{1f}"
+        return [q.hiddenPaths, q.hiddenSubtrees, q.excludedCandidatePaths]
+            .map { $0.joined(separator: separator) }.joined(separator: separator)
+    }
+
+    private func refreshHiddenTables(_ q: FileQuery) {
+        let signature = signature(of: q)
+        if hiddenTableSignature == signature { return }
+        do {
+            try exec("CREATE TEMP TABLE IF NOT EXISTS excludedRow(rowId INTEGER PRIMARY KEY)")
+            try exec("DELETE FROM excludedRow")
+            // Each stored range (a path plus its descendants, or a collapsed container's
+            // descendants) resolves to one indexed band scan over path_index. The result
+            // is a plain integer key table, so every later query rejects excluded rows
+            // with a primary-key anti-join instead of probing thousands of ranges per row.
+            for (selfPath, lower, upper) in queryExclusionRanges(q) {
+                if let selfPath {
+                    try execute("INSERT OR IGNORE INTO excludedRow(rowId) SELECT id FROM nodes WHERE path=?", strings: [selfPath])
+                }
+                try execute("INSERT OR IGNORE INTO excludedRow(rowId) SELECT id FROM nodes WHERE path>=? AND path<?", strings: [lower, upper])
+            }
+            hiddenTableSignature = signature
+        } catch {
+            // If the tables could not be filled, fall back to the per-path clauses; the
+            // map keeps working, slower, exactly like the previous implementation.
+            hiddenTableSignature = nil
+        }
+    }
+
+    /// The SQL bands for one exclusion state: exact-path plus descendants for hidden
+    /// entries and candidate exclusions, descendants only for collapsed containers —
+    /// each as a `(lower, upper)` pair over the binary path ordering.
+    private func queryExclusionRanges(_ q: FileQuery) -> [(selfPath: String?, lower: String, upper: String)] {
+        var result: [(String?, String, String)] = []
+        for path in q.hiddenPaths {
+            let range = path.pathRange
+            result.append((path, range.lower, range.upper))
+        }
+        for path in q.excludedCandidatePaths {
+            let range = path.pathRange
+            result.append((path, range.lower, range.upper))
+        }
+        for path in q.hiddenSubtrees {
+            result.append((nil, path + "/", path + "0"))
+        }
+        return result
+    }
+
+    /// Referencing the exclusion rows is safe only after `refreshHiddenTables`
+    /// materialized them for this exact query state.
+    private func applyPathExclusionTables(_ q: FileQuery, to p: inout SQLPredicate) {
+        guard hiddenTableSignature != nil else {
+            for path in q.hiddenPaths { pathExclusionClause(path, to: &p) }
+            for path in q.hiddenSubtrees { descendantExclusionClause(path, to: &p) }
+            for path in q.excludedCandidatePaths { pathExclusionClause(path, to: &p) }
+            return
+        }
+        p.add("NOT EXISTS(SELECT 1 FROM excludedRow e WHERE e.rowId=nodes.id)")
     }
 
     /// Accumulates SQL WHERE clauses and their ordered string bindings; the `?` in the joined
@@ -120,7 +187,6 @@ extension ScanIndex {
                 p.add("(" + rootClauses.joined(separator: " OR ") + ")", bind: binds)
             }
         }
-        for path in q.excludedCandidatePaths { applyPathExclusion(path, to: &p) }
         applySystemExclusions(rule, q, to: &p)
     }
 
@@ -133,13 +199,14 @@ extension ScanIndex {
         if roots.contains(where: { $0.path.contains("/Library/Application Support/") }) { generic.removeAll { $0.contains("Application Support") } }
         for clause in generic { p.add(clause) }
     }
-
-    private func applyPathExclusion(_ path: String, to p: inout SQLPredicate) {
+    /// Per-path shape of the map/queue exclusion clause (fallback when the temp tables
+    /// could not be materialized on this connection).
+    private func pathExclusionClause(_ path: String, to p: inout SQLPredicate) {
         let range = path.pathRange
         p.add("NOT(path=? OR (path>=? COLLATE BINARY AND path<? COLLATE BINARY))", bind: [path, range.lower, range.upper])
     }
-    /// Hides a container's descendants while the container itself stays on the map.
-    private func applyDescendantExclusion(_ path: String, to p: inout SQLPredicate) {
+    /// Per-path shape of the descendants-only exclusion (hidden collapsed containers).
+    private func descendantExclusionClause(_ path: String, to p: inout SQLPredicate) {
         let range = path.pathRange
         p.add("NOT(path>=? COLLATE BINARY AND path<? COLLATE BINARY)", bind: [range.lower, range.upper])
     }
@@ -169,6 +236,62 @@ extension ScanIndex {
         defer { sqlite3_finalize(stmt) }
         guard sqlite3_step(stmt) == SQLITE_ROW else { return 0 }
         return Int(sqlite3_column_int64(stmt, 0))
+    }
+
+    /// Every node whose id is one of the given starts, extended with their ancestor
+    /// chain, fetched through a handful of indexed set statements instead of one
+    /// round trip per node: a bulk selection resolves hundreds of chains up front.
+    public func nodesWithAncestors(ids: [Int64]) -> [Int64: FileNode] {
+        var result: [Int64: FileNode] = [:]
+        // Walk the frontier level by level; a path depth of a few dozen keeps this at
+        // a couple of batched statements with the id primary key.
+        var frontier = ids
+        while !frontier.isEmpty {
+            var fetched: [Int64: FileNode] = [:]
+            var index = frontier.startIndex
+            while index < frontier.endIndex {
+                let upper = min(frontier.endIndex, index + 900)
+                let idList = frontier[index..<upper].map(String.init).joined(separator: ",")
+                for row in read("SELECT id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,fingerprint,insidePackage,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified FROM nodes WHERE id IN (\(idList))") {
+                    fetched[row.id] = row
+                }
+                index = upper
+            }
+            result.merge(fetched) { a, _ in a }
+            // Next frontier: the parents of everything just fetched that could still
+            // be missing (the root and group wrappers report parent nil and stop).
+            var next: Set<Int64> = []
+            for row in fetched.values {
+                if let parentID = row.parentID, result[parentID] == nil, !fetched.keys.contains(parentID) { next.insert(parentID) }
+            }
+            frontier = Array(next)
+        }
+        return result
+    }
+
+    /// Exact direct-child counts for many folders, grouped in one statement.
+    public func childCounts(of ids: [Int64], inspectPackages: Bool) -> [Int64: Int] {
+        guard !ids.isEmpty else { return [:] }
+        let packageClause = inspectPackages ? "" : " AND insidePackage=0"
+        var result: [Int64: Int] = [:]
+        var index = ids.startIndex
+        while index < ids.endIndex {
+            let upper = min(ids.endIndex, index + 900)
+            let idList = ids[index..<upper].map(String.init).joined(separator: ",")
+            var stmt: OpaquePointer?
+            let sql = "SELECT parent, COUNT(*) FROM nodes WHERE parent IN (\(idList))\(packageClause) GROUP BY parent"
+            if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+                while sqlite3_step(stmt) == SQLITE_ROW {
+                    let parent = sqlite3_column_int64(stmt, 0)
+                    result[parent] = Int(sqlite3_column_int64(stmt, 1))
+                }
+            }
+            sqlite3_finalize(stmt)
+            index = upper
+        }
+        // Folders whose count is legitimately zero still need an entry for honest badges.
+        for id in ids where result[id] == nil { result[id] = 0 }
+        return result
     }
     public func summary(_ q: FileQuery) -> SizeSummary {
         let (whereSQL, strings) = predicate(q)
@@ -215,7 +338,11 @@ extension ScanIndex {
         return result.sorted { $0.bytes > $1.bytes }
     }
     /// Distinct file categories present in the query scope. Lighter than the full
-    /// `categorySummaries` aggregation; used by the always-visible legend.
+    /// `categorySummaries` aggregation; used by the always-visible legend. With hidden
+    /// exclusions the whole-table per-row probes cannot scale (a bulk selection's
+    /// thousands of ranges probed against every table row measured minutes), so the
+    /// histogram is grouped over the unfiltered predicate once and each hidden range is
+    /// subtracted via its own small indexed aggregate.
     public func categoryList(_ query: FileQuery) -> [FileCategory] {
         var q = query; q.leafResults = true; q.parentID = nil
         let (predicate, strings) = predicate(q)

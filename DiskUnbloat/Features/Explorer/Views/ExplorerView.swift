@@ -7,6 +7,8 @@ struct ExplorerView: View {
     let scan: ScanViewModel
     let canClean: Bool
     let queuedPaths: [String]
+    /// Fast membership via the queue model's rebuild-per-change index.
+    var membership: (FileNode) -> QueueMembership = { _ in .none }
     let newScan: () -> Void
     let rescan: () -> Void
     let refreshFolder: (FileNode) -> Void
@@ -41,7 +43,7 @@ struct ExplorerView: View {
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            TreemapView(scene: model.scene, selection: model.selectionIDs, highlighted: model.highlightedCategory, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+            TreemapView(scene: model.scene, selection: model.selectionIDs, highlighted: model.highlightedCategory, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
                 .overlay {
                     if model.isLoading {
@@ -112,8 +114,8 @@ struct ExplorerView: View {
                 .onChange(of: model.extensionFilter) { model.scheduleRefresh() }
                 .onChange(of: model.metric) { model.scheduleRefresh() }
                 .onChange(of: model.searchRequested) { focusSearch() }
-                .onChange(of: queuedPaths) { model.updateHiddenPaths(queuedPaths) }
-                .onAppear { model.updateHiddenPaths(queuedPaths) }
+                .onChange(of: queuedPaths) { Task { await model.updateHiddenPaths(queuedPaths) } }
+                .task { await model.updateHiddenPaths(queuedPaths) }
         }
     }
 

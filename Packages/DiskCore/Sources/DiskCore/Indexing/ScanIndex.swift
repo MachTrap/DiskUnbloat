@@ -3,6 +3,8 @@ import CSQLite
 
 public actor ScanIndex {
     var db: OpaquePointer?
+    /// Signature of the exclusion temp tables' current content (see ScanIndex+Query).
+    var hiddenTableSignature: String?
     public nonisolated let url: URL
     public internal(set) var revision: UInt64 = 0
     public init(url: URL) throws {
@@ -12,9 +14,15 @@ public actor ScanIndex {
         db = handle
         let schema = """
         PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;
+        PRAGMA temp_store=MEMORY;
         CREATE TABLE IF NOT EXISTS nodes(id INTEGER PRIMARY KEY,parent INTEGER,path TEXT,name TEXT,directory INTEGER,package INTEGER,symlink INTEGER,logical INTEGER,allocated INTEGER,modified REAL,identity TEXT,insidePackage INTEGER,incomplete INTEGER NOT NULL DEFAULT 0,fingerprint TEXT,searchName TEXT,knownLogical INTEGER NOT NULL DEFAULT 0,knownAllocated INTEGER NOT NULL DEFAULT 0,unknownLogical INTEGER NOT NULL DEFAULT 0,unknownAllocated INTEGER NOT NULL DEFAULT 0,rawLogical INTEGER,rawAllocated INTEGER,category TEXT,latestModified REAL,unknownModified INTEGER NOT NULL DEFAULT 0);
         CREATE INDEX IF NOT EXISTS parent_index ON nodes(parent);
         CREATE INDEX IF NOT EXISTS size_index ON nodes(knownAllocated DESC);
+        -- The folder listing's shape is `parent=? ORDER BY knownAllocated DESC, id LIMIT n`;
+        -- with only the single-column indexes above, SQLite plans a full size_index scan
+        -- per folder and every queue/map/legend commit pays the entire table again. The
+        -- composite index turns each of those into one bounded tree descent.
+        CREATE INDEX IF NOT EXISTS parent_size_index ON nodes(parent, knownAllocated DESC, id);
         CREATE INDEX IF NOT EXISTS path_index ON nodes(path);
         CREATE INDEX IF NOT EXISTS identity_index ON nodes(identity);
         CREATE INDEX IF NOT EXISTS category_index ON nodes(category);

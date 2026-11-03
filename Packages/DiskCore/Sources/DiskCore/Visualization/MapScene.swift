@@ -41,13 +41,33 @@ extension ScanIndex {
         let budget = max(2, min(10000, maxEntries))
         // Queued (hidden) subtrees are excluded from container sizes so queued items visibly
         // disappear and their containers shrink. Each queued item's aggregate is its subtree size.
-        let hidden: [(path: String, bytes: Int64)] = query.hiddenPaths.compactMap {
-            guard let n = node(path: $0) else { return nil }
-            return (n.path, n.knownSize(for: query.metric))
+        // Every hidden record contributes its bytes to each of its ancestor keys once, so a
+        // container's subtraction is a single dictionary lookup instead of a scan over the
+        // whole queue per row (a bulk selection queues thousands).
+        var queuedWithin: [String: Int64] = [:]
+        func add(_ bytes: Int64, along path: String) {
+            guard bytes > 0 else { return }
+            var cursor = path
+            while true {
+                queuedWithin[cursor, default: 0] += bytes
+                let parent = URL(fileURLWithPath: cursor).deletingLastPathComponent().path
+                if parent == cursor { break }
+                cursor = parent
+            }
+        }
+        for path in query.hiddenPaths {
+            if let n = node(path: path) { add(n.knownSize(for: query.metric), along: n.path) }
+        }
+        // Fully collapsed containers: their queued direct children were removed from
+        // `hiddenPaths`, but their bytes still leave their ancestors — the container's
+        // own tile and every folder above it lose exactly the queued children's sizes,
+        // matching the queue's estimate.
+        for subtree in query.hiddenSubtrees {
+            let bytes = queuedChildBytes(ofSubtree: subtree, metric: query.metric)
+            if bytes > 0 { add(bytes, along: subtree) }
         }
         func visibleSize(_ n: FileNode) -> Int64 {
-            let queued = hidden.reduce(Int64(0)) { $1.path.isWithin(n.path) ? $0 + $1.bytes : $0 }
-            return max(0, n.knownSize(for: query.metric) - queued)
+            max(0, n.knownSize(for: query.metric) - (queuedWithin[n.path] ?? 0))
         }
         guard let rootNode = node(rootID) else { return MapScene(rootID: rootID, entries: [], summary: SizeSummary()) }
         var entries: [MapEntry] = []
@@ -84,6 +104,21 @@ extension ScanIndex {
             if filtered { break }
         }
         return MapScene(rootID: rootID, entries: entries, summary: rootSummary)
+    }
+
+    /// The known-size sum of every direct child of a collapsed container — the bytes those
+    /// queued children take out of the container itself and every ancestor folder. Children
+    /// are paged because a collapsed store can hold thousands of entries.
+    private func queuedChildBytes(ofSubtree path: String, metric: SizeMetric) -> Int64 {
+        guard let container = node(path: path) else { return 0 }
+        var bytes: Int64 = 0
+        var offset = 0
+        while true {
+            let page = children(of: container.id, inspectPackages: false, limit: 512, offset: offset)
+            bytes += page.reduce(Int64(0)) { $0 + $1.knownSize(for: metric) }
+            if page.count < 512 { return bytes }
+            offset += page.count
+        }
     }
 }
 

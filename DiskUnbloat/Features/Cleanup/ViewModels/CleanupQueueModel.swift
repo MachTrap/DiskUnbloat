@@ -94,28 +94,38 @@ import DiskCore
         }
         var nodes: [Int64: FileNode] = [:]
         for entry in entries { nodes[entry.node.id] = entry.node }
-        // Resolve each entry's strict ancestors so partial folders can be shown. The
-        // synthetic group wrapper is never a row; real roots become top-level entries.
+        // Resolve every entry's strict ancestors in a constant number of indexed batch
+        // statements: a bulk selection gathers hundreds of chains, and hop-by-hop
+        // provider round trips measured in minutes on the main actor.
+        if !nodes.isEmpty {
+            let gathered = await provider.ancestors(of: Array(nodes.keys))
+            if gen != generation { return }
+            nodes.merge(gathered) { a, _ in a }
+        }
+        // Partial folders (contain a queued entry without being queued themselves) need
+        // child counts for honest hidden badges and, where revealed, paged unselected
+        // children. Their ids fall out of the gather walk directly, so no per-node
+        // scan over every entry is needed; an already-recorded ancestor means the rest
+        // of that chain was processed earlier, so the walk can stop there.
+        var entryIDs = Set(entries.map { $0.node.id })
+        var partialAncestorIDs = Set<Int64>()
         for entry in entries {
             var child = entry.node
-            while let parentID = child.parentID, nodes[parentID] == nil {
-                guard let parent = await provider.node(id: parentID), gen == generation else { return }
-                if parent.isGroupRoot { break }
-                nodes[parentID] = parent
+            while let parentID = child.parentID, let parent = nodes[parentID] {
+                if parent.isGroupRoot || entryIDs.contains(parentID) { break }
+                if partialAncestorIDs.insert(parentID).inserted == false { break }
                 child = parent
             }
         }
-        // Partial folders need child counts (for honest hidden badges) and, where the
-        // user revealed them, paged unselected children.
-        for node in nodes.values where isPartialAncestor(node, entries: entries) {
-            if childCounts[node.id] == nil {
-                childCounts[node.id] = await provider.childCount(of: node.id)
-                if gen != generation { return }
-            }
-            if revealed.contains(node.path), fetchedChildren[node.id] == nil {
-                fetchedChildren[node.id] = await provider.children(of: node.id, limit: pageSize, offset: 0, sortByName: true)
-                if gen != generation { return }
-            }
+        let partials = nodes.values.filter { partialAncestorIDs.contains($0.id) }
+        let missingCounts = partials.filter { childCounts[$0.id] == nil }
+        if !missingCounts.isEmpty {
+            childCounts.merge(await provider.childCounts(of: missingCounts.map { $0.id })) { a, _ in a }
+            if gen != generation { return }
+        }
+        for node in partials where revealed.contains(node.path) && fetchedChildren[node.id] == nil {
+            fetchedChildren[node.id] = await provider.children(of: node.id, limit: pageSize, offset: 0, sortByName: true)
+            if gen != generation { return }
         }
         // Peeked folders keep their largest-first child pages across rebuilds.
         for node in peeks.values where peekChildren[node.id] == nil {
@@ -252,10 +262,5 @@ import DiskCore
             childCounts: childCounts,
             fetchedChildren: fetchedChildren, peekChildren: peekChildren, peekCounts: peekCounts,
             revealed: revealed, collapsed: collapsed, coveredExpanded: coveredExpanded))
-    }
-
-    private func isPartialAncestor(_ node: FileNode, entries: [CleanupEntry]) -> Bool {
-        guard !node.isGroupRoot else { return false }
-        return !entries.contains { $0.node.id == node.id } && entries.contains { $0.node.path.isWithin(node.path) }
     }
 }

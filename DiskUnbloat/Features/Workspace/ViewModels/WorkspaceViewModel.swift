@@ -41,6 +41,13 @@ enum WorkspacePhase: Equatable {
         scan = ScanViewModel(coordinator: coordinator)
         explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
         cleanup = CleanupViewModel(service: cleanupService, diagnostics: CleanupDiagnosticsService())
+        // The queue is the one source of hidden map paths: every queue mutation (manual
+        // picks, quick-select, refresh invalidations) is forwarded to the explorer from
+        // the model, never through a view-side relay like `.onChange` on a big array,
+        // which silently never fires for large payloads.
+        cleanup.basketDidUpdate = { [explorer] entries in
+            Task { await explorer.updateHiddenPaths(entries.map { $0.node.path }) }
+        }
         queue = CleanupQueueModel(cleanup: cleanup)
     }
 
@@ -167,6 +174,10 @@ enum WorkspacePhase: Equatable {
             do {
                 if try await scan.runRefresh(request, node: node) {
                     let count = cleanup.invalidate(overlapping: node.path)
+                    // Queue changes reach the explorer's hidden state deterministically
+                    // before the map presentation restores, so the restored selection
+                    // reflects exactly what is still selectable.
+                    await explorer.updateHiddenPaths(cleanup.basket.map { $0.node.path })
                     if count > 0 { message = L10n.text("Refreshed items were removed from the cleanup queue. Review their current contents again.") }
                     phase = .preparingResults; scan.stage = .preparingMap
                     await explorer.restoreAfterRefresh()

@@ -29,6 +29,22 @@ import DiskCore
             return Array(all[offset..<min(offset + limit, all.count)])
         }
         func childCount(of parentID: Int64) async -> Int { (childrenByID[parentID] ?? []).count }
+        func ancestors(of ids: [Int64]) async -> [Int64: FileNode] {
+            var result: [Int64: FileNode] = [:]
+            var frontier = Set(ids)
+            while !frontier.isEmpty {
+                for id in frontier where nodes[id] != nil { result[id] = nodes[id]! }
+                var next = Set<Int64>()
+                for id in frontier {
+                    if let parentID = nodes[id]?.parentID, result[parentID] == nil { next.insert(parentID) }
+                }
+                frontier = next
+            }
+            return result
+        }
+        func childCounts(of ids: [Int64]) async -> [Int64: Int] {
+            ids.reduce(into: [:]) { $0[$1] = (childrenByID[$1] ?? []).count }
+        }
     }
 
     /// root(1) has folder(2), b(4), c(5); folder has a.bin(3), file.bin(6).

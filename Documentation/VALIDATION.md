@@ -2,6 +2,12 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Partial-row checkbox clears the nested selection when the whole folder is refused — 2026-11-03
+
+- **Report:** with a nested object selected for deletion inside `~/Library/Caches`, clicking the Caches row's checkbox could not deselect: the click mapped to "select the whole folder", the running-application activity check refused it (the Caches path overlaps a running app's active cache among the queued children), and the alert dead-ended the interaction — there was no single-click way out of a partially selected folder.
+- **Fix:** the select intent (`CleanupViewModel.addOrClear`, reached from `WorkspaceViewModel.addToBasket` by both the panel checkbox and the map tile) now falls back when the whole-folder selection is refused and queue entries already exist inside the folder: it removes those entries (`deselect`) and the alert keeps the exact refusal plus the fact that the nested selection was cleared. Without nested entries the refusal surfaces unchanged (nothing is silently removed); a successful selection behaves as before. Deselection itself is always safe — it only drops queue entries, no safety check can refuse it. New localized string in English and Russian; no other catalog changes.
+- Tests: hosted suite keeps the refusal-without-nested case as an exact localized-equality regression and adds `refusedWholeFolderSelectionClearsTheNestedSelection` (nested entry queued, whole-folder addOrClear refused by the fixed blocked path, basket empty afterwards, message = refusal + cleared note). CleanupViewModel-level only: the wiring at `WorkspaceViewModel.addToBasket` is a one-line call not separately hosted-tested.
+
 ## Bulk-selection performance round with a benchmark harness — 2026-11-03
 
 - **Report:** after the empty-map fix, the same flow (home scan → rebuildable select → confirm) worked but the queue panel spun "Updating the list…" for minutes; the map updated only gradually.

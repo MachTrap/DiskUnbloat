@@ -383,7 +383,10 @@ enum WorkspacePhase: Equatable {
 
     func addToBasket(_ node: FileNode) {
         guard canClean, !scan.roots.isEmpty else { return }
-        if let reason = cleanup.add(node, roots: scan.roots) { message = reason }
+        // Selecting a partially queued folder may be refused (a running application's
+        // cache among the queued children); the click then clears that nested selection
+        // instead of dead-ending, with the refusal still stated in the alert.
+        if let reason = cleanup.addOrClear(node, roots: scan.roots) { message = reason }
     }
 
     /// Remove the queue entries covering a node: its exact entry, entries below it, or

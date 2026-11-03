@@ -7989,6 +7989,23 @@
         }
       }
     },
+    "The items already selected inside it were removed from the cleanup queue instead." : {
+      "extractionState" : "translated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The items already selected inside it were removed from the cleanup queue instead."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уже выбранные внутри объекты удалены из очереди очистки."
+          }
+        }
+      }
+    },
     "This selection includes cache data belonging to a running application or protected service. Close the application and review again." : {
       "extractionState" : "stale",
       "localizations" : {

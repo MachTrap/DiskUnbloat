@@ -102,6 +102,21 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
 
     func add(_ node: FileNode, root: URL) -> String? { add(node, roots: [root]) }
 
+    /// The checkbox/tile select intent: add the whole folder, or — when that is refused
+    /// and the folder already carries queue entries (a partial row like ~/Library/Caches
+    /// with a nested queued cache) — clear the nested selection instead so the click
+    /// always stays an honest action. Returns a message to show: the refusal alone, or
+    /// the refusal plus what happened to the nested entries; nil on success.
+    func addOrClear(_ node: FileNode, roots: [URL]) -> String? {
+        if let refusal = add(node, roots: roots) {
+            let nested = basket.filter { $0.node.path.overlaps(node.path) }
+            guard !nested.isEmpty else { return refusal }
+            deselect(node)
+            return refusal + " " + L10n.text("The items already selected inside it were removed from the cleanup queue instead.")
+        }
+        return nil
+    }
+
     func add(_ node: FileNode, roots: [URL]) -> String? {
         guard !roots.isEmpty else { return L10n.text(CleanupReason.outsideScope.message) }
         let cacheRoots = CleanupRule.knownCacheRoots(home: homePath)

@@ -113,4 +113,33 @@ import DiskCore
         #expect(cleanup.add(node,root: URL(fileURLWithPath: home)) != nil)
         #expect(cleanup.basket.isEmpty)
     }
+
+    @Test func refusedWholeFolderSelectionClearsTheNestedSelection() {
+        let home = "/Users/partial"
+        let cleanup = CleanupViewModel(service: RecordingCleanupService(), homePath: home, activity: FixedActivity(paths: [home + "/Library/Caches/running-app"]))
+        let root = URL(fileURLWithPath: home)
+        // A queued cache beneath ~/Library/Caches that is itself selectable only because
+        // it is not the running app's path the activity check blocks.
+        let inner = FileNode(id: 3,parentID: 2,path: home+"/Library/Caches/harmless-cache",name: "harmless-cache",isDirectory: true,logicalSize: 10,allocatedSize: 10,modified: nil,identity: "3")
+        let caches = FileNode(id: 2,parentID: 1,path: home+"/Library/Caches",name: "Caches",isDirectory: true,logicalSize: 100,allocatedSize: 100,modified: nil,identity: "2")
+        #expect(cleanup.add(inner, root: root) == nil)
+        #expect(cleanup.basket.count == 1)
+        // The whole-folder select is refused (the Caches path overlaps the running app's
+        // blocked cache), so the click must clear the nested selection instead of only
+        // alerting, and the shown message keeps the refusal plus what happened.
+        let message = cleanup.addOrClear(caches, roots: [root])
+        #expect(message == L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again.")
+            + " " + L10n.text("The items already selected inside it were removed from the cleanup queue instead."))
+        #expect(cleanup.basket.isEmpty)
+    }
+
+    @Test func refusedWholeFolderSelectionWithoutNestedEntriesStaysAPlainAlert() {
+        let home = "/Users/partial-plain"
+        let cleanup = CleanupViewModel(service: RecordingCleanupService(), homePath: home, activity: FixedActivity(paths: [home + "/Library/Caches/running-app"]))
+        let caches = FileNode(id: 2,parentID: 1,path: home+"/Library/Caches",name: "Caches",isDirectory: true,logicalSize: 100,allocatedSize: 100,modified: nil,identity: "2")
+        // Nothing queued inside: the refusal surfaces alone and nothing changes.
+        let message = cleanup.addOrClear(caches, roots: [URL(fileURLWithPath: home)])
+        #expect(message == L10n.text("This selection includes cache data belonging to a running application or protected service. Close the application and review again."))
+        #expect(cleanup.basket.isEmpty)
+    }
 }

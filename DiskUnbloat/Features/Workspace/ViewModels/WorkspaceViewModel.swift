@@ -114,6 +114,14 @@ enum WorkspacePhase: Equatable {
         cleanup.reset(preservingReport: preservingCleanupReport)
         queue.reset()
         scanTask = Task {
+            // The sandbox denies openings without an active security-scope grant even
+            // while metadata stays readable — a silently failed grant activation makes
+            // the scan fail before its first row with no dialog to answer. When a stored
+            // bookmark covers the scope, restore it (headlessly, from the narrowest
+            // covering bookmark) before the doomed enumeration runs. A picker is never
+            // shown here; an unrepairable scope lands on the failed screen whose
+            // Reauthorize access button presents the picker explicitly.
+            _ = await ensureGrant(for: request)
             authorization.retainOnly(request.roots)
             do {
                 try await scan.run(request)
@@ -191,6 +199,32 @@ enum WorkspacePhase: Equatable {
         chooseSuggested(root)
     }
 
+    /// The sandbox denies openings (and URL resource-value reads) without an active
+    /// security-scope grant while metadata (lstat) stays readable everywhere, so both
+    /// checks must pass for the scan to be worth starting.
+    private func isReadableRoot(_ url: URL) -> Bool {
+        let canonical = canonicalURL(url)
+        guard (try? FileIdentity.read(canonical)) != nil else { return false }
+        return (try? canonical.resourceValues(forKeys: [.isPackageKey])) != nil
+    }
+
+    /// Restores a covering stored grant headlessly when the scan scope is home-rooted
+    /// (or `/`) but cannot be opened yet. Returns nothing — whether or not it could
+    /// repair the grants, the scan runs and an unrepairable scope fails later on the
+    /// failed screen with its recorded issue and the manual Reauthorize access button.
+    /// The most specific covering bookmark wins over the broad volume-root grant, whose
+    /// activation does not reliably extend the sandbox into protected home data.
+    private func ensureGrant(for request: ScanRequest) async {
+        let canonicalRoots = request.roots.map(canonicalURL)
+        let homePath = location.catalog.home.path
+        // Other scopes always scan through a path-granted root: nothing to repair here,
+        // and this keeps hosted fixture scans away from real bookmarks.
+        guard canonicalRoots.allSatisfy({ $0.path == "/" || $0.path.isWithin(homePath) }) else { return }
+        guard !canonicalRoots.allSatisfy({ isReadableRoot($0) }) else { return }
+        guard let covering = authorization.coveringLocation(for: canonicalRoots) else { return }
+        do { _ = try await authorization.restore(covering) } catch { return }
+    }
+
     func openLocations(_ urls: [URL]) -> Bool {
         guard !isBusy else { message = L10n.text("A scan or cleanup is in progress. Try opening the folder again when it finishes."); return false }
         do {
@@ -217,18 +251,23 @@ enum WorkspacePhase: Equatable {
         guard !isBusy else { return }
         guard target.grouped else {
             if let url = authorization.authorizedURL(for: target.url) { beginScan(with: url); return }
-            if let saved = authorization.locations.first(where: { target.url.path.isWithin($0.name) }) {
+            if let saved = authorization.coveringLocation(for: [target.url]) {
                 runRestoring {
                     do {
-                        _ = try await self.authorization.restore(saved)
+                        let url = try await self.authorization.restore(saved)
                         guard !Task.isCancelled else { return }
                         if let url = self.authorization.authorizedURL(for: target.url) {
                             self.restoringLocation = false; self.beginScan(with: url); return
                         }
-                    } catch { /* Renew through the system picker at the requested location. */ }
-                    guard !Task.isCancelled else { return }
-                    self.restoringLocation = false
-                    self.chooseSuggested(target.url)
+                        self.restoringLocation = false
+                        self.chooseSuggested(target.url)
+                    } catch {
+                        // The covering bookmark didn't activate; renew through the picker at the location.
+                        guard !Task.isCancelled else { return }
+                        self.restoringLocation = false
+                        self.message = L10n.format("Choose the location again to renew access. %@", error.diagnosticDescription)
+                        self.chooseSuggested(target.url)
+                    }
                 }
             } else { chooseSuggested(target.url) }
             return
@@ -236,7 +275,7 @@ enum WorkspacePhase: Equatable {
         // Grouped quick actions scan several known locations; the home grant covers them all.
         let covered = target.roots.allSatisfy { authorization.authorizedURL(for: $0) != nil }
         if covered { startGrouped(target); return }
-        if let saved = authorization.locations.first(where: { saved in target.roots.allSatisfy { $0.path.isWithin(saved.name) } }) {
+        if let saved = authorization.coveringLocation(for: target.roots) {
             runRestoring {
                 var renewed = false
                 do { _ = try await self.authorization.restore(saved); renewed = true } catch { /* Renew through the system picker instead. */ }

@@ -116,6 +116,16 @@ struct SavedLocation: Identifiable, Codable {
         return nil
     }
 
+    /// The most specific stored grant that reaches every URL, preferring narrow covering
+    /// bookmarks over broad ones (the home grant restores reliably; a volume-root grant
+    /// such as `/` may resolve but does not extend the sandbox into protected home data).
+    func coveringLocation(for urls: [URL]) -> SavedLocation? {
+        let paths = urls.map { canonicalURL($0).path }
+        return locations
+            .filter { saved in paths.allSatisfy { $0.isWithin(saved.name) } && FileManager.default.fileExists(atPath: saved.name) }
+            .max { $0.name.count < $1.name.count }
+    }
+
     /// Keep every grant the scan scope depends on: grants of the scanned locations themselves
     /// and any ancestor grant (e.g. home) that reaches grouped scan locations. Grouped quick
     /// actions derive child scan roots through `authorizedURL(for:)`, so the live grant is an

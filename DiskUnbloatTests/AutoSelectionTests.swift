@@ -56,6 +56,31 @@ import DiskCore
         #expect(cleanup.basket.map { $0.node.path } == [a.path])
     }
 
+    /// A deep recommendation may remove the exact older-version folders it selected under
+    /// Application Support, but nothing else there becomes removable: not the current
+    /// version, not the app folder, not a sibling — and the exemption ends with the queue.
+    @Test func deepExemptionCoversOnlyTheSelectedOlderVersions() {
+        let cleanup = CleanupViewModel(service: SucceedingCleanupService(), homePath: home, activity: FixedActivity(paths: []))
+        let roots = [URL(fileURLWithPath: home)]
+        let app = home + "/Library/Application Support/Blender"
+        let old = node(2, 1, app + "/4.2"), current = node(3, 1, app + "/5.4")
+        // Before any recommendation, managed data is refused.
+        #expect(cleanup.add(old, roots: roots) != nil)
+        let deep = AutoSelectionResult(groups: [AutoSelectionGroup(location: node(1, nil, app), nodes: [old], coversAllChildren: false, exemptsSelection: true)])
+        #expect(deep.exemptPaths == [old.path])
+        #expect(cleanup.applyAutoSelection(deep, roots: roots) == AutoSelectionApplyOutcome(applied: 1, skipped: 0))
+        #expect(cleanup.basket.map { $0.node.path } == [old.path])
+        #expect(cleanup.add(current, roots: roots) != nil)
+        #expect(cleanup.add(node(1, nil, app), roots: roots) != nil)
+        // A group without the exemption flag gets no exemption at all.
+        let plain = AutoSelectionResult(groups: [AutoSelectionGroup(location: node(1, nil, app), nodes: [current], coversAllChildren: false)])
+        #expect(cleanup.applyAutoSelection(plain, roots: roots) == AutoSelectionApplyOutcome(applied: 0, skipped: 1))
+        // The replacing recommendation dropped the old exemption with its entry.
+        #expect(cleanup.add(old, roots: roots) != nil)
+        cleanup.clearSelection()
+        #expect(cleanup.add(old, roots: roots) != nil)
+    }
+
     @Test func refusedItemsAreCountedNeverForced() {
         let active = home + "/Library/Caches/com.running.app"
         let cleanup = CleanupViewModel(service: SucceedingCleanupService(), homePath: home, activity: FixedActivity(paths: [active]))
@@ -130,7 +155,7 @@ import DiskCore
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan(); await scanner.ready(); await scanner.finish(); await model.waitForScan()
         // The fixture scan contains no curated locations: nothing is recommended.
-        let preview = await model.previewSelection(.safe)
+        let preview = await model.previewSelection(.junk)
         #expect(preview == nil)
         #expect(model.message == L10n.text("Nothing recommended in this scan."))
         #expect(model.cleanup.basket.isEmpty)

@@ -30,41 +30,66 @@ public struct HiddenRanges: Sendable, Equatable {
 }
 
 extension ScanIndex {
-    /// Candidates for the two quick-select tiers over the current index. The rules are
-    /// path-based, so the requested "Dev tools" and "All caches" behavior falls out of the
-    /// scan scope intersection instead of branching on the scan group.
+    /// Candidates for one quick-select level over the current index. The rules are
+    /// path-based, so the "Dev tools" and "All caches" behavior falls out of the scan
+    /// scope intersection instead of branching on the scan group.
     public func autoSelectionCandidates(
-        home: String, tier: AutoSelectionTier, unusedDays: Int, inspectPackages: Bool = false
+        home: String, level: AutoSelectionLevel, unusedDays: Int, inspectPackages: Bool = false
     ) -> AutoSelectionResult {
+        autoSelectionResults(home: home, levels: [level], unusedDays: unusedDays, inspectPackages: inspectPackages)[level] ?? AutoSelectionResult(groups: [])
+    }
+
+    /// Normalized estimates for every level in one pass: each location's children are
+    /// read once and evaluated per level.
+    public func autoSelectionEstimates(home: String, unusedDays: Int, inspectPackages: Bool = false) -> [AutoSelectionLevel: AutoSelectionPreview] {
+        autoSelectionResults(home: home, levels: AutoSelectionLevel.allCases, unusedDays: unusedDays, inspectPackages: inspectPackages)
+            .mapValues(AutoSelectionPreview.init)
+    }
+
+    private func autoSelectionResults(
+        home: String, levels: [AutoSelectionLevel], unusedDays: Int, inspectPackages: Bool
+    ) -> [AutoSelectionLevel: AutoSelectionResult] {
         let cutoff = Date().addingTimeInterval(-Double(max(1, unusedDays)) * 86400)
-        var groups: [AutoSelectionGroup] = []
+        var groups: [AutoSelectionLevel: [AutoSelectionGroup]] = [:]
+        var nameMatched: [FileNode]?
         for rule in AutoSelectionSpec.rules(home: home) {
+            let active = levels.filter { rule.coverage(at: $0) != .none }
+            guard !active.isEmpty else { continue }
             if let relative = rule.relativePath {
                 let path = home + "/" + relative
                 guard let location = node(path: path), location.isDirectory, !location.isSymbolicLink else { continue }
                 switch rule.target {
                 case .locationItself:
-                    groups.append(AutoSelectionGroup(location: location, nodes: [location], coversAllChildren: false))
+                    for level in active {
+                        groups[level, default: []].append(AutoSelectionGroup(location: location, nodes: [location], coversAllChildren: false))
+                    }
                 case .children:
-                    let selected = AutoSelection.select(
-                        children: childrenForSelection(of: location.id), rule: rule, tier: tier, unusedBefore: cutoff)
-                    guard !selected.isEmpty else { continue }
-                    // Full coverage is claimed only against every indexed child, so an
-                    // unselectable symlink or an unreadable entry keeps the exact
-                    // per-child shape.
-                    groups.append(AutoSelectionGroup(
-                        location: location, nodes: selected,
-                        coversAllChildren: selected.count == allChildCount(of: location.id)))
+                    let children = childrenForSelection(of: location.id)
+                    var total: Int?
+                    for level in active {
+                        let selected = AutoSelection.select(children: children, rule: rule, level: level, unusedBefore: cutoff)
+                        guard !selected.isEmpty else { continue }
+                        // Full coverage is claimed only against every indexed child, so an
+                        // unselectable symlink or an unreadable entry keeps the exact
+                        // per-child shape.
+                        let count = total ?? allChildCount(of: location.id); total = count
+                        groups[level, default: []].append(AutoSelectionGroup(
+                            location: location, nodes: selected, coversAllChildren: selected.count == count,
+                            exemptsSelection: rule.exemptsSelection))
+                    }
                 }
             } else {
-                // Name-matched rebuildable folders anywhere in the scan; tier 2 only.
-                guard tier == .regenerable else { continue }
-                for folder in regenerableFolders(home: home, inspectPackages: inspectPackages) {
-                    groups.append(AutoSelectionGroup(location: folder, nodes: [folder], coversAllChildren: false))
+                // Name-matched rebuildable folders anywhere in the scan.
+                let folders = nameMatched ?? regenerableFolders(home: home, inspectPackages: inspectPackages)
+                nameMatched = folders
+                for level in active {
+                    groups[level, default: []] += folders.map { AutoSelectionGroup(location: $0, nodes: [$0], coversAllChildren: false) }
                 }
             }
         }
-        return AutoSelectionResult(groups: groups)
+        var results: [AutoSelectionLevel: AutoSelectionResult] = [:]
+        for level in levels { results[level] = AutoSelectionResult(groups: groups[level] ?? []) }
+        return results
     }
 
     /// Every indexed direct child eligible for selection (complete, indexable rows).

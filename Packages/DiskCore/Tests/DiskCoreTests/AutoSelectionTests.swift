@@ -25,28 +25,28 @@ struct AutoSelectionTests {
     // MARK: Pure tier decisions
 
     @Test func previousVersionsKeepTheNewestAndFallBackToLongUnused() {
-        let keepOne = AutoSelectionRule(relativePath: "x", target: .children, coverage: .previousVersions(keep: 1))
+        let keepOne = AutoSelectionRule(relativePath: "x", target: .children, junk: .previousVersions(keep: 1), fullFrom: .rebuildable)
         let recent = child(1, 0, "recent", days: 10)
         let old = child(2, 0, "old", days: 200)
         let older = child(3, 0, "older", days: 300)
         let cutoff = Date().addingTimeInterval(-90 * 86400)
         // Previous versions exist: they are selected, the newest stays even though the
         // rest of the location is old.
-        #expect(AutoSelection.select(children: [recent, old, older], rule: keepOne, tier: .safe, unusedBefore: cutoff).map(\.id) == [2, 3])
+        #expect(AutoSelection.select(children: [recent, old, older], rule: keepOne, level: .junk, unusedBefore: cutoff).map(\.id) == [2, 3])
         // No previous versions: the long-unused ones qualify instead.
-        #expect(AutoSelection.select(children: [recent, old], rule: keepOne, tier: .safe, unusedBefore: cutoff).map(\.id) == [2])
-        #expect(AutoSelection.select(children: [recent], rule: keepOne, tier: .safe, unusedBefore: cutoff).isEmpty)
+        #expect(AutoSelection.select(children: [recent, old], rule: keepOne, level: .junk, unusedBefore: cutoff).map(\.id) == [2])
+        #expect(AutoSelection.select(children: [recent], rule: keepOne, level: .junk, unusedBefore: cutoff).isEmpty)
         // The single most recent version is preserved even when it is the only one and
         // long-unused: the long-unused fallback never takes the newest.
         let only = child(4, 0, "only", days: 200)
-        #expect(AutoSelection.select(children: [only], rule: keepOne, tier: .safe, unusedBefore: cutoff).isEmpty)
-        #expect(AutoSelection.select(children: [old, older], rule: keepOne, tier: .safe, unusedBefore: cutoff).map(\.id) == [3])
+        #expect(AutoSelection.select(children: [only], rule: keepOne, level: .junk, unusedBefore: cutoff).isEmpty)
+        #expect(AutoSelection.select(children: [old, older], rule: keepOne, level: .junk, unusedBefore: cutoff).map(\.id) == [3])
         // Keeping two simulators leaves every version after the two newest; with just
         // two, the long-unused older one qualifies but the newest is still preserved.
-        let keepTwo = AutoSelectionRule(relativePath: "x", target: .children, coverage: .previousVersions(keep: 2))
-        #expect(AutoSelection.select(children: [recent, old, older], rule: keepTwo, tier: .safe, unusedBefore: cutoff).map(\.id) == [3])
-        #expect(AutoSelection.select(children: [recent, old], rule: keepTwo, tier: .safe, unusedBefore: cutoff).map(\.id) == [2])
-        #expect(AutoSelection.select(children: [only], rule: keepTwo, tier: .safe, unusedBefore: cutoff).isEmpty)
+        let keepTwo = AutoSelectionRule(relativePath: "x", target: .children, junk: .previousVersions(keep: 2), fullFrom: .rebuildable)
+        #expect(AutoSelection.select(children: [recent, old, older], rule: keepTwo, level: .junk, unusedBefore: cutoff).map(\.id) == [3])
+        #expect(AutoSelection.select(children: [recent, old], rule: keepTwo, level: .junk, unusedBefore: cutoff).map(\.id) == [2])
+        #expect(AutoSelection.select(children: [only], rule: keepTwo, level: .junk, unusedBefore: cutoff).isEmpty)
     }
 
     @Test func unusedRulesRespectTheThresholdAndTheKeptNewest() {
@@ -54,24 +54,24 @@ struct AutoSelectionTests {
         let recent = child(1, 0, "recent", days: 10)
         let old = child(2, 0, "old", days: 200)
         let older = child(3, 0, "older", days: 300)
-        let keepingNewest = AutoSelectionRule(relativePath: "x", target: .children, coverage: .unusedKeepingNewest)
+        let keepingNewest = AutoSelectionRule(relativePath: "x", target: .children, junk: .unusedKeepingNewest, fullFrom: .rebuildable)
         // The most recent simulator stays even when it too is long-unused — and a sole
         // simulator is the most recent one, so it always stays.
-        #expect(AutoSelection.select(children: [old, older], rule: keepingNewest, tier: .safe, unusedBefore: cutoff).map(\.id) == [3])
-        #expect(AutoSelection.select(children: [recent, old], rule: keepingNewest, tier: .safe, unusedBefore: cutoff).map(\.id) == [2])
-        #expect(AutoSelection.select(children: [old], rule: keepingNewest, tier: .safe, unusedBefore: cutoff).isEmpty)
-        let unusedOnly = AutoSelectionRule(relativePath: "x", target: .children, coverage: .unusedOnly)
-        #expect(AutoSelection.select(children: [recent, old, older], rule: unusedOnly, tier: .safe, unusedBefore: cutoff).map(\.id) == [2, 3])
+        #expect(AutoSelection.select(children: [old, older], rule: keepingNewest, level: .junk, unusedBefore: cutoff).map(\.id) == [3])
+        #expect(AutoSelection.select(children: [recent, old], rule: keepingNewest, level: .junk, unusedBefore: cutoff).map(\.id) == [2])
+        #expect(AutoSelection.select(children: [old], rule: keepingNewest, level: .junk, unusedBefore: cutoff).isEmpty)
+        let unusedOnly = AutoSelectionRule(relativePath: "x", target: .children, junk: .unusedOnly, fullFrom: .rebuildable)
+        #expect(AutoSelection.select(children: [recent, old, older], rule: unusedOnly, level: .junk, unusedBefore: cutoff).map(\.id) == [2, 3])
         // Every tier-2 location is covered in full.
-        #expect(AutoSelection.select(children: [recent, old, older], rule: unusedOnly, tier: .regenerable, unusedBefore: cutoff).count == 3)
+        #expect(AutoSelection.select(children: [recent, old, older], rule: unusedOnly, level: .rebuildable, unusedBefore: cutoff).count == 3)
     }
 
     @Test func unknownDataNeverEstablishesLongUnused() {
         let cutoff = Date().addingTimeInterval(-90 * 86400)
         let unknownDate = node(1, 0, "/loc/undated", dir: true, modified: nil)
         let unknownSize = node(2, 0, "/loc/unsized", dir: true, modified: Date().addingTimeInterval(-300 * 86400), unknown: true)
-        let rule = AutoSelectionRule(relativePath: "x", target: .children, coverage: .unusedOnly)
-        #expect(AutoSelection.select(children: [unknownDate, unknownSize], rule: rule, tier: .safe, unusedBefore: cutoff).isEmpty)
+        let rule = AutoSelectionRule(relativePath: "x", target: .children, junk: .unusedOnly, fullFrom: .rebuildable)
+        #expect(AutoSelection.select(children: [unknownDate, unknownSize], rule: rule, level: .junk, unusedBefore: cutoff).isEmpty)
     }
 
     @Test func versionedFamiliesGroupPerBuildLine() {
@@ -87,7 +87,7 @@ struct AutoSelectionTests {
 
     @Test func browserFamiliesKeepOneVersionEachAndSoleBuildsStay() {
         let cutoff = Date().addingTimeInterval(-30 * 86400)
-        let playwright = AutoSelectionRule(relativePath: "x", target: .children, coverage: .previousVersionsPerFamily(keep: 1))
+        let playwright = AutoSelectionRule(relativePath: "x", target: .children, junk: .previousVersionsPerFamily(keep: 1), fullFrom: .rebuildable)
         var buildID: Int64 = 400
         func build(_ name: String, _ days: Double) -> FileNode {
             buildID += 1
@@ -103,12 +103,12 @@ struct AutoSelectionTests {
         // each family's newest build stays, and sole families keep their only build.
         let selected = AutoSelection.select(
             children: [chromiumNew, chromiumOld, firefoxNewer, firefoxOlder, webkitSole, ffmpegSole],
-            rule: playwright, tier: .safe, unusedBefore: cutoff)
+            rule: playwright, level: .junk, unusedBefore: cutoff)
         #expect(Set(selected.map(\.name)) == ["chromium-1124", "firefox-1470"])
         // Tier 2 covers every build of every family.
         #expect(AutoSelection.select(
             children: [chromiumNew, chromiumOld, firefoxNewer, firefoxOlder, webkitSole, ffmpegSole],
-            rule: playwright, tier: .regenerable, unusedBefore: cutoff).count == 6)
+            rule: playwright, level: .rebuildable, unusedBefore: cutoff).count == 6)
     }
 
     @Test func pairedSidecarsTravelWithTheirSimulator() {
@@ -119,19 +119,19 @@ struct AutoSelectionTests {
         let newIni = node(4, 0, "/loc/pixel-new.ini", dir: false, modified: Date().addingTimeInterval(-5 * 86400))
         let loose = node(5, 0, "/loc/notes.txt", dir: false, modified: Date().addingTimeInterval(-300 * 86400))
         let rule = AutoSelectionRule(
-            relativePath: "x", target: .children, coverage: .unusedKeepingNewest,
+            relativePath: "x", target: .children, junk: .unusedKeepingNewest, fullFrom: .rebuildable,
             sidecarPairing: SidecarPairing(directorySuffix: ".avd", sidecarSuffix: ".ini"))
-        let selected = AutoSelection.select(children: [oldAvd, oldIni, newAvd, newIni, loose], rule: rule, tier: .safe, unusedBefore: cutoff)
+        let selected = AutoSelection.select(children: [oldAvd, oldIni, newAvd, newIni, loose], rule: rule, level: .junk, unusedBefore: cutoff)
         #expect(Set(selected.map(\.id)) == [1, 2])
-        #expect(Set(AutoSelection.select(children: [oldAvd, oldIni, newAvd, newIni, loose], rule: rule, tier: .regenerable, unusedBefore: cutoff).map(\.id)) == [1, 2, 3, 4])
+        #expect(Set(AutoSelection.select(children: [oldAvd, oldIni, newAvd, newIni, loose], rule: rule, level: .rebuildable, unusedBefore: cutoff).map(\.id)) == [1, 2, 3, 4])
     }
 
     @Test func safeTierNeverTouchesUserCachesButRegenerableDoes() {
         let cutoff = Date().addingTimeInterval(-90 * 86400)
         let cache = node(1, 0, "/loc/c", dir: true, modified: Date().addingTimeInterval(-300 * 86400))
-        let live = AutoSelectionRule(relativePath: "Library/Caches", target: .children, coverage: .none)
-        #expect(AutoSelection.select(children: [cache], rule: live, tier: .safe, unusedBefore: cutoff).isEmpty)
-        #expect(AutoSelection.select(children: [cache], rule: live, tier: .regenerable, unusedBefore: cutoff).map(\.id) == [1])
+        let live = AutoSelectionRule(relativePath: "Library/Caches", target: .children, junk: .none, fullFrom: .rebuildable)
+        #expect(AutoSelection.select(children: [cache], rule: live, level: .junk, unusedBefore: cutoff).isEmpty)
+        #expect(AutoSelection.select(children: [cache], rule: live, level: .rebuildable, unusedBefore: cutoff).map(\.id) == [1])
     }
 
     // MARK: The closed spec over an indexed scan
@@ -203,7 +203,7 @@ struct AutoSelectionTests {
 
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(Set(safe.nodes.map(\.name)) == [
             "BuildA", "BuildB",
             "iPhone 12 (16.5)", "iPhone X (15.2)",
@@ -216,7 +216,7 @@ struct AutoSelectionTests {
         let derivedGroup = try #require(safe.groups.first { $0.location.path.hasSuffix("DerivedData") })
         #expect(derivedGroup.coversAllChildren)
         #expect(safe.groups.first { $0.location.path.hasSuffix("com.docker.docker") } == nil)
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.name)) == [
             "BuildA", "BuildB", "DerivedData",
             "iPhone 15 (17.0)", "iPhone 12 (16.5)", "iPhone X (15.2)",
@@ -265,10 +265,10 @@ struct AutoSelectionTests {
 
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(safe.nodes.isEmpty)
         // Tier 2 is allowed to take every version, sole ones included.
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.name)) == [
             "android-37.0", "27.1.12297006", "Pixel_9.avd", "Pixel_9.ini", "AAAA", "iPhone 15 (17.0)",
         ])
@@ -309,9 +309,9 @@ struct AutoSelectionTests {
         defer { fixture.dispose() }
         // Tier 1: only long-unused regenerable children. Tier 2: every regenerable
         // child. The user's chat history and presets stay out of both.
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(Set(safe.nodes.map(\.name)) == ["models", ".internal"])
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.name)) == ["models", "extensions", ".internal", ".session_cache"])
         await destroy(index)
     }
@@ -348,7 +348,7 @@ struct AutoSelectionTests {
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
         // Tier 1: every listed cache location in full except the live ~/Library/Caches tree.
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(Set(safe.nodes.map(\.path)) == [
             home + "/.npm/_cacache/content-v2",
             home + "/.gradle/caches",
@@ -357,7 +357,7 @@ struct AutoSelectionTests {
         // Tier 2: absolutely everything, the live caches included. The DerivedData folder
         // additionally matches the name-matched rebuildable rule, which selects the
         // folder itself.
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.path)) == [
             home + "/Library/Caches/com.example.live",
             home + "/Library/Caches/com.example.stale",
@@ -435,7 +435,7 @@ struct AutoSelectionTests {
 
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 30)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 30)
         #expect(Set(safe.nodes.map(\.path)) == [
             home + "/.bun/install/cache",
             home + "/.cargo/git/checkouts",
@@ -455,7 +455,7 @@ struct AutoSelectionTests {
             home + "/Library/Developer/CoreSimulator/Caches",
         ])
         // Tier 2 additionally takes every family's newest build.
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 30)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 30)
         let notYetSafe = [
             home + "/.gradle/wrapper/dists/gradle-8.10.2",
             home + "/Library/Caches/Cypress/1.41.1",
@@ -532,7 +532,7 @@ struct AutoSelectionTests {
 
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(Set(safe.nodes.map(\.path)) == [
             home + "/.cache/huggingface/datasets",
             home + "/.cache/huggingface/hub",
@@ -545,7 +545,7 @@ struct AutoSelectionTests {
         // Tier 2 additionally takes the package stores in full, every remaining
         // eligible model child, and the extracted Go modules; the token file,
         // user content, and Maven never appear.
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.path)) == Set(safe.nodes.map(\.path)).union([
             home + "/.cache/torch/inductor",
             home + "/.lmstudio/hub",
@@ -578,9 +578,9 @@ struct AutoSelectionTests {
                              logicalSize: 10, allocatedSize: 10, modified: Date(), identity: "notes")
         let (fixture, index) = try await buildIndex([root, project, modules, notes])
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(safe.nodes.isEmpty)
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(all.nodes.map(\.path) == [home + "/project/node_modules"])
         await destroy(index)
     }
@@ -626,9 +626,9 @@ struct AutoSelectionTests {
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
         // Tier 1 (safe) never touches name-matched folders.
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(safe.nodes.isEmpty)
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.path)) == [
             home + "/webapp/.next",
             home + "/webapp/.turbo",
@@ -670,9 +670,9 @@ struct AutoSelectionTests {
         folder(unity, home + "/unity/Library", dir: true)
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(safe.nodes.isEmpty)
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.path)) == [
             home + "/rust/target",
             home + "/unity/Library",
@@ -724,7 +724,7 @@ struct AutoSelectionTests {
 
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(Set(safe.nodes.map(\.path)) == [
             home + "/.cache/act",
             home + "/Library/Application Support/Comfy Desktop/Cache",
@@ -734,7 +734,7 @@ struct AutoSelectionTests {
             home + "/Library/Application Support/Epic/UnrealEngine/Common/Zen/Data/ue.projectstore",
             home + "/Library/Application Support/Godot/export_templates/4.2.1.stable",
         ])
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.path)) == Set(safe.nodes.map(\.path)).union([
             home + "/Library/Application Support/Godot/export_templates/4.4.1.stable",
             home + "/actions-runner/_work/_tool/node",
@@ -793,14 +793,14 @@ struct AutoSelectionTests {
 
         let (fixture, index) = try await buildIndex(nodes)
         defer { fixture.dispose() }
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(Set(safe.nodes.map(\.path)) == [
             home + "/.cache/clip/ViT-B-32",
             home + "/.keras/datasets",
             home + "/.keras/models",
             stable + "/account-9/postbox/media",
         ])
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.path)) == Set(safe.nodes.map(\.path)).union([
             home + "/.cache/clip/ViT-L-14",
             home + "/.ollama/models",
@@ -865,9 +865,9 @@ struct AutoSelectionTests {
             home + "/Library/Application Support/Adobe/Common/Peak Files/dialog.pek",
             home + "/Library/Application Support/Adobe/Common/Peak Files/voice.cfa",
         ])
-        let safe = await index.autoSelectionCandidates(home: home, tier: .safe, unusedDays: 90)
+        let safe = await index.autoSelectionCandidates(home: home, level: .junk, unusedDays: 90)
         #expect(Set(safe.nodes.map(\.path)) == expected)
-        let all = await index.autoSelectionCandidates(home: home, tier: .regenerable, unusedDays: 90)
+        let all = await index.autoSelectionCandidates(home: home, level: .rebuildable, unusedDays: 90)
         #expect(Set(all.nodes.map(\.path)) == expected)
         #expect(!all.nodes.contains { $0.path.hasSuffix("War Thunder") || $0.path.hasSuffix("userdata") || $0.path.hasSuffix("workshop") })
         await destroy(index)

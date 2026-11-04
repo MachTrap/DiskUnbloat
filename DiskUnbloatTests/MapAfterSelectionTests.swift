@@ -63,7 +63,7 @@ import DiskCore
 
         // Tier-2 selection over the real index, applied like the workspace does it.
         let result = await index.autoSelectionCandidates(
-            home: home.path, tier: .regenerable, unusedDays: 30)
+            home: home.path, level: .rebuildable, unusedDays: 30)
         #expect(!result.isEmpty)
         let cleanup = CleanupViewModel(service: RecordingCleanupService(), homePath: home.path, activity: FixedActivity(paths: []))
         let outcome = cleanup.applyAutoSelection(result, roots: [home])
@@ -145,7 +145,7 @@ import DiskCore
         }
         let before = model.explorer.scene.summary.knownBytes
         #expect(before > 0)
-        model.selectItems(.regenerable)
+        model.selectItems(.rebuildable)
         for _ in 0..<200 {
             try await Task.sleep(for: .milliseconds(100))
             if !model.selectingItems { break }

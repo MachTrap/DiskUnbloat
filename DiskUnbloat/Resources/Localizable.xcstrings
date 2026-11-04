@@ -35,6 +35,23 @@
         }
       }
     },
+    "%@ estimated" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ estimated"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "примерно %@"
+          }
+        }
+      }
+    },
     "%@ GB+" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -588,6 +605,40 @@
         }
       }
     },
+    "Ableton Live keeps preferences and library settings in one folder per installed version. Deep clean may select older versions; the most recently used one always stays." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ableton Live keeps preferences and library settings in one folder per installed version. Deep clean may select older versions; the most recently used one always stays."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ableton Live хранит настройки и параметры библиотеки в отдельной папке для каждой версии. Глубокая очистка может выбрать старые версии; последняя использованная всегда остаётся."
+          }
+        }
+      }
+    },
+    "Ableton Live settings by version" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ableton Live settings by version"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки Ableton Live по версиям"
+          }
+        }
+      }
+    },
     "act action cache" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -635,6 +686,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Рабочий каталог runner Actions"
+          }
+        }
+      }
+    },
+    "Adds current simulator and device data, local models, and project folders like node_modules that can be rebuilt or downloaded again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds current simulator and device data, local models, and project folders like node_modules that can be rebuilt or downloaded again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавляет текущие данные симуляторов и устройств, локальные модели и папки проектов вроде node_modules, которые можно пересобрать или скачать заново."
+          }
+        }
+      }
+    },
+    "Adds every application cache and package-manager store." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds every application cache and package-manager store."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавляет все кэши приложений и хранилища менеджеров пакетов."
+          }
+        }
+      }
+    },
+    "Adds settings left by older app versions and long-unused installer files. Review carefully." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds settings left by older app versions and long-unused installer files. Review carefully."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавляет настройки старых версий приложений и давно не использованные установочные файлы. Проверяйте внимательно."
           }
         }
       }
@@ -1128,6 +1230,40 @@
         }
       }
     },
+    "Blender keeps preferences, startup file, scripts, and add-ons in one folder per version. Deep clean may select folders of older versions; the most recently used version always stays." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blender keeps preferences, startup file, scripts, and add-ons in one folder per version. Deep clean may select folders of older versions; the most recently used version always stays."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blender хранит настройки, стартовый файл, скрипты и дополнения в отдельной папке для каждой версии. Глубокая очистка может выбрать папки старых версий; последняя использованная версия всегда остаётся."
+          }
+        }
+      }
+    },
+    "Blender settings by version" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blender settings by version"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки Blender по версиям"
+          }
+        }
+      }
+    },
     "Browse these items" : {
       "localizations" : {
         "en" : {
@@ -1536,6 +1672,23 @@
         }
       }
     },
+    "Caches" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caches"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кэши"
+          }
+        }
+      }
+    },
     "Calculating folder sizes" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1880,6 +2033,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Локальная ИИ-модель Chrome"
+          }
+        }
+      }
+    },
+    "Cinema 4D keeps preferences, plug-ins, and user libraries in one folder per installed version. Deep clean may select older versions; the most recently used one always stays." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cinema 4D keeps preferences, plug-ins, and user libraries in one folder per installed version. Deep clean may select older versions; the most recently used one always stays."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cinema 4D хранит настройки, плагины и пользовательские библиотеки в отдельной папке для каждой версии. Глубокая очистка может выбрать старые версии; последняя использованная всегда остаётся."
+          }
+        }
+      }
+    },
+    "Cinema 4D settings by version" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cinema 4D settings by version"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки Cinema 4D по версиям"
           }
         }
       }
@@ -2771,6 +2958,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Символы отладки для подключённых watchOS-устройств. При необходимости их можно загрузить снова."
+          }
+        }
+      }
+    },
+    "Deep clean" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deep clean"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глубокая"
           }
         }
       }
@@ -4438,6 +4642,23 @@
         }
       }
     },
+    "Junk" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Junk"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мусор"
+          }
+        }
+      }
+    },
     "Keeps folder" : {
       "localizations" : {
         "en" : {
@@ -4855,6 +5076,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Репозиторий Maven"
+          }
+        }
+      }
+    },
+    "Maya keeps preferences, shelves, and scripts in one folder per release year. Deep clean may select older years; the most recently used version and Maya.env stay." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maya keeps preferences, shelves, and scripts in one folder per release year. Deep clean may select older years; the most recently used version and Maya.env stay."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maya хранит настройки, полки и скрипты в отдельной папке для каждого года выпуска. Глубокая очистка может выбрать старые годы; последняя использованная версия и Maya.env остаются."
+          }
+        }
+      }
+    },
+    "Maya settings by version" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maya settings by version"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки Maya по версиям"
           }
         }
       }
@@ -5458,6 +5713,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Старые загрузки пакетов Python и wheels. При установке может потребоваться повторная загрузка."
+          }
+        }
+      }
+    },
+    "Old versions, build data, and curated caches that are safe to delete." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Old versions, build data, and curated caches that are safe to delete."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Старые версии, данные сборок и известные кэши, которые безопасно удалить."
           }
         }
       }
@@ -6302,6 +6574,23 @@
         }
       }
     },
+    "Quick select" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick select"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстрый выбор"
+          }
+        }
+      }
+    },
     "Raw git repositories downloaded for Rust dependencies. Cargo re-fetches them when a build needs them." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6381,6 +6670,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разрешить доступ заново"
+          }
+        }
+      }
+    },
+    "Rebuildable" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuildable"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановимое"
           }
         }
       }
@@ -6932,6 +7238,23 @@
         }
       }
     },
+    "Select a deep clean?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a deep clean?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать глубокую очистку?"
+          }
+        }
+      }
+    },
     "Select a folder or file on the map to add it here." : {
       "localizations" : {
         "en" : {
@@ -6944,6 +7267,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выберите папку или файл на карте, чтобы добавить их сюда."
+          }
+        }
+      }
+    },
+    "Select all caches?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select all caches?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать все кэши?"
           }
         }
       }
@@ -8378,6 +8718,23 @@
         }
       }
     },
+    "This selects %lld items (%@ estimated): junk plus every application cache and package-manager store. Apps may sign you out, lose offline data, or rebuild their indexes, and package managers download again. Review the selection before deleting." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This selects %lld items (%@ estimated): junk plus every application cache and package-manager store. Apps may sign you out, lose offline data, or rebuild their indexes, and package managers download again. Review the selection before deleting."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будет выбрано элементов: %lld (примерно %@) — мусор, а также все кэши приложений и хранилища менеджеров пакетов. Приложения могут выйти из учётной записи, потерять офлайн-данные или перестроить индексы, а менеджеры пакетов скачают всё заново. Проверьте выбор перед удалением."
+          }
+        }
+      }
+    },
     "This selects an extensive cleanup: %lld items (%@ estimated), including live caches, simulator and device data, and rebuildable folders. Removing them can interrupt running apps and developer tools, force re-downloads and rebuilds, and some content can only be restored by re-downloading it. Review the selection before deleting." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8391,6 +8748,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Будет выбрана обширная очистка: %lld объектов (оценка: %@), включая активные кэши, данные симуляторов и устройств и пересоздаваемые папки. Их удаление может нарушить работу запущенных программ и инструментов разработки, привести к повторным загрузкам и пересборке, а часть данных можно будет восстановить только повторной загрузкой. Проверьте выбор перед удалением."
+          }
+        }
+      }
+    },
+    "This selects the deepest cleanup: %lld items (%@ estimated) — everything rebuildable plus settings folders of older app versions and long-unused installer files. An older version opened again starts with default settings, and installers must be downloaded again. Review every item before deleting." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This selects the deepest cleanup: %lld items (%@ estimated) — everything rebuildable plus settings folders of older app versions and long-unused installer files. An older version opened again starts with default settings, and installers must be downloaded again. Review every item before deleting."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будет выбрана самая глубокая очистка, элементов: %lld (примерно %@) — всё восстановимое, а также папки настроек старых версий приложений и давно не использованные установочные файлы. Старая версия при следующем запуске откроется с настройками по умолчанию, а установщики придётся скачать заново. Проверьте каждый элемент перед удалением."
           }
         }
       }

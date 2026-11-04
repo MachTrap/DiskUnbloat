@@ -447,13 +447,30 @@ enum WorkspacePhase: Equatable {
 
     func addSelectionToBasket() { explorer.normalizedSelection.forEach(addToBasket) }
 
-    /// Computes one tier's recommendation without touching the queue, so the tier-2
+    private struct EstimateKey: Equatable { let index: ObjectIdentifier; let revision: UInt64; let unusedDays: Int; let inspectPackages: Bool }
+    @ObservationIgnored private var estimateCache: (key: EstimateKey, values: [AutoSelectionLevel: AutoSelectionPreview])?
+
+    /// Normalized per-level estimates for the quick-select picker. Computed once per index
+    /// revision and long-unused threshold, so the panel can ask after every queue change.
+    func selectionEstimates() async -> [AutoSelectionLevel: AutoSelectionPreview] {
+        guard canClean, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return [:] }
+        let key = EstimateKey(index: ObjectIdentifier(index), revision: await index.revision,
+                              unusedDays: scan.options.longUnusedDays, inspectPackages: scan.options.inspectPackages)
+        if let cached = estimateCache, cached.key == key { return cached.values }
+        let values = await index.autoSelectionEstimates(
+            home: location.catalog.home.path, unusedDays: key.unusedDays, inspectPackages: key.inspectPackages)
+        guard !Task.isCancelled, scan.index === index else { return [:] }
+        estimateCache = (key, values)
+        return values
+    }
+
+    /// Computes one level's recommendation without touching the queue, so the level's
     /// warning can state an honest estimate before anything is selected. Posts a notice
-    /// and returns nil when the scan holds nothing for this tier.
-    func previewSelection(_ tier: AutoSelectionTier) async -> AutoSelectionPreview? {
+    /// and returns nil when the scan holds nothing for this level.
+    func previewSelection(_ level: AutoSelectionLevel) async -> AutoSelectionPreview? {
         guard canClean, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return nil }
         let result = await index.autoSelectionCandidates(
-            home: location.catalog.home.path, tier: tier,
+            home: location.catalog.home.path, level: level,
             unusedDays: scan.options.longUnusedDays, inspectPackages: scan.options.inspectPackages)
         guard !Task.isCancelled, scan.index === index else { return nil }
         guard !result.isEmpty else {
@@ -463,15 +480,15 @@ enum WorkspacePhase: Equatable {
         return AutoSelectionPreview(result)
     }
 
-    /// Selects one tier's recommendation into the deletion queue. The proposal passes the
+    /// Selects one level's recommendation into the deletion queue. The proposal passes the
     /// same safety checks as manual selection; refused items are reported, never forced.
-    func selectItems(_ tier: AutoSelectionTier) {
+    func selectItems(_ level: AutoSelectionLevel) {
         guard canClean, !selectingItems, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return }
         selectingItems = true
         selectionTask = Task {
             defer { selectingItems = false }
             let result = await index.autoSelectionCandidates(
-                home: location.catalog.home.path, tier: tier,
+                home: location.catalog.home.path, level: level,
                 unusedDays: scan.options.longUnusedDays, inspectPackages: scan.options.inspectPackages)
             guard !Task.isCancelled, canClean, scan.index === index, !cleanup.cleaning else { return }
             if result.isEmpty {

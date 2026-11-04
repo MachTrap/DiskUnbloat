@@ -35,6 +35,12 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// Paths contributed by the last automatic selection, so a fresh recommendation
     /// replaces the previous one while manually picked items stay untouched.
     @ObservationIgnored private var autoSelectedPaths: Set<String> = []
+    /// Exact folders a deep recommendation selected under managed data (older app
+    /// versions' settings). Only these paths — never their parents or siblings — are
+    /// exempt, and only while queued items still refer to them.
+    @ObservationIgnored private var selectionExemptions: Set<String> = []
+    /// Curated cache roots plus the current recommendation's exact exemptions.
+    private var exemptRoots: [String] { CleanupRule.knownCacheRoots(home: homePath) + selectionExemptions.sorted() }
     /// Bumped on every queue mutation so derived views can rebuild asynchronously.
     private(set) var queueRevision = 0
     var showQueue = false
@@ -89,6 +95,7 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     func reset(preservingReport: Bool = false) {
         basket = []
         autoSelectedPaths = []
+        selectionExemptions = []
         if !preservingReport { results = [] }
     }
 
@@ -98,6 +105,7 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
         guard !cleaning else { return }
         basket = []
         autoSelectedPaths = []
+        selectionExemptions = []
     }
 
     func add(_ node: FileNode, root: URL) -> String? { add(node, roots: [root]) }
@@ -119,7 +127,7 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
 
     func add(_ node: FileNode, roots: [URL]) -> String? {
         guard !roots.isEmpty else { return L10n.text(CleanupReason.outsideScope.message) }
-        let cacheRoots = CleanupRule.knownCacheRoots(home: homePath)
+        let cacheRoots = exemptRoots
         let resolved = resolvedOperation(for: node, roots: roots, cacheRoots: cacheRoots, blockedCaches: activity.blockedCachePaths(home: homePath))
         if let operation = resolved.operation {
             basket = CleanupPlan(roots: roots, entries: basket + [CleanupEntry(node: node, operation: operation)], mode: .trash, knownCacheRoots: cacheRoots).items
@@ -162,7 +170,11 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// one while manual picks stay.
     func applyAutoSelection(_ result: AutoSelectionResult, roots: [URL]) -> AutoSelectionApplyOutcome {
         guard !cleaning, !roots.isEmpty else { return AutoSelectionApplyOutcome() }
-        let cacheRoots = CleanupRule.knownCacheRoots(home: homePath)
+        // The new recommendation's exemptions replace the previous one's, except where a
+        // manually kept entry still lies inside an earlier exemption.
+        let manualPaths = basket.filter { !autoSelectedPaths.contains($0.node.path) }.map(\.node.path)
+        selectionExemptions = result.exemptPaths.union(selectionExemptions.filter { exempt in manualPaths.contains { $0.isWithin(exempt) } })
+        let cacheRoots = exemptRoots
         let blockedCaches = activity.blockedCachePaths(home: homePath)
         let rootPaths = Set(roots.map { canonicalURL($0).path })
         var entries: [CleanupEntry] = []
@@ -242,7 +254,7 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
         let recorder = diagnostics
         let plan = CleanupPlan(roots: roots, entries: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { path in
             await MainActor.run { CleanupViewModel.activityMessage(path, activity: activity, home: home) }
-        }, knownCacheRoots: CleanupRule.knownCacheRoots(home: homePath), diagnostics: { recorder.event($0) })
+        }, knownCacheRoots: exemptRoots, diagnostics: { recorder.event($0) })
         results = refused + (await service.execute(plan))
         diagnostics.runFinished(succeeded: results.filter(\.succeeded).count, failed: results.count - results.filter(\.succeeded).count)
         return results.contains(where: \.succeeded)

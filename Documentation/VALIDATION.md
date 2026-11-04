@@ -2,6 +2,14 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Four nested quick-select levels and app-version deep clean — 2026-11-04
+
+- **Change:** the two quick-select buttons became a level picker (Junk ⊂ Caches ⊂ Rebuildable ⊂ Deep clean) with one Select button and normalized per-level estimates. Junk equals the former tier 1 and Rebuildable the former tier 2 (all migrated tests kept their exact sets). Caches adds live `~/Library/Caches` and package stores. Deep clean adds older app-version settings folders (exact-path managed-data exemptions only) and long-unused installers in Downloads.
+- **Catalog (verified from vendor docs only):** version-settings folders for Blender (`Application Support/Blender/<ver>`), Maya (`Preferences/Autodesk/maya/<year>`), Cinema 4D (`Preferences/Maxon/Maxon Cinema 4D <year>_<id>`), and Ableton Live (`Preferences/Ableton/Live <ver>`).
+- **Deliberately not added:** Fusion `webdeploy` builds (only forum sources, and an Autodesk staff reply advises against manual cleanup); Lightroom previews (location documented, but deleting smart previews loses offline editing); Houdini (medium-confidence source); AutoCAD for Mac, Mudbox, ZBrush, SketchUp, Rhino, Archicad, Vectorworks, Photoshop, Illustrator, InDesign, Capture One, Affinity, Avid, Pro Tools (no official path found); Logic/GarageBand sound libraries (system trees; Apple's in-app Sound Library manager is the supported route). 3ds Max is Windows-only. Running-app guards for the new apps need verified bundle IDs from installed `Info.plist` files and are not added.
+- **Tests:** core 90 pass (nesting property test over every rule × 40 generated child sets, caches-level boundaries, normalized estimates, family keys, installer filter, deep older-versions-only on an index, vendor layouts with shared non-version items); hosted suite passes (new exact-path deep exemption test); universal Release build succeeds; localization audit validates 548 entries.
+- **Not verified:** the picker layout at the 960 × 640 minimum and the warning wording were not checked by running the app.
+
 ## Index bulk load and in-memory aggregation — 2026-11-04
 
 - **Profile first (`~/CODE`, 398 k rows, debug):** after the parallel reader, the index was the bottleneck — inserting cost 3.8 s (name folding 0.54 s and category classification 0.41 s ran serially on the actor; maintaining six secondary indexes per row cost ~2 s versus ~1 s to build them afterwards), and aggregation 2 s (eight correlated subqueries per folder).

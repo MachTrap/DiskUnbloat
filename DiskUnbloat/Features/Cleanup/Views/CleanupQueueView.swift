@@ -19,10 +19,12 @@ struct CleanupQueueView: View {
     /// Tapping a row highlights the same item on the map.
     let highlight: (FileNode) -> Void
     let performCleanup: (CleanupMode) -> Void
-    /// Selects one tier's recommendation into the queue.
-    let selectTier: (AutoSelectionTier) -> Void
-    /// Computes one tier's recommendation without touching the queue, for the tier-2 warning.
-    let previewTier: (AutoSelectionTier) async -> AutoSelectionPreview?
+    /// Selects one level's recommendation into the queue.
+    let selectLevel: (AutoSelectionLevel) -> Void
+    /// Computes one level's recommendation without touching the queue, for its warning.
+    let previewLevel: (AutoSelectionLevel) async -> AutoSelectionPreview?
+    /// Normalized estimates for every level, shown under the picker.
+    let levelEstimates: () async -> [AutoSelectionLevel: AutoSelectionPreview]
     /// Map-intent parity for the row context menu.
     var focusFolder: (FileNode) -> Void = { _ in }
     var preview: (FileNode) -> Void = { _ in }
@@ -30,7 +32,12 @@ struct CleanupQueueView: View {
     var refreshFolder: (FileNode) -> Void = { _ in }
     @State private var confirmDelete = false
     @State private var confirmPermanent = false
-    @State private var regenerablePreview: AutoSelectionPreview?
+    /// The level awaiting confirmation, with its honest estimate.
+    @State private var pendingLevel: (level: AutoSelectionLevel, preview: AutoSelectionPreview)?
+    @State private var estimates: [AutoSelectionLevel: AutoSelectionPreview] = [:]
+    /// The last chosen quick-select level, remembered per viewer.
+    @AppStorage("quickSelectLevel") private var levelValue = AutoSelectionLevel.junk.rawValue
+    private var level: AutoSelectionLevel { AutoSelectionLevel(rawValue: levelValue) ?? .junk }
 
     private var cleanup: CleanupViewModel { model.cleanup }
 
@@ -49,6 +56,8 @@ struct CleanupQueueView: View {
             }
             .task(id: RefreshKey(revision: cleanup.queueRevision, currentID: current?.id)) {
                 await model.refresh(current: current)
+                // Cached per index revision, so this is free unless the scan changed.
+                estimates = await levelEstimates()
             }
             .onChange(of: selectedIDs) { _, ids in
                 // Mirror the map selection into the panel: expand the folder chain so the
@@ -75,19 +84,17 @@ struct CleanupQueueView: View {
             } message: {
                 Text(L10n.text("This immediately removes the selected items and all contents of selected folders. Scanned folders stay in place but are emptied. This cannot be undone. Files will not be moved to Trash."))
             }
-            .alert(L10n.text("Select everything rebuildable?"), isPresented: Binding(
-                get: { regenerablePreview != nil },
-                set: { if !$0 { regenerablePreview = nil } })) {
+            .alert(pendingLevel.map { Self.confirmationTitle($0.level) } ?? "", isPresented: Binding(
+                get: { pendingLevel != nil },
+                set: { if !$0 { pendingLevel = nil } })) {
                 Button(L10n.text("Select anyway")) {
-                    regenerablePreview = nil
-                    selectTier(.regenerable)
+                    if let level = pendingLevel?.level { selectLevel(level) }
+                    pendingLevel = nil
                 }
-                Button(L10n.text("Cancel"), role: .cancel) { regenerablePreview = nil }
+                Button(L10n.text("Cancel"), role: .cancel) { pendingLevel = nil }
             } message: {
-                if let preview = regenerablePreview {
-                    Text(L10n.format(
-                        "This selects an extensive cleanup: %lld items (%@ estimated), including live caches, simulator and device data, and rebuildable folders. Removing them can interrupt running apps and developer tools, force re-downloads and rebuilds, and some content can only be restored by re-downloading it. Review the selection before deleting.",
-                        preview.items, sizeText(preview.knownBytes)))
+                if let pending = pendingLevel {
+                    Text(Self.confirmationMessage(pending.level, pending.preview))
                 }
             }
             .accessibilityIdentifier("cleanupQueue")
@@ -125,42 +132,92 @@ struct CleanupQueueView: View {
         }.padding(.horizontal, 16).padding(.vertical, 12)
     }
 
-    /// Two-tier quick selection: safe junk first, rebuildable content behind a warning.
+    /// Nested quick selection: each level adds to the previous one. Junk selects at once;
+    /// every broader level first shows a warning with its honest estimate.
     private var quickSelect: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Button {
-                selectTier(.safe)
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.text("Select safe items")).font(.callout.weight(.medium))
-                    Text(L10n.text("Selects caches, old build data, and other junk that is safe to delete."))
-                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.leading)
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered)
-            .disabled(!canClean || cleanup.cleaning || selecting)
-            .accessibilityIdentifier("selectSafeItems")
-            Button {
-                Task {
-                    if let preview = await previewTier(.regenerable) { regenerablePreview = preview }
+        VStack(alignment: .leading, spacing: 8) {
+            Picker(L10n.text("Quick select"), selection: $levelValue) {
+                ForEach(AutoSelectionLevel.allCases) { level in
+                    Text(Self.title(level)).tag(level.rawValue)
                 }
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.text("Select rebuildable items")).font(.callout.weight(.medium))
-                    Text(L10n.text("Selects caches, simulator and device data, and rebuildable folders you can restore or rebuild."))
-                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.leading)
-                }.frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.bordered)
-            .disabled(!canClean || cleanup.cleaning || selecting)
-            .accessibilityIdentifier("selectRebuildableItems")
-            if selecting {
-                HStack(spacing: 8) {
+            // A menu picker has no width floor: four segmented labels (longer still in
+            // Russian) forced the inspector past its maximum and pushed the map out.
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("selectionLevel")
+            Text(Self.subtitle(level))
+                .font(.caption2).foregroundStyle(.secondary)
+                .lineLimit(3, reservesSpace: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Button {
+                    choose(level)
+                } label: {
+                    Text(L10n.text("Select")).frame(minWidth: 60)
+                }
+                .buttonStyle(.borderedProminent).tint(.teal)
+                .disabled(!canClean || cleanup.cleaning || selecting)
+                .accessibilityIdentifier("selectLevelItems")
+                if selecting {
                     ProgressView().controlSize(.small)
                     Text(L10n.text("Selecting…")).font(.caption).foregroundStyle(.secondary)
+                } else if let estimate = estimates[level] {
+                    Text(estimate.items == 0
+                         ? L10n.text("Nothing recommended in this scan.")
+                         : L10n.count("%lld items", estimate.items) + " · " + L10n.format("%@ estimated", sizeText(estimate.knownBytes)))
+                        .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                        .lineLimit(1).truncationMode(.middle)
+                        .accessibilityIdentifier("selectionLevelEstimate")
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }.padding(.horizontal, 16).padding(.vertical, 10)
+    }
+
+    private func choose(_ level: AutoSelectionLevel) {
+        guard level > .junk else { selectLevel(level); return }
+        Task {
+            if let preview = await previewLevel(level) { pendingLevel = (level, preview) }
+        }
+    }
+
+    static func title(_ level: AutoSelectionLevel) -> String {
+        switch level {
+        case .junk: L10n.text("Junk")
+        case .caches: L10n.text("Caches")
+        case .rebuildable: L10n.text("Rebuildable")
+        case .deep: L10n.text("Deep clean")
+        }
+    }
+
+    static func subtitle(_ level: AutoSelectionLevel) -> String {
+        switch level {
+        case .junk: L10n.text("Old versions, build data, and curated caches that are safe to delete.")
+        case .caches: L10n.text("Adds every application cache and package-manager store.")
+        case .rebuildable: L10n.text("Adds current simulator and device data, local models, and project folders like node_modules that can be rebuilt or downloaded again.")
+        case .deep: L10n.text("Adds settings left by older app versions and long-unused installer files. Review carefully.")
+        }
+    }
+
+    static func confirmationTitle(_ level: AutoSelectionLevel) -> String {
+        switch level {
+        case .junk, .caches: L10n.text("Select all caches?")
+        case .rebuildable: L10n.text("Select everything rebuildable?")
+        case .deep: L10n.text("Select a deep clean?")
+        }
+    }
+
+    static func confirmationMessage(_ level: AutoSelectionLevel, _ preview: AutoSelectionPreview) -> String {
+        switch level {
+        case .junk, .caches:
+            L10n.format("This selects %lld items (%@ estimated): junk plus every application cache and package-manager store. Apps may sign you out, lose offline data, or rebuild their indexes, and package managers download again. Review the selection before deleting.", preview.items, sizeText(preview.knownBytes))
+        case .rebuildable:
+            L10n.format("This selects an extensive cleanup: %lld items (%@ estimated), including live caches, simulator and device data, and rebuildable folders. Removing them can interrupt running apps and developer tools, force re-downloads and rebuilds, and some content can only be restored by re-downloading it. Review the selection before deleting.", preview.items, sizeText(preview.knownBytes))
+        case .deep:
+            L10n.format("This selects the deepest cleanup: %lld items (%@ estimated) — everything rebuildable plus settings folders of older app versions and long-unused installer files. An older version opened again starts with default settings, and installers must be downloaded again. Review every item before deleting.", preview.items, sizeText(preview.knownBytes))
+        }
     }
 
     private var emptyState: some View {

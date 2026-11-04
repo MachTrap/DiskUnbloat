@@ -119,6 +119,51 @@ struct ExplorerView: View {
         }
     }
 
+    /// Native-looking search field: leading magnifier, clear button, and its own debounce so
+    /// typing does not commit a query (and chip) per keystroke. Return commits immediately.
+    private struct SearchField: View {
+        @Binding var text: String
+        var focused: FocusState<Bool>.Binding
+        @State private var draft = ""
+        @State private var commitTask: Task<Void, Never>?
+        private static let debounce: Duration = .milliseconds(350)
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+                TextField("Search", text: $draft)
+                    .textFieldStyle(.plain)
+                    .focused(focused)
+                    .onSubmit { commit(immediately: true) }
+                    .accessibilityIdentifier("searchFiles")
+                if !draft.isEmpty {
+                    Button { draft = ""; commit(immediately: true) } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain).help("Clear").accessibilityLabel("Clear")
+                }
+            }
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .frame(width: 200)
+            .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(focused.wrappedValue ? Color.accentColor.opacity(0.6) : .clear, lineWidth: 1.5))
+            .onAppear { draft = text }
+            .onChange(of: draft) { commit(immediately: false) }
+            .onChange(of: text) { if text != draft { commitTask?.cancel(); draft = text } }
+            .onDisappear { commitTask?.cancel() }
+        }
+
+        private func commit(immediately: Bool) {
+            commitTask?.cancel()
+            guard draft != text else { return }
+            if immediately { text = draft; return }
+            commitTask = Task {
+                do { try await Task.sleep(for: Self.debounce) } catch { return }
+                text = draft
+            }
+        }
+    }
+
     private var pathBar: some View {
         HStack(spacing: 12) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -198,8 +243,7 @@ struct ExplorerView: View {
             Button(action: model.up) { Label("Up", systemImage: "arrow.up") }.disabled(model.breadcrumbs.count < 2).keyboardShortcut(.upArrow, modifiers: .command)
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            TextField("Search", text: $model.search).textFieldStyle(.roundedBorder).frame(width: 145).focused($searchFocused).accessibilityIdentifier("searchFiles")
-
+            SearchField(text: $model.search, focused: $searchFocused)
             Menu {
                 Picker("Search scope", selection: $model.scope) { ForEach(ExplorerScope.allCases) { Text(L10n.text($0.rawValue)).tag($0) } }
                 Picker("Minimum size", selection: $model.minimumGB) { Text("Any size").tag(0.0); Text("100 MB+").tag(0.1); Text("1 GB+").tag(1.0); Text("10 GB+").tag(10.0) }

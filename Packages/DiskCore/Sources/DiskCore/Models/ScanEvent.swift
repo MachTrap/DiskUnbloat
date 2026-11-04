@@ -24,6 +24,11 @@ public enum ScanEvent: Sendable {
     case progress(ScanSnapshot)
     case finished(ScanSnapshot)
     case failed(String)
+    /// The upfront preflight touched macOS-protected directories whose opens were refused
+    /// — protected app data (other applications' data, media libraries, mail and messages).
+    /// The system offers no consent dialog for these reads; full measurement needs the
+    /// user's Full Disk Access decision, so the UI explains that instead of a raw error list.
+    case protectedFoldersRefused
 }
 
 public struct ScanIssue: Sendable {

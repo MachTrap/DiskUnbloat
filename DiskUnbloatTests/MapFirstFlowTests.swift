@@ -6,10 +6,11 @@ import DiskCore
 @MainActor struct MapFirstFlowTests {
     @Test func completedScanOpensCleanupQueueWithMap() async {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner)
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
         #expect(model.phase == .choosing)
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan()
+        await model.waitForPhaseTransitionFromChoosing()
         #expect(model.phase == .scanning)
         #expect(!model.canClean)
         await scanner.ready()
@@ -26,7 +27,7 @@ import DiskCore
 
     @Test func cancelledScanRequiresOptInForPartialMapAndDisablesCleanup() async {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner)
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan(); await scanner.ready()
         model.cancel(); await model.waitForScan()
@@ -42,7 +43,7 @@ import DiskCore
 
     @Test func completedPartialScanStillOpensKnownMap() async {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner)
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan(); await scanner.ready(); await scanner.finish(partial: true); await model.waitForScan()
         #expect(model.phase == .exploring)
@@ -53,7 +54,7 @@ import DiskCore
 
     @Test func failureCanRetryWithoutShowingAnEmptyExplorer() async {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner)
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan(); await scanner.ready()
         await scanner.finish(error: "Test failure"); await model.waitForScan()
@@ -66,7 +67,7 @@ import DiskCore
 
     @Test func selectionTotalsDoNotDoubleCountParentAndChild() async throws {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner)
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan(); await scanner.ready(); await scanner.finish(); await model.waitForScan()
         model.explorer.selectionIDs = [2,3]

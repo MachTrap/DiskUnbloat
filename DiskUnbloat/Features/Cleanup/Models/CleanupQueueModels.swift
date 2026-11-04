@@ -237,9 +237,9 @@ enum CleanupQueueTree {
         }
     }
 
-    /// Plain folders can be expanded; packages stay atomic unless inspection is on.
+    /// Plain folders can be expanded; packages and summarized folders stay atomic.
     private static func isExpandableContainer(_ node: FileNode) -> Bool {
-        node.isDirectory && !node.isSymbolicLink && !node.isPackage
+        node.isBrowsable(inspectPackages: false)
     }
 }
 

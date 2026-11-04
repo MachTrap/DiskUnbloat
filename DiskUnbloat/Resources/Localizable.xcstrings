@@ -2421,6 +2421,40 @@
         }
       }
     },
+    "Continue" : {
+      "extractionState" : "translated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить"
+          }
+        }
+      }
+    },
+    "Continue without it" : {
+      "extractionState" : "translated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue without it"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить без него"
+          }
+        }
+      }
+    },
     "Copy path" : {
       "localizations" : {
         "en" : {
@@ -3812,6 +3846,40 @@
         }
       }
     },
+    "Full Disk Access covers every protected folder at once — other applications’ data, media libraries, mail. Without it, macOS asks about each folder separately during the scan, and other applications’ data stays hidden regardless. If the switch is already on but access still fails, remove DiskUnbloat from the list and add it again: the grant is bound to the exact build." : {
+      "extractionState" : "translated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access covers every protected folder at once — other applications’ data, media libraries, mail. Without it, macOS asks about each folder separately during the scan, and other applications’ data stays hidden regardless. If the switch is already on but access still fails, remove DiskUnbloat from the list and add it again: the grant is bound to the exact build."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Полный доступ к диску сразу открывает все защищённые папки — данные других приложений, медиатеки, почту. Без него macOS спрашивает про каждую папку отдельно во время сканирования, а данные других приложений в любом случае остаются скрытыми. Если переключатель уже включён, а доступ всё равно не работает, удалите DiskUnbloat из списка и добавьте снова: допуск привязан к конкретной сборке."
+          }
+        }
+      }
+    },
+    "Full Disk Access is off" : {
+      "extractionState" : "translated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access is off"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Полный доступ к диску выключен"
+          }
+        }
+      }
+    },
     "Full Gradle installations downloaded by project wrappers. Old versions are removed and re-downloaded on demand." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4757,6 +4825,22 @@
         }
       }
     },
+    "Measure as one item · folder names or paths, one per line" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Measure as one item · folder names or paths, one per line"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Измерять одним элементом · имена папок или пути, по одному в строке"
+          }
+        }
+      }
+    },
     "Minikube cluster" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5429,6 +5513,23 @@
         }
       }
     },
+    "Open Full Disk Access settings" : {
+      "extractionState" : "translated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Full Disk Access settings"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки полного доступа к диску"
+          }
+        }
+      }
+    },
     "Opening saved folder…" : {
       "localizations" : {
         "en" : {
@@ -5609,7 +5710,8 @@
             "value" : "Пакеты учитываются, даже если показаны одной плиткой. Символические ссылки не обходятся; облачные файлы не загружаются."
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Parallels VM disk images. Large; removal deletes those machines." : {
       "extractionState" : "stale",
@@ -6978,6 +7080,22 @@
         }
       }
     },
+    "Some items inside could not be read; the size shown is a lower bound." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some items inside could not be read; the size shown is a lower bound."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Часть содержимого не удалось прочитать; показанный размер — нижняя граница."
+          }
+        }
+      }
+    },
     "Some locations couldn’t be read. Map sizes are partial." : {
       "localizations" : {
         "en" : {
@@ -6990,6 +7108,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Некоторые расположения недоступны. Размеры на карте неполные."
+          }
+        }
+      }
+    },
+    "Some of these are protected by macOS against every app: other applications' app data and protected libraries. No dialog is offered for reading them; to measure these folders too, allow DiskUnbloat under Full Disk Access. Unmeasured folders still appear with their known size." : {
+      "extractionState" : "translated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some of these are protected by macOS against every app: other applications' app data and protected libraries. No dialog is offered for reading them; to measure these folders too, allow DiskUnbloat under Full Disk Access. Unmeasured folders still appear with their known size."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Часть из них защищена macOS от всех приложений: данные других приложений и защищённые хранилища. Диалога для их чтения не предусмотрено; чтобы DiskUnbloat мог измерить и эти папки, разрешите ему доступ в разделе «Полный доступ к диску». Неизмеренные папки остаются на карте с их известным размером."
           }
         }
       }
@@ -7852,6 +7987,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Эти файлы превышают заданный размер. Это не означает, что они не используются."
+          }
+        }
+      }
+    },
+    "These folders, and packages unless their contents are inspected, are sized in one fast pass and shown as one tile; their files aren’t listed. Symbolic links aren’t followed; cloud files aren’t downloaded. Changes apply to the next scan." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These folders, and packages unless their contents are inspected, are sized in one fast pass and shown as one tile; their files aren’t listed. Symbolic links aren’t followed; cloud files aren’t downloaded. Changes apply to the next scan."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эти папки, а также пакеты, если их содержимое не просматривается, измеряются за один быстрый проход и показываются одной плиткой; их файлы не перечисляются. Символические ссылки не обходятся; облачные файлы не загружаются. Изменения применяются к следующему сканированию."
           }
         }
       }

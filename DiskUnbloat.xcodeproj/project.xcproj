@@ -193,6 +193,7 @@
               "children": [
                 { "path": "AuthorizationStore.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                 { "path": "BookmarkAccess.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                { "path": "FullDiskAccessProbe.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
               ],
             }, {
               "kind": "group",
@@ -312,10 +313,11 @@
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
         "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
         "CODE_SIGN_ENTITLEMENTS": "DiskUnbloat/App/DiskUnbloat.entitlements",
-        "CODE_SIGN_STYLE": "Automatic",
+        "CODE_SIGN_IDENTITY": "Apple Development: iwasraisedinacity@gmail.com (XWUEYX48E4)",
+        "CODE_SIGN_STYLE": "Manual",
         "COMBINE_HIDPI_IMAGES": "YES",
         "CURRENT_PROJECT_VERSION": "1",
-        "ENABLE_APP_SANDBOX": "YES",
+        "DEVELOPMENT_TEAM": "24Q556TG24",
         "ENABLE_HARDENED_RUNTIME": "YES",
         "GENERATE_INFOPLIST_FILE": "YES",
         "INFOPLIST_FILE": "DiskUnbloat/App/Info.plist",

@@ -137,7 +137,7 @@ import DiskCore
         let suite = "DiskUnbloatMapFlowTests-" + UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
-        let model = WorkspaceViewModel(authorization: AuthorizationStore(defaults: defaults, bookmarks: StubBookmarkAccess(url: scanned)))
+        let model = WorkspaceViewModel(authorization: AuthorizationStore(defaults: defaults, bookmarks: StubBookmarkAccess(url: scanned)), fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = scanned
         model.startScan(); await model.waitForScan()
         guard case .exploring = model.phase else {

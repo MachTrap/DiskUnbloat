@@ -91,7 +91,7 @@ extension ScanIndex {
             }
             let nodes = self.query(q)
             for node in nodes {
-                let folder = node.isDirectory && (!node.isPackage || query.inspectPackages) && !node.isSymbolicLink
+                let folder = node.isBrowsable(inspectPackages: query.inspectPackages)
                 entries.append(MapEntry(id: node.id, parentID: owner, ownerID: owner, kind: folder ? .folder : .file, node: node, bytes: visibleSize(node), unknownCount: node.unknownCount(for: query.metric)))
                 if folder && depth < 2 && !filtered && node.knownSize(for: query.metric) > 0 { pending.append((node.id, depth + 1, node)) }
             }

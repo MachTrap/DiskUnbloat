@@ -19,8 +19,12 @@ struct ScanOptionsView: View {
                 .font(.caption).foregroundStyle(.secondary)
             Text("Exclude folders · one absolute path per line").font(.caption).foregroundStyle(.secondary)
             TextEditor(text: $model.exclusionText).font(.system(.caption, design: .monospaced)).frame(height: 75).border(.quaternary)
-            Text("Packages are counted even when shown as one tile. Symbolic links aren’t followed; cloud files aren’t downloaded.")
-                .font(.caption).foregroundStyle(.secondary)
+                .accessibilityIdentifier("excludedFolders")
+            Text("Measure as one item · folder names or paths, one per line").font(.caption).foregroundStyle(.secondary)
+            TextEditor(text: $model.summarizedText).font(.system(.caption, design: .monospaced)).frame(height: 60).border(.quaternary)
+                .accessibilityIdentifier("summarizedFolders")
+            Text("These folders, and packages unless their contents are inspected, are sized in one fast pass and shown as one tile; their files aren’t listed. Symbolic links aren’t followed; cloud files aren’t downloaded. Changes apply to the next scan.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }.padding(22).frame(width: 340)
     }
 }

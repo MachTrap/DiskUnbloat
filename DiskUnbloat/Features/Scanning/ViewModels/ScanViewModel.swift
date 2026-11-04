@@ -30,12 +30,22 @@ struct PendingGroup: Sendable {
     /// Every authorized scan scope: the single root, or all locations of a grouped scan.
     var roots: [URL] { groupRoots.isEmpty ? (root.map { [$0] } ?? []) : groupRoots }
     var exclusionText = ""
+    /// Folders measured as one item (names, or absolute/`~` paths), one per line. Persists
+    /// across launches: it is a scanning preference, not per-scan state.
+    var summarizedText = "" {
+        didSet { defaults.set(summarizedText, forKey: Self.summarizedFoldersKey) }
+    }
+    static let summarizedFoldersKey = "summarizedFolders"
     var showSetup = false
     var stage: ScanStage = .reading
     private(set) var committingRefresh = false
     private(set) var cancellationRequested = false
     private(set) var startedAt: Date?
     var showIssues = false
+    /// The preflight observed macOS-protected folders refusing reads with no consent
+    /// channel (other applications' app data on macOS 26+); the issues sheet explains
+    /// the Full Disk Access decision instead of leaving raw permission errors.
+    private(set) var protectedFoldersRefused = false
     private(set) var scanning = false
     private(set) var snapshot: ScanSnapshot?
     private(set) var issues: [String] = []
@@ -48,6 +58,7 @@ struct PendingGroup: Sendable {
         self.defaults = defaults
         storage.purgeAbandonedIndexes()
         options.longUnusedDays = defaults.object(forKey: Self.longUnusedDaysKey) as? Int ?? 90
+        summarizedText = defaults.string(forKey: Self.summarizedFoldersKey) ?? ScanOptions.defaultSummarizedFolders.joined(separator: "\n")
     }
 
     /// Approximate share of the volume's used space already read. Subfolder scans may finish
@@ -92,9 +103,13 @@ struct PendingGroup: Sendable {
         root = roots[0]; pendingRoot = nil
         groupTitle = title; groupRoots = title == nil ? [] : roots
         showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []
+        protectedFoldersRefused = false
         volumeUsedBytes = volume.flatMap(Self.volumeUsedBytes(for:))
         options.exclusions = exclusionText.split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        options.summarizedFolders = summarizedText.split(separator: "\n")
+            .map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            .map { $0.hasPrefix("~") ? NSString(string: $0).expandingTildeInPath : $0 }
         return ScanRequest(root: roots[0], extraRoots: title == nil ? [] : Array(roots.dropFirst()), groupTitle: title ?? "", options: options)
     }
 
@@ -110,6 +125,7 @@ struct PendingGroup: Sendable {
         for await event in stream {
             switch event {
             case .stage(let stage): self.stage = stage
+            case .protectedFoldersRefused: protectedFoldersRefused = true
             case .progress(let progress):
                 snapshot = progress
                 // Unreachable locations are listable while the scan is still running.
@@ -160,6 +176,7 @@ struct PendingGroup: Sendable {
                 case .stage(let value): stage = value
                 case .progress(let value), .finished(let value): snapshot = value
                 case .failed(let error): throw ScanFailure(message: error)
+                case .protectedFoldersRefused: protectedFoldersRefused = true
                 }
             }
             if cancellationRequested || snapshot?.cancelled == true { await storage.discard(staging); return false }

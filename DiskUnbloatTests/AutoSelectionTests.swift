@@ -126,7 +126,7 @@ import DiskCore
 
     @Test func emptyRecommendationPostsANoticeInsteadOfSelecting() async {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner)
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan(); await scanner.ready(); await scanner.finish(); await model.waitForScan()
         // The fixture scan contains no curated locations: nothing is recommended.

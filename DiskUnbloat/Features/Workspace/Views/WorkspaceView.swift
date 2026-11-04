@@ -30,6 +30,14 @@ struct WorkspaceView: View {
         .alert("DiskUnbloat", isPresented: Binding(get: { model.message != nil }, set: { if !$0 { model.message = nil } })) {
             Button("OK") { model.message = nil }
         } message: { Text(model.message ?? "") }
+        .alert("Full Disk Access is off", isPresented: $model.showFullDiskAccessOffer) {
+            Button("Open Full Disk Access settings", action: model.openFullDiskAccessSettings)
+                .accessibilityIdentifier("fullDiskAccessOfferOpen")
+            Button("Continue without it") { model.continueWithoutFullDiskAccess() }
+            Button("Cancel", role: .cancel) { model.cancelFullDiskAccessOffer() }
+        } message: {
+            Text("Full Disk Access covers every protected folder at once — other applications’ data, media libraries, mail. Without it, macOS asks about each folder separately during the scan, and other applications’ data stays hidden regardless. If the switch is already on but access still fails, remove DiskUnbloat from the list and add it again: the grant is bound to the exact build.")
+        }
         .onChange(of: model.settings.largeGB) { model.explorer.scheduleRefresh() }
         .onChange(of: model.settings.cacheAgeDays) { model.explorer.scheduleRefresh() }
         .onChange(of: model.settings.ageDays) { model.explorer.scheduleRefresh() }
@@ -62,7 +70,7 @@ struct WorkspaceView: View {
                 Button("Retry", action: model.retry).buttonStyle(.glass)
                 if !cancelled {
                     // macOS permission denials persist until fresh user-selected access is
-                    // granted; the picker at the same location is the sandbox-correct fix.
+                    // denied; the picker at the same location is the supported fix.
                     Button("Reauthorize access", action: model.reauthorize).buttonStyle(.glassProminent).accessibilityIdentifier("reauthorizeFailed")
                 }
                 if scan.refreshNode != nil { Button("Return to map", action: model.returnToPreviousMap).buttonStyle(.glassProminent) }
@@ -71,12 +79,28 @@ struct WorkspaceView: View {
         }.padding(30).frame(maxWidth: .infinity,maxHeight: .infinity).accessibilityIdentifier(cancelled ? "cancelledScreen" : "failedScreen")
     }
     private var issuesSheet: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Unavailable locations").font(.title2.bold())
-            Text("These locations weren’t fully read. Their complete sizes are unknown; the map still includes known bytes. Showing up to 500 issues.").foregroundStyle(.secondary)
+            if scan.protectedFoldersRefused {
+                Label {
+                    Text("Some of these are protected by macOS against every app: other applications' app data and protected libraries. No dialog is offered for reading them; to measure these folders too, allow DiskUnbloat under Full Disk Access. Unmeasured folders still appear with their known size.")
+                } icon: {
+                    Image(systemName: "lock.shield")
+                }
+                .font(.callout).foregroundStyle(.secondary)
+            }
+            Text("These locations weren’t fully read. Their complete sizes are unknown; the map still includes known bytes. Showing up to 500 issues.").font(.caption).foregroundStyle(.secondary)
             List(scan.issues, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
-            HStack { Spacer(); Button("Done") { scan.showIssues = false }.keyboardShortcut(.defaultAction) }
-        }.padding(24).frame(minWidth: 380, maxWidth: 650, minHeight: 320, maxHeight: 500)
+                .frame(minHeight: 180)
+            HStack {
+                if scan.protectedFoldersRefused {
+                    Button("Open Full Disk Access settings") { FullDiskAccessSettings.open() }
+                        .accessibilityIdentifier("openFullDiskAccess")
+                }
+                Spacer()
+                Button("Done") { scan.showIssues = false }.keyboardShortcut(.defaultAction)
+            }
+        }.padding(20).frame(minWidth: 460, maxWidth: 680, minHeight: 340, maxHeight: 620)
     }
 }
 

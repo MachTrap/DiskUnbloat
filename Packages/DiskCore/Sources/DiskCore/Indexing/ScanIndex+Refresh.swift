@@ -65,7 +65,7 @@ extension ScanIndex {
             INSERT INTO nodes SELECT ids.newID,CASE WHEN fresh.parent IS NULL THEN \(parent) ELSE parents.newID END,
             fresh.path,fresh.name,fresh.directory,fresh.package,fresh.symlink,fresh.logical,fresh.allocated,fresh.modified,fresh.identity,
             MAX(fresh.insidePackage,\(original.packageAncestor ? 1 : 0)),fresh.incomplete,fresh.fingerprint,fresh.searchName,fresh.knownLogical,fresh.knownAllocated,fresh.unknownLogical,fresh.unknownAllocated,
-            fresh.rawLogical,fresh.rawAllocated,fresh.category,fresh.latestModified,fresh.unknownModified
+            fresh.rawLogical,fresh.rawAllocated,fresh.category,fresh.latestModified,fresh.unknownModified,fresh.summary,fresh.summaryModified
             FROM incoming.nodes fresh JOIN refresh_ids ids ON ids.oldID=fresh.id LEFT JOIN refresh_ids parents ON parents.oldID=fresh.parent;
             """)
             var issues: OpaquePointer?

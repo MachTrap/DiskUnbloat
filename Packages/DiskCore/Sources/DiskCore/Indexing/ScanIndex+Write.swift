@@ -6,7 +6,7 @@ extension ScanIndex {
         try exec("BEGIN TRANSACTION")
         do {
             var stmt: OpaquePointer?
-            guard sqlite3_prepare_v2(db, "INSERT INTO nodes(id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,insidePackage,fingerprint,searchName,knownLogical,knownAllocated,unknownLogical,unknownAllocated,category,rawLogical,rawAllocated,latestModified,unknownModified) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", -1, &stmt, nil) == SQLITE_OK else { throw IndexError.database }
+            guard sqlite3_prepare_v2(db, "INSERT INTO nodes(id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,insidePackage,fingerprint,searchName,knownLogical,knownAllocated,unknownLogical,unknownAllocated,category,rawLogical,rawAllocated,latestModified,unknownModified,summary,summaryModified) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", -1, &stmt, nil) == SQLITE_OK else { throw IndexError.database }
             defer { sqlite3_finalize(stmt) }
             for n in nodes {
                 bindRow(n, to: stmt)
@@ -36,6 +36,8 @@ extension ScanIndex {
         if let s = n.allocatedSize { sqlite3_bind_int64(stmt, 21, s) }
         if let d = n.modified { sqlite3_bind_double(stmt, 22, d.timeIntervalSince1970) }
         sqlite3_bind_int(stmt, 23, n.modified == nil ? 1 : 0)
+        sqlite3_bind_int(stmt, 24, n.isSummarized ? 1 : 0)
+        if n.isSummarized, let d = n.latestContentModification { sqlite3_bind_double(stmt, 25, d.timeIntervalSince1970) }
     }
     public func issue(path: String, message: String) {
         var s: OpaquePointer?; sqlite3_prepare_v2(db, "INSERT INTO issues VALUES(?,?)", -1, &s, nil)
@@ -62,9 +64,14 @@ extension ScanIndex {
         UPDATE nodes SET logical=rawLogical,allocated=rawAllocated,knownLogical=COALESCE(rawLogical,0),knownAllocated=COALESCE(rawAllocated,0),unknownLogical=rawLogical IS NULL,unknownAllocated=rawAllocated IS NULL,latestModified=modified,unknownModified=modified IS NULL WHERE directory=0\(leafScope);
         UPDATE nodes SET logical=0,allocated=0,knownLogical=0,knownAllocated=0,unknownLogical=0,unknownAllocated=0 WHERE directory=0 AND symlink=0 AND identity<>'' AND id<>(SELECT MIN(alias.id) FROM nodes alias WHERE alias.identity=nodes.identity AND alias.directory=0 AND alias.symlink=0)\(leafScope);
         """)
+        // Summarized folders have no indexed children: their measured totals act like a
+        // leaf's raw sizes, and an unreadable part keeps the exact size unknown.
+        try exec("""
+        UPDATE nodes SET logical=CASE WHEN incomplete=0 THEN rawLogical END,allocated=CASE WHEN incomplete=0 THEN rawAllocated END,knownLogical=COALESCE(rawLogical,0),knownAllocated=COALESCE(rawAllocated,0),unknownLogical=MAX(incomplete,rawLogical IS NULL),unknownAllocated=MAX(incomplete,rawAllocated IS NULL),latestModified=MAX(COALESCE(modified,0),COALESCE(summaryModified,0)),unknownModified=MAX(incomplete,modified IS NULL) WHERE directory=1 AND summary=1\(directoryScope);
+        """)
         // Path depth remains valid when stable IDs survive subtree replacements.
         var s: OpaquePointer?
-        guard sqlite3_prepare_v2(db, "SELECT id FROM nodes WHERE directory=1\(directoryScope) ORDER BY length(path) DESC", -1, &s, nil) == SQLITE_OK else { throw IndexError.database }
+        guard sqlite3_prepare_v2(db, "SELECT id FROM nodes WHERE directory=1 AND summary=0\(directoryScope) ORDER BY length(path) DESC", -1, &s, nil) == SQLITE_OK else { throw IndexError.database }
         defer { sqlite3_finalize(s) }
         do {
             var update: OpaquePointer?

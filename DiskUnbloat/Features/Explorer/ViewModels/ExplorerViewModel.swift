@@ -232,7 +232,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         scheduleRefresh()
     }
     func canNavigate(_ node: FileNode) -> Bool {
-        node.isDirectory && !node.isSymbolicLink && (!node.isPackage || options.inspectPackages)
+        node.isBrowsable(inspectPackages: options.inspectPackages)
     }
     func navigate(_ node: FileNode, record: Bool = true) {
         guard canNavigate(node), node.id != current?.id else { return }

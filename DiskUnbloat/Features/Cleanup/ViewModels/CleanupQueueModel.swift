@@ -200,8 +200,8 @@ import DiskCore
         var cursor = node
         while let parentID = cursor.parentID, let parent = await provider.node(id: parentID) {
             if parent.path == current.path || parent.isGroupRoot { break }
-            // Packages and symlinks stay atomic; the chain ends there.
-            guard parent.isDirectory, !parent.isSymbolicLink, !parent.isPackage else { break }
+            // Packages, summarized folders, and symlinks stay atomic; the chain ends there.
+            guard parent.isBrowsable(inspectPackages: false) else { break }
             targets.append((parent, cursor))
             cursor = parent
         }

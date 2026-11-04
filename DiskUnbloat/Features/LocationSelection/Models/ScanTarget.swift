@@ -21,7 +21,9 @@ struct LocationCatalog {
     let home: URL
     init(home: URL? = nil) {
         if let home { self.home = home; return }
-        // Foundation's default home/search paths can point inside the sandbox container.
+        // Foundation's home/search paths pointed inside the App Sandbox container for
+        // sandboxed builds; getpwuid(3) always returns the user's real home, which is
+        // also the correct quick-target root for an unsandboxed app.
         var record = passwd(); var result: UnsafeMutablePointer<passwd>?
         var buffer = [CChar](repeating: 0, count: 16384)
         let path = buffer.withUnsafeMutableBufferPointer { storage -> String? in

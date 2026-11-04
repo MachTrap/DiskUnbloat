@@ -27,10 +27,19 @@ public struct FileNode: Identifiable, Sendable, Codable, Hashable {
     public func knownSize(for metric: SizeMetric) -> Int64 { metric == .allocated ? knownAllocatedSize : knownLogicalSize }
     public func unknownCount(for metric: SizeMetric) -> Int { metric == .allocated ? unknownAllocatedCount : unknownLogicalCount }
     public let packageAncestor: Bool
+    /// A folder measured as a whole (a package while package inspection is off, or a
+    /// folder from the summarize list): its bytes are known but its entries were never
+    /// indexed, so it stays atomic everywhere — map, navigation, and queue expansion.
+    public let isSummarized: Bool
+    /// Whether the folder's entries are indexed and may be browsed as a container.
+    public func isBrowsable(inspectPackages: Bool) -> Bool {
+        isDirectory && !isSymbolicLink && !isSummarized && (!isPackage || inspectPackages)
+    }
     public var url: URL { URL(fileURLWithPath: path) }
     public var displaySize: Int64 { allocatedSize ?? 0 }
     public func size(for metric: SizeMetric) -> Int64? { metric == .allocated ? allocatedSize : logicalSize }
-    public init(id: Int64, parentID: Int64?, path: String, name: String, isDirectory: Bool, isPackage: Bool = false, isSymbolicLink: Bool = false, logicalSize: Int64?, allocatedSize: Int64?, modified: Date?, identity: String, fingerprint: String? = nil, packageAncestor: Bool = false, knownLogicalSize: Int64? = nil, knownAllocatedSize: Int64? = nil, unknownLogicalCount: Int? = nil, unknownAllocatedCount: Int? = nil, latestContentModification: Date? = nil, unknownModificationCount: Int? = nil) {
+    public init(id: Int64, parentID: Int64?, path: String, name: String, isDirectory: Bool, isPackage: Bool = false, isSymbolicLink: Bool = false, logicalSize: Int64?, allocatedSize: Int64?, modified: Date?, identity: String, fingerprint: String? = nil, packageAncestor: Bool = false, knownLogicalSize: Int64? = nil, knownAllocatedSize: Int64? = nil, unknownLogicalCount: Int? = nil, unknownAllocatedCount: Int? = nil, latestContentModification: Date? = nil, unknownModificationCount: Int? = nil, isSummarized: Bool = false) {
+        self.isSummarized = isSummarized
         self.latestContentModification = latestContentModification ?? modified
         self.unknownModificationCount = unknownModificationCount ?? (modified == nil ? 1 : 0)
         self.knownLogicalSize = knownLogicalSize ?? logicalSize ?? 0

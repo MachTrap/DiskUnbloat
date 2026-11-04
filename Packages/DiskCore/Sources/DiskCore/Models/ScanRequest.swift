@@ -9,6 +9,11 @@ public struct ScanOptions: Sendable, Codable {
     /// "long-unused" for automatic selection (old simulators, local AI models). A
     /// definition parameter: it shapes selection, never enumeration.
     public var longUnusedDays = 90
+    /// Folders measured as one opaque item instead of being indexed entry by entry.
+    /// Entries without a slash match folder names anywhere (case-insensitive); entries
+    /// with one match that absolute folder. Scan roots are never summarized.
+    public var summarizedFolders: [String] = ScanOptions.defaultSummarizedFolders
+    public static let defaultSummarizedFolders = [".git", "node_modules"]
     public init() {}
 }
 public struct ScanRequest: Sendable {

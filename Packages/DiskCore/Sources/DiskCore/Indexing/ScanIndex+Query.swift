@@ -213,7 +213,7 @@ extension ScanIndex {
     public func query(_ q: FileQuery) -> [FileNode] {
         let (whereSQL, strings) = predicate(q)
         let order = q.sortByName ? "name COLLATE NOCASE" : q.metric == .allocated ? "knownAllocated" : "knownLogical"
-        return readRows("SELECT id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,fingerprint,insidePackage,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified FROM nodes WHERE \(whereSQL) ORDER BY \(order) \(q.ascending ? "ASC" : "DESC"),id LIMIT \(max(1, min(q.limit, 10000))) OFFSET \(max(0, q.offset))", strings: strings)
+        return readRows("SELECT \(Self.rowColumns) FROM nodes WHERE \(whereSQL) ORDER BY \(order) \(q.ascending ? "ASC" : "DESC"),id LIMIT \(max(1, min(q.limit, 10000))) OFFSET \(max(0, q.offset))", strings: strings)
     }
     /// Direct children of one folder in a stable order: by name when `sortByName` is
     /// true, otherwise by known allocated size descending. Used by the cleanup queue's
@@ -252,7 +252,7 @@ extension ScanIndex {
             while index < frontier.endIndex {
                 let upper = min(frontier.endIndex, index + 900)
                 let idList = frontier[index..<upper].map(String.init).joined(separator: ",")
-                for row in read("SELECT id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,fingerprint,insidePackage,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified FROM nodes WHERE id IN (\(idList))") {
+                for row in readRows("SELECT \(Self.rowColumns) FROM nodes WHERE id IN (\(idList))") {
                     fetched[row.id] = row
                 }
                 index = upper

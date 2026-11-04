@@ -41,6 +41,37 @@ actor RecordingCleanupService: CleanupServing {
     func stopAccessing(_ url: URL) { stopped.append(url) }
 }
 
+/// Default test double: the grant is present, so scans start without the offer.
+struct GrantedFullDiskAccess: FullDiskAccessChecking {
+    func isGranted() async -> Bool { true }
+}
+
+/// Mutable double for flows that change the grant mid-test (offer → settings → resume).
+final class MutableFullDiskAccess: FullDiskAccessChecking, @unchecked Sendable {
+    var granted: Bool
+    init(granted: Bool) { self.granted = granted }
+    func isGranted() async -> Bool { granted }
+}
+
+extension WorkspaceViewModel {
+    /// The Full Disk Access gate makes the phase transition asynchronous; wait it out
+    /// deterministically instead of asserting on the same runloop turn.
+    func waitForPhaseTransitionFromChoosing() async {
+        for _ in 0..<100 {
+            if phase != .choosing { return }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+    }
+
+    /// Waits until the pre-scan offer is on screen (bounded; returns either way).
+    func waitForFullDiskAccessOffer() async {
+        for _ in 0..<200 {
+            if showFullDiskAccessOffer { return }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+    }
+}
+
 actor ControlledScanner: ScanServing {
     private var continuation: AsyncStream<ScanEvent>.Continuation?
     private var waiters: [CheckedContinuation<Void, Never>] = []
@@ -70,6 +101,11 @@ actor ControlledScanner: ScanServing {
     func cancel() {
         continuation?.yield(.finished(ScanSnapshot(items: 3,bytes: 4096,elapsed: 1,errors: 0,cancelled: true,complete: false,folders: 2,currentFolder: "/fixture")))
         continuation?.finish(); continuation = nil
+    }
+    /// Replays the preflight's protected-folder refusal signal exactly as the real
+    /// scan coordinator emits it after refused `SystemPolicyAppDataDetailed` reads.
+    func protectedFoldersRefused() {
+        continuation?.yield(.protectedFoldersRefused)
     }
 }
 

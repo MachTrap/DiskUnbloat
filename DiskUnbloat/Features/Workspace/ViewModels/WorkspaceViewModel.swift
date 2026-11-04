@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import AppKit
 import DiskCore
 
 enum WorkspacePhase: Equatable {
@@ -21,23 +22,38 @@ enum WorkspacePhase: Equatable {
     @ObservationIgnored private var locationTask: Task<Void, Never>?
     private(set) var restoringLocation = false
     @ObservationIgnored private var scanTask: Task<Void, Never>?
+    /// The Full Disk Access gate that precedes the run task; `waitForScan` awaits both.
+    @ObservationIgnored private var startPipeline: Task<Void, Never>?
     @ObservationIgnored private var cleanupTask: Task<Void, Never>?
     @ObservationIgnored private var selectionTask: Task<Void, Never>?
     private(set) var selectingItems = false
     private var shuttingDown = false
     var message: String?
     var previewURL: URL?
+    @ObservationIgnored private let fullDiskAccess: any FullDiskAccessChecking
+    @ObservationIgnored private let openFullDiskAccessPane: () -> Void
+    /// The pre-scan Full Disk Access offer: macOS refuses other applications' app data
+    /// (and protected libraries) to every app without the grant, silently, so the offer
+    /// must appear when the scan begins — not as an afterthought in the issue list.
+    var showFullDiskAccessOffer = false
+    @ObservationIgnored private var offerPreservingCleanupReport = false
+    @ObservationIgnored private var awaitingFullDiskAccessGrant = false
+    @ObservationIgnored private var activationObserver: NSObjectProtocol?
 
     init(
         authorization: AuthorizationStore = AuthorizationStore(),
         coordinator: any ScanServing = ScanCoordinator(),
         cleanupService: any CleanupServing = CleanupService(),
         settings: SettingsViewModel = SettingsViewModel(),
-        filePresentation: any FilePresenting = FilePresentationService()
+        filePresentation: any FilePresenting = FilePresentationService(),
+        fullDiskAccess: any FullDiskAccessChecking = SystemFullDiskAccessProbe(),
+        openFullDiskAccessPane: @escaping () -> Void = { FullDiskAccessSettings.open() }
     ) {
         self.authorization = authorization
         self.settings = settings
         self.filePresentation = filePresentation
+        self.fullDiskAccess = fullDiskAccess
+        self.openFullDiskAccessPane = openFullDiskAccessPane
         scan = ScanViewModel(coordinator: coordinator)
         explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
         cleanup = CleanupViewModel(service: cleanupService, diagnostics: CleanupDiagnosticsService())
@@ -57,12 +73,17 @@ enum WorkspacePhase: Equatable {
         phase == .exploring && !scan.scanning && !cleanup.cleaning && scan.snapshot != nil && scan.snapshot?.cancelled == false
     }
 
-    func waitForScan() async { await scanTask?.value }
+    func waitForScan() async {
+        // The FDA gate runs before the run task exists; wait out the whole pipeline.
+        await startPipeline?.value
+        await scanTask?.value
+    }
 
     func waitForCleanup() async { await cleanupTask?.value }
 
     func shutdown() async {
         shuttingDown = true
+        stopWaitingForFullDiskAccess()
         locationTask?.cancel()
         selectionTask?.cancel()
         await selectionTask?.value
@@ -99,6 +120,64 @@ enum WorkspacePhase: Equatable {
 
     func startScan() { startScan(preservingCleanupReport: false) }
 
+    /// The pre-scan offer's settings action: the pane opens, the pending scan waits, and
+    /// returning to the app with the grant in place resumes it automatically.
+    func openFullDiskAccessSettings() {
+        showFullDiskAccessOffer = false
+        awaitingFullDiskAccessGrant = true
+        openFullDiskAccessPane()
+        observeActivationForFullDiskAccess()
+    }
+
+    /// The user declined Full Disk Access; the scan proceeds and the preflight raises
+    /// the remaining folder/media consents one at a time before enumerating.
+    func continueWithoutFullDiskAccess() {
+        showFullDiskAccessOffer = false
+        stopWaitingForFullDiskAccess()
+        let preserving = offerPreservingCleanupReport
+        offerPreservingCleanupReport = false
+        launchScan(preservingCleanupReport: preserving)
+    }
+
+    /// The user dismissed the offer without deciding; nothing starts.
+    func cancelFullDiskAccessOffer() {
+        showFullDiskAccessOffer = false
+        stopWaitingForFullDiskAccess()
+        offerPreservingCleanupReport = false
+    }
+
+    /// While the user is in System Settings granting Full Disk Access, the pending scan
+    /// waits; returning to the app with the grant in place resumes it automatically.
+    private func observeActivationForFullDiskAccess() {
+        guard activationObserver == nil else { return }
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in await self?.resumePendingScanAfterFullDiskAccess() }
+        }
+    }
+
+    private func resumePendingScanAfterFullDiskAccess() async {
+        guard awaitingFullDiskAccessGrant, !shuttingDown else { return }
+        let granted = await fullDiskAccess.isGranted()
+        guard awaitingFullDiskAccessGrant, !shuttingDown else { return }
+        if granted {
+            stopWaitingForFullDiskAccess()
+            let preserving = offerPreservingCleanupReport
+            offerPreservingCleanupReport = false
+            launchScan(preservingCleanupReport: preserving)
+        }
+        // Still missing: stay quiet — the next explicit scan attempt re-offers.
+    }
+
+    private func stopWaitingForFullDiskAccess() {
+        awaitingFullDiskAccessGrant = false
+        if let activationObserver {
+            NotificationCenter.default.removeObserver(activationObserver)
+            self.activationObserver = nil
+        }
+    }
+
     /// Queue a resolved URL as the scan root and start scanning it.
     private func beginScan(with url: URL) {
         scan.pendingRoot = url
@@ -115,19 +194,44 @@ enum WorkspacePhase: Equatable {
     }
 
     private func startScan(preservingCleanupReport: Bool) {
-        guard !cleanup.cleaning, !shuttingDown, !restoringLocation, let request = scan.prepare() else { return }
+        guard !cleanup.cleaning, !shuttingDown, !restoringLocation, !showFullDiskAccessOffer else { return }
+        // Full Disk Access is the one decision that covers every folder and media consent
+        // the preflight could raise, so it is asked first and alone. The scan waits for
+        // the user's answer: with the grant present nothing else prompts at all; without
+        // it, the preflight raises the remaining consents in order before enumerating.
+        // Exploration rescans skip the offer — the user already answered it this session.
+        let pipelineTask = Task {
+            let granted = await fullDiskAccess.isGranted()
+            guard !Task.isCancelled, !shuttingDown else { return }
+            if granted {
+                launchScan(preservingCleanupReport: preservingCleanupReport)
+            } else if !scan.scanning {
+                if phase == .exploring {
+                    launchScan(preservingCleanupReport: preservingCleanupReport)
+                } else {
+                    offerPreservingCleanupReport = preservingCleanupReport
+                    showFullDiskAccessOffer = true
+                }
+            }
+        }
+        startPipeline = pipelineTask
+    }
+
+    private func launchScan(preservingCleanupReport: Bool) {
+        guard let request = scan.prepare() else { return }
         phase = .scanning
         explorer.reset()
         cleanup.reset(preservingReport: preservingCleanupReport)
         queue.reset()
         scanTask = Task {
-            // The sandbox denies openings without an active security-scope grant even
-            // while metadata stays readable — a silently failed grant activation makes
-            // the scan fail before its first row with no dialog to answer. When a stored
-            // bookmark covers the scope, restore it (headlessly, from the narrowest
-            // covering bookmark) before the doomed enumeration runs. A picker is never
-            // shown here; an unrepairable scope lands on the failed screen whose
-            // Reauthorize access button presents the picker explicitly.
+            // Access without consent fails with a TCC denial even while metadata stays
+            // readable — a silently failed remembered-location restore makes the scan fail
+            // before its first row with no dialog to answer. When a stored location covers
+            // the scope, restore it (headlessly, from the narrowest covering bookmark)
+            // before the doomed enumeration runs; where TCC still needs consent, the
+            // preflight probes bring the prompts up front. A picker is never shown here;
+            // an unrepairable scope lands on the failed screen whose Reauthorize access
+            // button presents the picker explicitly.
             _ = await ensureGrant(for: request)
             authorization.retainOnly(request.roots)
             do {
@@ -203,28 +307,30 @@ enum WorkspacePhase: Equatable {
     /// (a Files-and-Folders "Don't Allow" from the upfront consent dialogs), and
     /// repeating the same scan can never revive a denied scope. Presenting the system
     /// picker at the same location generates fresh user-selected access, which is the
-    /// one sandbox-correct way back — no entitlements are available for this.
+    /// supported way back — macOS permission denials are only replaceable by the user's
+    /// own choice, never by an entitlement.
     func reauthorize() {
         guard !isBusy else { return }
         guard let root = scan.root.map(canonicalURL) else { return }
         chooseSuggested(root)
     }
 
-    /// The sandbox denies openings (and URL resource-value reads) without an active
-    /// security-scope grant while metadata (lstat) stays readable everywhere, so both
-    /// checks must pass for the scan to be worth starting.
+    /// Consent and Unix-permission refusals both surface as `opendir` failures while
+    /// metadata (lstat) reads survive everywhere, so root readability needs real
+    /// directory opens, not just identity reads.
     private func isReadableRoot(_ url: URL) -> Bool {
         let canonical = canonicalURL(url)
         guard (try? FileIdentity.read(canonical)) != nil else { return false }
         return (try? canonical.resourceValues(forKeys: [.isPackageKey])) != nil
     }
 
-    /// Restores a covering stored grant headlessly when the scan scope is home-rooted
-    /// (or `/`) but cannot be opened yet. Returns nothing — whether or not it could
-    /// repair the grants, the scan runs and an unrepairable scope fails later on the
-    /// failed screen with its recorded issue and the manual Reauthorize access button.
-    /// The most specific covering bookmark wins over the broad volume-root grant, whose
-    /// activation does not reliably extend the sandbox into protected home data.
+    /// Restores a covering stored bookmark headlessly when the scan scope is
+    /// home-rooted (or `/`) but cannot be opened yet. Returns nothing — whether or not
+    /// it could repair the scope, the scan runs and an unrepairable scope fails later
+    /// on the failed screen with its recorded issue and the manual Reauthorize access
+    /// button. The most specific covering bookmark wins over the broad volume-root
+    /// bookmark, whose breadth would also swallow unrelated consents into the restore
+    /// decision.
     private func ensureGrant(for request: ScanRequest) async {
         let canonicalRoots = request.roots.map(canonicalURL)
         let homePath = location.catalog.home.path

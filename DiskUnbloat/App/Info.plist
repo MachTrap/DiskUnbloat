@@ -8,4 +8,14 @@
 <key>LSItemContentTypes</key><array><string>public.folder</string><string>public.volume</string></array>
 </dict></array>
 <key>CFBundleLocalizations</key><array><string>en</string><string>ru</string></array>
+<key>NSAppDataUsageDescription</key><string>DiskUnbloat shows how much space other applications' caches and support data occupy on your disk. Your consent is used only to measure sizes and let you review and delete cached data; personal message or browsing content inside those apps is never read.</string>
+<key>NSAppleMusicUsageDescription</key><string>DiskUnbloat measures the size of your Music library to show where disk space goes.</string>
+<key>NSCalendarsFullAccessUsageDescription</key><string>DiskUnbloat measures the size of your calendar data stored on this Mac.</string>
+<key>NSContactsUsageDescription</key><string>DiskUnbloat measures the size of contacts databases stored on this Mac.</string>
+<key>NSDesktopFolderUsageDescription</key><string>DiskUnbloat measures the size of your Desktop to find large files and caches.</string>
+<key>NSDocumentsFolderUsageDescription</key><string>DiskUnbloat measures the size of your Documents to find large files and caches.</string>
+<key>NSDownloadsFolderUsageDescription</key><string>DiskUnbloat measures the size of your Downloads to find large files and caches.</string>
+<key>NSHomeKitUsageDescription</key><string>DiskUnbloat measures the size of HomeKit-related data stored on this Mac.</string>
+<key>NSPhotoLibraryUsageDescription</key><string>DiskUnbloat measures the size of your Photos library to show where disk space goes.</string>
+<key>NSRemindersFullAccessUsageDescription</key><string>DiskUnbloat measures the size of your reminders data stored on this Mac.</string>
 </dict></plist>

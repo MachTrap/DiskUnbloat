@@ -37,7 +37,7 @@ import DiskCore
         let missing = scope.appendingPathComponent("gone-subfolder")
         let panels = Box<URL>(nil)
         authorization.panelProvider = { suggested, _ in panels.value = suggested; return nil }
-        let model = WorkspaceViewModel(authorization: authorization)
+        let model = WorkspaceViewModel(authorization: authorization, fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = missing
         model.startScan(); await model.waitForScan()
         // The repair went through the stored bookmark without any panel...
@@ -68,7 +68,7 @@ import DiskCore
     }
 
     @Test func scanFailureNamesTheUnderlyingRefusal() async throws {
-        let model = WorkspaceViewModel()
+        let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess())
         let missing = FileManager.default.temporaryDirectory.appendingPathComponent("DiskUnbloat-missing-" + UUID().uuidString)
         model.scan.pendingRoot = missing
         model.startScan(); await model.waitForScan()
@@ -83,7 +83,7 @@ import DiskCore
     }
 
     @Test func reauthorizeSuggestsTheFailedRootThroughThePicker() async throws {
-        let model = WorkspaceViewModel()
+        let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess())
         let missing = FileManager.default.temporaryDirectory.appendingPathComponent("DiskUnbloat-missing-" + UUID().uuidString)
         model.scan.pendingRoot = missing
         model.startScan(); await model.waitForScan()

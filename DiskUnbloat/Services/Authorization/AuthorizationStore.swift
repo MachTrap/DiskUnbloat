@@ -104,7 +104,7 @@ struct SavedLocation: Identifiable, Codable {
 
     private func reportBookmarkFailure(_ error: Error) {
         bookmarkWarning = L10n.text("This folder can be scanned now, but macOS couldn’t remember access for next time. Choose it again after restarting the app.")
-        logger.error("Unable to save security-scoped bookmark: \(error.diagnosticDescription, privacy: .public)")
+        logger.error("Unable to save remembered bookmark: \(error.diagnosticDescription, privacy: .public)")
     }
 
     /// Derive a child URL from a live grant without replacing the granted root's token.

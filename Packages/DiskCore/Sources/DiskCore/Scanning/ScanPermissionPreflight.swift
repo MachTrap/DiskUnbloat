@@ -46,6 +46,13 @@ public enum ScanPermissionPreflight: Sendable {
         ("Movies/TV/TV Library.tvlibrary", .childrenAndBundles),
         ("Public", .directoryOnly),
         ("Library/Photos", .childrenAndBundles),
+        // Third-party application data (Firefox profiles, Discord stores, Chrome caches,
+        // editors' settings — everything beside the com.apple.* entries) is gated by the
+        // macOS 26 App Data consent ("would like to access data from other apps"). Probing
+        // the directory itself never triggers that prompt — only opening child
+        // applications' data does — so the directory is probed with children depth right
+        // after Apple's protected folders.
+        ("Library/Application Support", .childrenAndBundles),
         ("Library/Application Support/com.apple.avfoundation", .childrenAndBundles),
         ("Library/Application Support/AddressBook", .childrenAndBundles),
         ("Library/Calendars", .childrenAndBundles),
@@ -122,18 +129,32 @@ public enum ScanPermissionPreflight: Sendable {
         return result
     }
 
+    /// How a preflight open of one protected target went. The denial outcome exists to tell
+    /// the user *why* some folders stay unsized: macOS refuses those reads at a level where
+    /// no consent dialog exists, and Full Disk Access is the supported way out.
+    public enum ProbeOutcome: Sendable, Equatable {
+        case readable
+        /// One or more of the touched directories refused opening with a permission error,
+        /// while others in the same target opened — the signature of macOS-protected
+        /// content (media libraries, other applications' app data, mail and messages).
+        case containsDeniedChildren
+    }
+
     /// Touches `target` with bounded `opendir`/`readdir` calls so macOS TCC presents any needed
     /// consent dialog immediately without enumerating the full subtree.
-    public static func probe(_ target: Target, excludedPaths: [String] = []) {
+    @discardableResult
+    public static func probe(_ target: Target, excludedPaths: [String] = []) -> ProbeOutcome {
         let path = target.url.path
-        guard !excludedPaths.contains(where: { path.isWithin($0) }) else { return }
-        guard let dir = opendir(path) else { return }
+        guard !excludedPaths.contains(where: { path.isWithin($0) }) else { return .readable }
+        guard let dir = opendir(path) else { return .containsDeniedChildren }
         defer { closedir(dir) }
 
         switch target.depth {
         case .directoryOnly:
             _ = readdir(dir)
+            return .readable
         case .childrenAndBundles:
+            var denied = false
             var childDirectories: [String] = []
             var mediaBundles: [String] = []
             var inspected = 0
@@ -152,29 +173,43 @@ public enum ScanPermissionPreflight: Sendable {
                 let lower = name.lowercased()
                 if mediaBundleSuffixes.contains(where: { lower.hasSuffix($0) }) {
                     mediaBundles.append(childPath)
-                } else if childDirectories.count < 2 {
+                } else if childDirectories.count < 4 {
+                    // Four immediate child directories: Application Support mixes dozens of
+                    // com.apple.* and third-party folders in readdir order, and the App Data
+                    // consent fires only at the first touch of another application's data,
+                    // so a couple of children are not enough to guarantee it.
                     childDirectories.append(childPath)
                 }
             }
             for bundlePath in mediaBundles {
-                probeMediaBundle(at: bundlePath, excludedPaths: excludedPaths)
+                if !probeMediaBundle(at: bundlePath, excludedPaths: excludedPaths) { denied = true }
             }
             if Self.isMediaBundlePath(path) {
-                for sub in childDirectories {
-                    shallowOpen(sub)
-                }
+                denied = denied || deniedChild(among: childDirectories, excludedPaths: excludedPaths)
             } else {
-                for childPath in childDirectories {
-                    shallowOpen(childPath)
-                    let dataPath = childPath + "/Data"
-                    if !excludedPaths.contains(where: { dataPath.isWithin($0) }),
-                       let id = try? FileIdentity.read(URL(fileURLWithPath: dataPath)),
-                       id.directory, !id.link {
-                        shallowOpen(dataPath)
-                    }
-                }
+                denied = denied || deniedChild(among: childDirectories, excludedPaths: excludedPaths, openDataContainers: true)
+            }
+            return denied ? .containsDeniedChildren : .readable
+        }
+    }
+
+    private static func deniedChild(among paths: [String], excludedPaths: [String], openDataContainers: Bool = false) -> Bool {
+        var denied = false
+        for childPath in paths {
+            if shallowOpen(childPath) == nil {
+                denied = true
+                continue
+            }
+            guard openDataContainers else { continue }
+            let dataPath = childPath + "/Data"
+            if !excludedPaths.contains(where: { dataPath.isWithin($0) }),
+               let id = try? FileIdentity.read(URL(fileURLWithPath: dataPath)),
+               id.directory, !id.link,
+               shallowOpen(dataPath) == nil {
+                denied = true
             }
         }
+        return denied
     }
 
     private static func isMediaBundlePath(_ path: String) -> Bool {
@@ -182,9 +217,11 @@ public enum ScanPermissionPreflight: Sendable {
         return mediaBundleSuffixes.contains { lower.hasSuffix($0) }
     }
 
-    private static func probeMediaBundle(at bundlePath: String, excludedPaths: [String]) {
-        guard let dir = opendir(bundlePath) else { return }
+    /// Opens the bundle's immediate children; returns whether every opened call succeeded.
+    private static func probeMediaBundle(at bundlePath: String, excludedPaths: [String]) -> Bool {
+        guard let dir = opendir(bundlePath) else { return false }
         defer { closedir(dir) }
+        var denied = false
         var inspected = 0
         while inspected < 32, let entry = readdir(dir) {
             let name = withUnsafePointer(to: entry.pointee.d_name) { ptr in
@@ -196,16 +233,20 @@ public enum ScanPermissionPreflight: Sendable {
             inspected += 1
             let subPath = bundlePath + "/" + name
             if excludedPaths.contains(where: { subPath.isWithin($0) }) { continue }
-            if let id = try? FileIdentity.read(URL(fileURLWithPath: subPath)), id.directory, !id.link {
-                shallowOpen(subPath)
+            if let id = try? FileIdentity.read(URL(fileURLWithPath: subPath)), id.directory, !id.link,
+               shallowOpen(subPath) == nil {
+                denied = true
             }
         }
+        return !denied
     }
 
-    private static func shallowOpen(_ path: String) {
-        guard let dir = opendir(path) else { return }
+    /// Opens one directory for a bounded read; the return value exposes whether macOS refused it.
+    private static func shallowOpen(_ path: String) -> CInt? {
+        guard let dir = opendir(path) else { return nil }
         _ = readdir(dir)
         closedir(dir)
+        return 1
     }
 
     private static func resolvedHomes(explicit: [URL]?, rootPaths: [String]) -> [String] {

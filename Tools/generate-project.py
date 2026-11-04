@@ -98,10 +98,19 @@ def app_build_settings(existing):
         'ASSETCATALOG_COMPILER_APPICON_NAME': 'AppIcon',
         'ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME': 'AccentColor',
         'CODE_SIGN_ENTITLEMENTS': 'DiskUnbloat/App/DiskUnbloat.entitlements',
-        'CODE_SIGN_STYLE': 'Automatic',
+        # Manual signing with the owner's Apple Development identity (not ad-hoc) is
+        # required for the Full Disk Access grant to survive rebuilds: TCC binds the
+        # grant to the binary's designated requirement, and an ad-hoc requirement pins
+        # the exact cdhash, so every rebuild silently revoked the grant. Automatic
+        # style rejects the unified "Apple Development" certificate on macOS targets
+        # ("No signing certificate Mac Development found"), so the exact certificate
+        # name is pinned.
+        'CODE_SIGN_STYLE': 'Manual',
+        'CODE_SIGN_IDENTITY': 'Apple Development: iwasraisedinacity@gmail.com (XWUEYX48E4)',
+        'DEVELOPMENT_TEAM': '24Q556TG24',
+        'CODE_SIGN_IDENTITY': 'Apple Development: iwasraisedinacity@gmail.com (XWUEYX48E4)',
         'COMBINE_HIDPI_IMAGES': 'YES',
         'CURRENT_PROJECT_VERSION': '1',
-        'ENABLE_APP_SANDBOX': 'YES',
         'ENABLE_HARDENED_RUNTIME': 'YES',
         'GENERATE_INFOPLIST_FILE': 'YES',
         'INFOPLIST_FILE': 'DiskUnbloat/App/Info.plist',

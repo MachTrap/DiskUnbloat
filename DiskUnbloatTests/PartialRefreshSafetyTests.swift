@@ -9,7 +9,7 @@ import DiskCore
         try FileManager.default.createDirectory(at: root.appendingPathComponent("branch"),withIntermediateDirectories: true)
         try Data([1]).write(to: root.appendingPathComponent("branch/a"))
         defer { try? FileManager.default.removeItem(at: root) }
-        let model = WorkspaceViewModel(coordinator: InitiallyPartialScanner())
+        let model = WorkspaceViewModel(coordinator: InitiallyPartialScanner(), fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         #expect(model.phase == .cancelled)
         model.viewPartialMap(); await model.waitForScan()

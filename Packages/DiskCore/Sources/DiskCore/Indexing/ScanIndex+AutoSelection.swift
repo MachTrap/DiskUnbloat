@@ -71,7 +71,7 @@ extension ScanIndex {
     /// Symlinks and package internals stay out; `incomplete` rows cannot establish
     /// eligibility and are skipped wholesale.
     private func childrenForSelection(of parentID: Int64) -> [FileNode] {
-        let columns = "id,parent,path,name,directory,package,symlink,logical,allocated,modified,identity,fingerprint,insidePackage,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified"
+        let columns = Self.rowColumns
         var result: [FileNode] = []
         var offset = 0
         while true {

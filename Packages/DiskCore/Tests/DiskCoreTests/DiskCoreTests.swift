@@ -59,9 +59,18 @@ func destroy(_ index: ScanIndex) async {
     let package = try #require(await index.query(q).first)
     #expect(package.isPackage)
     #expect(package.logicalSize == 16000)
-    q.parentID = package.id; q.inspectPackages = true
-    #expect(await index.query(q).allSatisfy(\.packageAncestor))
+    // Without inspection the package is measured whole: no interior rows, never browsable.
+    #expect(package.isSummarized && !package.isBrowsable(inspectPackages: true))
+    #expect(await index.childCount(of: package.id, inspectPackages: true) == 0)
     await destroy(index)
+    var options = ScanOptions(); options.inspectPackages = true
+    let (inspected, _) = try await scan(f.root, options: options)
+    let indexed = try #require(await inspected.query(q).first)
+    #expect(!indexed.isSummarized && indexed.logicalSize == 16000)
+    q.parentID = indexed.id; q.inspectPackages = true
+    let interior = await inspected.query(q)
+    #expect(!interior.isEmpty && interior.allSatisfy(\.packageAncestor))
+    await destroy(inspected)
 }
 @Test func unknownSizesAndSuggestions() async throws {
     let f = try Fixture(); defer { f.dispose() }
@@ -127,9 +136,11 @@ func destroy(_ index: ScanIndex) async {
     let index = try ScanIndex(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".sqlite"))
     let coordinator = ScanCoordinator()
     let events = await coordinator.scan(ScanRequest(root: f.root), into: index)
+    // The parallel scanner finishes 600 files before a progress event could round-trip,
+    // so cancel deterministically before consuming any event.
+    await coordinator.cancel()
     var final: ScanSnapshot?
     for await event in events {
-        if case .progress = event { await coordinator.cancel() }
         if case .finished(let snapshot) = event { final = snapshot }
     }
     #expect(final?.cancelled == true)
@@ -653,7 +664,9 @@ private actor CleanupGate {
 @Test func packageInteriorRefreshRetainsCleanupProtection() async throws {
     let f = try Fixture(); defer { f.dispose() }
     _ = try f.file("Example.app/Contents/a",bytes: 10)
-    let (index, _) = try await scan(f.root)
+    // Package interiors are only indexed (and refreshable) while inspection is on.
+    var options = ScanOptions(); options.inspectPackages = true
+    let (index, _) = try await scan(f.root, options: options)
     let branch = try #require(await index.node(path: f.root.path+"/Example.app/Contents"))
     #expect(branch.packageAncestor)
     _ = try f.file("Example.app/Contents/new",bytes: 20)
@@ -966,6 +979,8 @@ private actor CleanupGate {
         "Library/Photos/Libraries",
         "Library/Calendars/ Cal",
         "Library/Reminders/Container_v1",
+        "Library/Application Support/Firefox",
+        "Library/Application Support/discord/Cache",
         "Library/Application Support/AddressBook/Sources",
         "Library/Containers/com.example.app/Data",
         "Projects/MyApp/Sources",
@@ -997,6 +1012,7 @@ private actor CleanupGate {
         canonicalHome + "/Movies/TV",
         canonicalHome + "/Movies/TV/TV Library.tvlibrary",
         canonicalHome + "/Library/Photos",
+        canonicalHome + "/Library/Application Support",
         canonicalHome + "/Library/Application Support/AddressBook",
         canonicalHome + "/Library/Calendars",
         canonicalHome + "/Library/Reminders",
@@ -1037,4 +1053,33 @@ private actor CleanupGate {
     for target in homeTargets {
         ScanPermissionPreflight.probe(target, excludedPaths: options.exclusions)
     }
+}
+
+/// Readable directories probe as `.readable`; one permission-refused child of an otherwise
+/// openable parent is the macOS-protected signature and must surface as
+/// `.containsDeniedChildren`, since macOS 26+ offers no consent dialog for other
+/// applications' app data.
+@Test func preflightProbeClassifiesDeniedChildren() throws {
+    #if !os(Linux)
+    func makeBase() throws -> String {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: base.appendingPathComponent("ok/inside", isDirectory: true), withIntermediateDirectories: true)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: base.path)
+        return base.path
+    }
+    defer { try? FileManager.default.removeItem(at: FileManager.default.temporaryDirectory) }
+
+    let readableBase = try makeBase()
+    let readable = ScanPermissionPreflight.probe(ScanPermissionPreflight.Target(url: URL(fileURLWithPath: readableBase), depth: .childrenAndBundles))
+    #expect(readable == .readable)
+
+    let deniedBase = try makeBase()
+    let dataDir = (deniedBase as NSString).appendingPathComponent("secret/data")
+    try FileManager.default.createDirectory(atPath: dataDir, withIntermediateDirectories: true)
+    try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: dataDir)
+    try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: (dataDir as NSString).deletingLastPathComponent)
+    defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dataDir) }
+    let denied = ScanPermissionPreflight.probe(ScanPermissionPreflight.Target(url: URL(fileURLWithPath: deniedBase), depth: .childrenAndBundles))
+    #expect(denied == .containsDeniedChildren)
+    #endif
 }

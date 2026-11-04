@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import AppKit
 import DiskCore
 @testable import DiskUnbloat
 
@@ -13,7 +14,7 @@ import DiskCore
 
     @Test func successfulCleanupRescansTheScopeAndReturnsToTheUpdatedMap() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
-        let model = WorkspaceViewModel(cleanupService: SucceedingCleanupService())
+        let model = WorkspaceViewModel(cleanupService: SucceedingCleanupService(), fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let oldIndex = try #require(model.scan.index)
         let branch = try #require(await oldIndex.node(path: canonicalURL(root).path + "/branch"))
@@ -41,7 +42,7 @@ import DiskCore
 
     @Test func folderRefreshRestoresPresentationAndInvalidatesOverlappingBasket() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
-        let model = WorkspaceViewModel()
+        let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let index = try #require(model.scan.index)
         let branch = try #require(await index.node(path: canonicalURL(root).path + "/branch"))
@@ -67,7 +68,7 @@ import DiskCore
 
     @Test func cancelledFolderRefreshRetainsOriginalResults() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
-        let model = WorkspaceViewModel()
+        let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let index = try #require(model.scan.index)
         let branch = try #require(await index.node(path: canonicalURL(root).path + "/branch"))
@@ -82,7 +83,7 @@ import DiskCore
 
     @Test func mapGeometryIsIndependentOfLegendHighlightAndDescriptionsComeFromCatalog() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
-        let model = WorkspaceViewModel()
+        let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let scene = model.explorer.scene
         model.explorer.highlightedCategory = .video
@@ -99,7 +100,7 @@ import DiskCore
 
     @Test func busyDockRequestsDoNotReplaceCurrentScan() async {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner)
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture"); model.startScan(); await scanner.ready()
         #expect(!model.openLocations([URL(fileURLWithPath: "/another")]))
         #expect(model.scan.root?.path == "/fixture" && model.message != nil)
@@ -112,6 +113,88 @@ import DiskCore
         let node = FileNode(id: 2,parentID: 1,path: home+"/Library/Caches/running/a",name: "a",isDirectory: false,logicalSize: 1,allocatedSize: 1,modified: nil,identity: "a")
         #expect(cleanup.add(node,root: URL(fileURLWithPath: home)) != nil)
         #expect(cleanup.basket.isEmpty)
+    }
+
+    /// macOS 26+ refuses other applications' app data reads with no consent dialog; the
+    /// preflight's refusal signal must reach the scan state so the issues sheet can explain
+    /// the Full Disk Access decision instead of leaving a bare list of permission errors.
+    @Test func protectedFoldersRefusalReachesTheScanState() async throws {
+        let scanner = ControlledScanner()
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
+        model.scan.pendingRoot = URL(fileURLWithPath: "/fixture"); model.startScan(); await scanner.ready()
+        #expect(!model.scan.protectedFoldersRefused)
+        await scanner.protectedFoldersRefused()
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(model.scan.protectedFoldersRefused)
+        await scanner.finish(); await model.waitForScan()
+        #expect(model.scan.protectedFoldersRefused)
+        await model.shutdown()
+    }
+
+    /// Full Disk Access is the first and only consent: with the grant missing the offer
+    /// gates the scan — nothing enumerates until the user answers.
+    @Test func fullDiskAccessOfferAppearsWhenAccessIsMissingAndGatesTheScan() async throws {
+        let scanner = ControlledScanner()
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: MutableFullDiskAccess(granted: false))
+        model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
+        model.startScan()
+        await model.waitForFullDiskAccessOffer()
+        #expect(model.showFullDiskAccessOffer)
+        #expect(!model.scan.scanning)
+        model.continueWithoutFullDiskAccess()
+        await scanner.ready()
+        await scanner.finish()
+        await model.waitForScan()
+        #expect(model.scan.snapshot != nil)
+        await model.shutdown()
+    }
+
+    /// Opening the settings pane keeps the scan pending; returning to the app with the
+    /// grant in place resumes it without another click.
+    @Test func fullDiskAccessGrantResumesThePendingScanWhenTheUserReturns() async throws {
+        let scanner = ControlledScanner()
+        let access = MutableFullDiskAccess(granted: false)
+        var openedPane = false
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: access, openFullDiskAccessPane: { openedPane = true })
+        model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
+        model.startScan()
+        await model.waitForFullDiskAccessOffer()
+        #expect(model.showFullDiskAccessOffer)
+        model.openFullDiskAccessSettings()
+        #expect(openedPane)
+        #expect(!model.scan.scanning)
+        access.granted = true
+        NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        await scanner.ready()
+        await scanner.finish()
+        await model.waitForScan()
+        await model.shutdown()
+    }
+
+    /// A granted Full Disk Access decision never triggers the offer.
+    @Test func fullDiskAccessOfferStaysHiddenWhenAccessIsGranted() async throws {
+        let scanner = ControlledScanner()
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
+        model.scan.pendingRoot = URL(fileURLWithPath: "/fixture"); model.startScan(); await scanner.ready()
+        #expect(!model.showFullDiskAccessOffer)
+        await scanner.finish(); await model.waitForScan()
+        #expect(!model.showFullDiskAccessOffer)
+        await model.shutdown()
+    }
+
+    /// Dismissing the offer starts nothing; the pending selection survives for a retry.
+    @Test func cancellingTheFullDiskAccessOfferDoesNotStartTheScan() async throws {
+        let scanner = ControlledScanner()
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: MutableFullDiskAccess(granted: false))
+        model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
+        model.startScan()
+        await model.waitForFullDiskAccessOffer()
+        #expect(model.showFullDiskAccessOffer)
+        model.cancelFullDiskAccessOffer()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(!model.scan.scanning)
+        #expect(model.scan.pendingRoot != nil)
+        await model.shutdown()
     }
 
     @Test func refusedWholeFolderSelectionClearsTheNestedSelection() {

@@ -3,6 +3,8 @@ import Darwin
 
 struct WorkerBatch: Sendable {
     var nodes: [FileNode] = []
+    /// Search key and category per node (aligned with `nodes`), computed on the workers.
+    var derived: [DerivedColumns] = []
     var issues: [(String, String)] = []
     var bytes: Int64 = 0
     var currentFolder: String?
@@ -55,6 +57,7 @@ final class ParallelEnumeration: @unchecked Sendable {
     private var cancelled = false
     private var nextID: Int64 = 1
     private var output: [FileNode] = []
+    private var outputDerived: [DerivedColumns] = []
     private var issues: [(String, String)] = []
     private var bytes: Int64 = 0
     private var currentFolder: String?
@@ -112,6 +115,7 @@ final class ParallelEnumeration: @unchecked Sendable {
         }
         var batch = WorkerBatch()
         swap(&batch.nodes, &output)
+        swap(&batch.derived, &outputDerived)
         swap(&batch.issues, &issues)
         batch.bytes = bytes; bytes = 0
         batch.currentFolder = currentFolder
@@ -127,7 +131,7 @@ final class ParallelEnumeration: @unchecked Sendable {
     private func openRoots() {
         var wrapperID: Int64?
         if !request.extraRoots.isEmpty {
-            output.append(FileNode(id: nextID, parentID: nil, path: ScanGroup.path, name: request.groupTitle, isDirectory: true, isPackage: false, isSymbolicLink: false, logicalSize: nil, allocatedSize: nil, modified: nil, identity: ScanGroup.path, packageAncestor: false))
+            emit(FileNode(id: nextID, parentID: nil, path: ScanGroup.path, name: request.groupTitle, isDirectory: true, isPackage: false, isSymbolicLink: false, logicalSize: nil, allocatedSize: nil, modified: nil, identity: ScanGroup.path, packageAncestor: false))
             wrapperID = nextID; nextID += 1
         }
         for url in request.roots {
@@ -140,7 +144,7 @@ final class ParallelEnumeration: @unchecked Sendable {
                 let isPackage = (try? rootURL.resourceValues(forKeys: [.isPackageKey]).isPackage) ?? false
                 let root = FileNode(id: nextID, parentID: wrapperID, path: rootURL.path, name: rootURL.lastPathComponent.isEmpty ? rootURL.path : rootURL.lastPathComponent, isDirectory: true, isPackage: isPackage, isSymbolicLink: false, logicalSize: 0, allocatedSize: 0, modified: identity.modified, identity: identity.identity, fingerprint: identity.fingerprint, packageAncestor: false)
                 nextID += 1
-                output.append(root)
+                emit(root)
                 jobs.append(Job(path: root.path, id: root.id, insidePackage: isPackage, device: identity.device, summary: nil))
             } catch {
                 issues.append((url.path, error.localizedDescription))
@@ -191,6 +195,7 @@ final class ParallelEnumeration: @unchecked Sendable {
         catch { failure = (job.path, error.localizedDescription) }
 
         var nodes: [FileNode] = []; nodes.reserveCapacity(entries.count)
+        var derived: [DerivedColumns] = []; derived.reserveCapacity(entries.count)
         var newJobs: [Job] = []
         var newIssues: [(String, String)] = failure.map { [$0] } ?? []
         var discovered: Int64 = 0
@@ -216,15 +221,15 @@ final class ParallelEnumeration: @unchecked Sendable {
             id += 1
             if !directory {
                 if entry.links <= 1 { discovered += entry.allocated } else { hardLinks.append((entry.identity, entry.allocated)) }
-                nodes.append(node)
+                nodes.append(node); derived.append(DerivedColumns(node))
             } else if entry.isDataless {
-                nodes.append(node)
+                nodes.append(node); derived.append(DerivedColumns(node))
                 newIssues.append((path, "Cloud directory is not downloaded; contents were not requested."))
             } else if summarize {
                 let tally = SummaryTally(node)
                 newJobs.append(Job(path: path, id: node.id, insidePackage: true, device: job.device, summary: tally))
             } else {
-                nodes.append(node)
+                nodes.append(node); derived.append(DerivedColumns(node))
                 newJobs.append(Job(path: path, id: node.id, insidePackage: job.insidePackage || package, device: job.device, summary: nil))
             }
         }
@@ -232,6 +237,7 @@ final class ParallelEnumeration: @unchecked Sendable {
         condition.lock()
         for (identity, allocated) in hardLinks where seenHardLinks.insert(identity).inserted { discovered += allocated }
         output += nodes
+        outputDerived += derived
         issues += newIssues
         bytes += discovered
         currentFolder = job.path
@@ -282,10 +288,13 @@ final class ParallelEnumeration: @unchecked Sendable {
         condition.unlock()
     }
 
+    /// Called with `condition` held for the few nodes created outside a worker's batch.
+    private func emit(_ node: FileNode) { output.append(node); outputDerived.append(DerivedColumns(node)) }
+
     /// Called with `condition` held once every directory of a summary was summed.
     private func finish(_ tally: SummaryTally) {
         let t = tally.template
-        output.append(FileNode(id: t.id, parentID: t.parentID, path: t.path, name: t.name, isDirectory: true, isPackage: t.isPackage, isSymbolicLink: false, logicalSize: tally.logical, allocatedSize: tally.allocated, modified: t.modified, identity: t.identity, fingerprint: t.fingerprint, packageAncestor: t.packageAncestor, latestContentModification: Date(timeIntervalSince1970: tally.latest), isSummarized: true))
+        emit(FileNode(id: t.id, parentID: t.parentID, path: t.path, name: t.name, isDirectory: true, isPackage: t.isPackage, isSymbolicLink: false, logicalSize: tally.logical, allocatedSize: tally.allocated, modified: t.modified, identity: t.identity, fingerprint: t.fingerprint, packageAncestor: t.packageAncestor, latestContentModification: Date(timeIntervalSince1970: tally.latest), isSummarized: true))
         // Reported on the folder itself so the index marks it incomplete (sizes stay "known").
         if tally.failures > 0 { issues.append((t.path, "Some items inside could not be read; the size shown is a lower bound.")) }
     }

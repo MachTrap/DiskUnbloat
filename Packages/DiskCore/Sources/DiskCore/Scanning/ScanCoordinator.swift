@@ -28,9 +28,10 @@ public actor ScanCoordinator: ScanServing {
                 }
                 if protectedUnreadable { continuation.yield(.protectedFoldersRefused) }
                 do {
+                    try await index.beginBulkLoad()
                     while !Task.isCancelled {
                         let batch = await worker.next()
-                        try await index.insert(batch.nodes)
+                        try await index.insert(batch.nodes, derived: batch.derived)
                         count += batch.nodes.count
                         folders += batch.nodes.filter(\.isDirectory).count
                         if let folder = batch.currentFolder { currentFolder = folder }
@@ -46,7 +47,10 @@ public actor ScanCoordinator: ScanServing {
                     continuation.yield(.stage(.aggregating))
                     try await index.aggregate()
                     continuation.yield(.finished(ScanSnapshot(items: count, bytes: bytes, elapsed: Date().timeIntervalSince(start), errors: errors, cancelled: Task.isCancelled, complete: !Task.isCancelled && errors == 0, folders: folders, currentFolder: currentFolder)))
-                } catch { continuation.yield(.failed(error.localizedDescription)) }
+                } catch {
+                    try? await index.endBulkLoad()
+                    continuation.yield(.failed(error.localizedDescription))
+                }
                 continuation.finish()
             }
             runningTask = task

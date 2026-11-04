@@ -16,26 +16,39 @@ public actor ScanIndex {
         PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;
         PRAGMA temp_store=MEMORY;
         CREATE TABLE IF NOT EXISTS nodes(id INTEGER PRIMARY KEY,parent INTEGER,path TEXT,name TEXT,directory INTEGER,package INTEGER,symlink INTEGER,logical INTEGER,allocated INTEGER,modified REAL,identity TEXT,insidePackage INTEGER,incomplete INTEGER NOT NULL DEFAULT 0,fingerprint TEXT,searchName TEXT,knownLogical INTEGER NOT NULL DEFAULT 0,knownAllocated INTEGER NOT NULL DEFAULT 0,unknownLogical INTEGER NOT NULL DEFAULT 0,unknownAllocated INTEGER NOT NULL DEFAULT 0,rawLogical INTEGER,rawAllocated INTEGER,category TEXT,latestModified REAL,unknownModified INTEGER NOT NULL DEFAULT 0,summary INTEGER NOT NULL DEFAULT 0,summaryModified REAL);
-        CREATE INDEX IF NOT EXISTS parent_index ON nodes(parent);
-        CREATE INDEX IF NOT EXISTS size_index ON nodes(knownAllocated DESC);
-        -- The folder listing's shape is `parent=? ORDER BY knownAllocated DESC, id LIMIT n`;
-        -- with only the single-column indexes above, SQLite plans a full size_index scan
-        -- per folder and every queue/map/legend commit pays the entire table again. The
-        -- composite index turns each of those into one bounded tree descent.
-        CREATE INDEX IF NOT EXISTS parent_size_index ON nodes(parent, knownAllocated DESC, id);
-        CREATE INDEX IF NOT EXISTS path_index ON nodes(path);
-        CREATE INDEX IF NOT EXISTS identity_index ON nodes(identity);
-        CREATE INDEX IF NOT EXISTS category_index ON nodes(category);
+        \(Self.secondaryIndexes)
         CREATE TABLE IF NOT EXISTS issues(path TEXT,message TEXT);
         CREATE TABLE IF NOT EXISTS metadata(highWater INTEGER);
         INSERT INTO metadata SELECT 0 WHERE NOT EXISTS(SELECT 1 FROM metadata);
         """
         guard sqlite3_exec(handle, schema, nil, nil, nil) == SQLITE_OK else { sqlite3_close(handle); throw IndexError.database }
+        sqlite3_exec(handle, "DROP INDEX IF EXISTS parent_index", nil, nil, nil)
     }
     public enum IndexError: Error { case database }
+    /// Every secondary index. A scan drops them while bulk loading (`beginBulkLoad`) and
+    /// rebuilds them once after aggregation: maintaining six b-trees per inserted row
+    /// costs roughly twice as much as building them from the finished table.
+    static let secondaryIndexes = """
+        CREATE INDEX IF NOT EXISTS size_index ON nodes(knownAllocated DESC);
+        -- The folder listing's shape is `parent=? ORDER BY knownAllocated DESC, id LIMIT n`;
+        -- with only the single-column indexes above, SQLite plans a full size_index scan
+        -- per folder and every queue/map/legend commit pays the entire table again. The
+        -- composite index turns each of those into one bounded tree descent, and it also
+        -- serves every plain `parent=?` lookup, so no separate parent index is kept.
+        CREATE INDEX IF NOT EXISTS parent_size_index ON nodes(parent, knownAllocated DESC, id);
+        CREATE INDEX IF NOT EXISTS path_index ON nodes(path);
+        CREATE INDEX IF NOT EXISTS identity_index ON nodes(identity);
+        CREATE INDEX IF NOT EXISTS category_index ON nodes(category);
+        """
+    static let secondaryIndexNames = ["size_index", "parent_size_index", "path_index", "identity_index", "category_index"]
+    /// True between `beginBulkLoad` and the next aggregation: secondary indexes are absent
+    /// and issue marks are deferred, so nothing may query rows by path or parent.
+    var bulkLoading = false
     // A fixed locale keeps search folding deterministic and cheaper than the current locale.
     static let searchLocale = Locale(identifier: "en_US_POSIX")
-    func folded(_ string: String) -> String { string.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Self.searchLocale) }
+    /// Search key stored per row; nonisolated so scan workers compute it in parallel.
+    nonisolated static func fold(_ string: String) -> String { string.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: searchLocale) }
+    func folded(_ string: String) -> String { Self.fold(string) }
     public func close() { if let db { sqlite3_close(db); self.db = nil } }
     func exec(_ sql: String) throws {
         guard sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK else { throw IndexError.database }

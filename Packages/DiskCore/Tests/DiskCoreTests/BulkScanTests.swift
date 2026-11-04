@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import CSQLite
 @testable import DiskCore
 
 /// The bulk reader must agree with `lstat` (identity, fingerprint, sizes) and with
@@ -120,4 +121,131 @@ import Foundation
     }
     #expect(await index.node(1)?.logicalSize == Int64(expected.values.reduce(0, +)))
     await destroy(index)
+}
+
+/// Every aggregate column of every row, for comparing two aggregation strategies.
+private func aggregateColumns(_ index: ScanIndex) async -> [String] {
+    await index.aggregateSnapshot()
+}
+extension ScanIndex {
+    func aggregateSnapshot() -> [String] {
+        var s: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT id,logical,allocated,knownLogical,knownAllocated,unknownLogical,unknownAllocated,latestModified,unknownModified,incomplete FROM nodes ORDER BY id", -1, &s, nil)
+        defer { sqlite3_finalize(s) }
+        var rows: [String] = []
+        while sqlite3_step(s) == SQLITE_ROW {
+            rows.append((0..<10).map { sqlite3_column_type(s, $0) == SQLITE_NULL ? "∅" : String(cString: sqlite3_column_text(s, $0)) }.joined(separator: "|"))
+        }
+        return rows
+    }
+    func indexNames() -> Set<String> {
+        var s: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='nodes'", -1, &s, nil)
+        defer { sqlite3_finalize(s) }
+        var names: Set<String> = []
+        while sqlite3_step(s) == SQLITE_ROW { names.insert(String(cString: sqlite3_column_text(s, 0))) }
+        return names
+    }
+}
+
+/// The in-memory aggregation used after scans must match the SQL aggregation kept for
+/// branch refreshes on every column, including the awkward cases.
+@Test func inMemoryAggregationMatchesSQL() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let t0 = Date(timeIntervalSince1970: 1_600_000_000)
+    func n(_ id: Int64, _ parent: Int64?, _ path: String, dir: Bool = false, size: Int64? = 0, modified: Date? = t0, identity: String? = nil, symlink: Bool = false, summarized: Bool = false, latest: Date? = nil) -> FileNode {
+        FileNode(id: id, parentID: parent, path: path, name: (path as NSString).lastPathComponent, isDirectory: dir, isSymbolicLink: symlink, logicalSize: size, allocatedSize: size.map { $0 + 1 }, modified: modified, identity: identity ?? "id\(id)", latestContentModification: latest, isSummarized: summarized)
+    }
+    // A short root under the group wrapper exposes children-first ordering; the rest covers
+    // hard links, symlinks, unknown sizes, incomplete and summarized folders, empty folders.
+    let nodes = [
+        n(1, nil, ScanGroup.path, dir: true, modified: nil, identity: ScanGroup.path),
+        n(2, 1, "/a", dir: true),
+        n(3, 2, "/a/x", size: 10, identity: "hard"), n(4, 2, "/a/y", size: 10, identity: "hard"),
+        n(5, 2, "/a/link", size: 3, identity: "hard", symlink: true),
+        n(6, 2, "/a/sub", dir: true, modified: nil),
+        n(7, 6, "/a/sub/unknown", size: nil, modified: nil),
+        n(8, 6, "/a/sub/late", size: 5, modified: t0.addingTimeInterval(500)),
+        n(9, 2, "/a/denied", dir: true),
+        n(10, 9, "/a/denied/f", size: 7),
+        n(11, 2, "/a/node_modules", dir: true, size: 900, summarized: true, latest: t0.addingTimeInterval(900)),
+        n(12, 2, "/a/broken_modules", dir: true, size: 40, summarized: true, latest: t0),
+        n(13, 2, "/a/empty", dir: true),
+        n(14, 1, "/Volumes/longer-root-path", dir: true),
+        n(15, 14, "/Volumes/longer-root-path/z", size: 1, identity: "hard"),
+    ]
+    let a = try ScanIndex(url: f.root.appendingPathComponent("a.sqlite")), b = try ScanIndex(url: f.root.appendingPathComponent("b.sqlite"))
+    for index in [a, b] {
+        try await index.insert(nodes)
+        await index.issue(path: "/a/denied", message: "denied")
+        await index.issue(path: "/a/broken_modules", message: "partial")
+    }
+    try await a.aggregate()
+    try await b.aggregateInsideTransaction()
+    let memory = await aggregateColumns(a), sql = await aggregateColumns(b)
+    #expect(memory == sql)
+    // Spot checks: the alias with the higher id counts zero, the symlink keeps its size,
+    // and the wrapper totals include both roots.
+    #expect(await a.node(4)?.knownLogicalSize == 0)
+    #expect(await a.node(3)?.knownLogicalSize == 10)
+    #expect(await a.node(5)?.knownLogicalSize == 3)
+    #expect(await a.node(1)?.knownLogicalSize == 10 + 3 + 5 + 7 + 900 + 40)
+    #expect(await a.node(11)?.latestContentModification == t0.addingTimeInterval(900))
+    let broken = await a.node(12)
+    #expect(broken?.logicalSize == nil && broken?.knownLogicalSize == 40)
+    await a.close(); await b.close()
+}
+
+/// A scan's bulk load drops secondary indexes, defers issue marks, and restores both on
+/// aggregation — or on `endBulkLoad()` when a scan fails before aggregating.
+@Test func bulkLoadDefersIndexesAndMarks() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    let full = await index.indexNames()
+    #expect(full.isSuperset(of: ScanIndex.secondaryIndexNames))
+    try await index.beginBulkLoad()
+    #expect(await index.indexNames().isDisjoint(with: ScanIndex.secondaryIndexNames))
+    try await index.insert([
+        FileNode(id: 1, parentID: nil, path: "/r", name: "r", isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "r"),
+        FileNode(id: 2, parentID: 1, path: "/r/d", name: "d", isDirectory: true, logicalSize: 0, allocatedSize: 0, modified: nil, identity: "d"),
+        FileNode(id: 3, parentID: 2, path: "/r/d/f", name: "f", isDirectory: false, logicalSize: 4, allocatedSize: 4, modified: nil, identity: "f"),
+    ])
+    await index.issue(path: "/r/d/gone", message: "denied")
+    #expect(await index.node(2)?.allocatedSize == 0) // mark still deferred
+    try await index.aggregate()
+    #expect(await index.indexNames().isSuperset(of: ScanIndex.secondaryIndexNames))
+    #expect(await index.node(2)?.allocatedSize == nil)
+    #expect(await index.node(1)?.allocatedSize == nil)
+    #expect(await index.node(2)?.knownAllocatedSize == 4)
+    // Populated indexes never enter bulk mode; endBulkLoad restores a failed load.
+    try await index.beginBulkLoad()
+    #expect(await index.indexNames().isSuperset(of: ScanIndex.secondaryIndexNames))
+    let failed = try ScanIndex(url: f.root.appendingPathComponent("failed.sqlite"))
+    try await failed.beginBulkLoad(); try await failed.endBulkLoad(); try await failed.endBulkLoad()
+    #expect(await failed.indexNames().isSuperset(of: ScanIndex.secondaryIndexNames))
+    await index.close(); await failed.close()
+}
+
+/// Parent lookups (folder listings, child counts, refresh aggregation) must stay indexed
+/// through the composite parent/size index now that no plain parent index exists.
+@Test func parentLookupsUseTheCompositeIndex() async throws {
+    let f = try Fixture(); defer { f.dispose() }
+    let index = try f.index()
+    for sql in ["SELECT id FROM nodes WHERE parent=7", "SELECT COUNT(*) FROM nodes WHERE parent=7 AND insidePackage=0",
+                "SELECT parent,COUNT(*) FROM nodes WHERE parent IN (1,2,3) GROUP BY parent",
+                "SELECT COALESCE(SUM(knownLogical),0) FROM nodes WHERE parent=7"] {
+        let plan = await index.queryPlan(sql)
+        #expect(plan.contains("parent_size_index"), "\(sql): \(plan)")
+    }
+    await index.close()
+}
+extension ScanIndex {
+    func queryPlan(_ sql: String) -> String {
+        var s: OpaquePointer?
+        sqlite3_prepare_v2(db, "EXPLAIN QUERY PLAN " + sql, -1, &s, nil)
+        defer { sqlite3_finalize(s) }
+        var lines: [String] = []
+        while sqlite3_step(s) == SQLITE_ROW { lines.append(String(cString: sqlite3_column_text(s, 3))) }
+        return lines.joined(separator: "; ")
+    }
 }

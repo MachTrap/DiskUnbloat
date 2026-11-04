@@ -23,6 +23,24 @@ struct ScanThroughputBench {
         print("BENCH bulk×\(ParallelEnumeration.defaultWorkerCount)+summary \(summarized.items) items \(summarized.seconds)s")
     }
 
+    /// Full coordinator run into a real index, timing each published stage.
+    @Test func endToEndStages() async throws {
+        let root = URL(fileURLWithPath: try #require(ProcessInfo.processInfo.environment["DISKUNBLOAT_BENCH_PATH"]))
+        for (label, options) in [("summarized", ScanOptions()), ("full", { var o = ScanOptions(); o.summarizedFolders = []; return o }())] {
+            let index = try ScanIndex(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".sqlite"))
+            let start = Date(); var aggregating: Date?; var items = 0
+            for await event in await ScanCoordinator().scan(ScanRequest(root: root, options: options), into: index) {
+                if case .stage(.aggregating) = event { aggregating = Date() }
+                if case .finished(let s) = event { items = s.items }
+            }
+            let end = Date()
+            let read = (aggregating ?? end).timeIntervalSince(start), aggregate = end.timeIntervalSince(aggregating ?? end)
+            print(String(format: "BENCH e2e %@ %d items: read+insert %.2fs, aggregate %.2fs", label, items, read, aggregate))
+            let url = index.url; await index.close()
+            for suffix in ["", "-wal", "-shm"] { try? FileManager.default.removeItem(atPath: url.path + suffix) }
+        }
+    }
+
     private func legacy(_ root: URL) -> Int {
         let keys: [URLResourceKey] = [.isPackageKey, .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey]
         guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys, options: [], errorHandler: { _, _ in true }) else { return 0 }

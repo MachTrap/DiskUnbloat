@@ -33,6 +33,9 @@ public struct SceneTile: Identifiable, Sendable, Equatable {
     public let depth: Int
     public let isContainer: Bool
     public var headerHeight: CGFloat { isContainer ? 24 : 0 }
+    public init(entry: MapEntry, rect: CGRect, depth: Int, isContainer: Bool) {
+        self.entry = entry; self.rect = rect; self.depth = depth; self.isContainer = isContainer
+    }
 }
 
 extension ScanIndex {

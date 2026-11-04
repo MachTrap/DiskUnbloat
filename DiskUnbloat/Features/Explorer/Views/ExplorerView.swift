@@ -180,6 +180,7 @@ struct ExplorerView: View {
             Spacer(minLength: 2)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(sizeText(model.scene.summary.knownBytes)).font(.system(size: 21, weight: .semibold, design: .rounded)).monospacedDigit()
+                    .contentTransition(.numericText()).animation(reduceMotion ? nil : .snappy(duration: 0.3), value: model.scene.summary.knownBytes)
                 Text(model.scene.summary.unknownCount > 0 ? L10n.count("Known · %lld incomplete items", model.scene.summary.unknownCount) : L10n.text(model.metric.rawValue)).font(.caption2).foregroundStyle(.secondary)
             }
         }.padding(.horizontal, 22).padding(.vertical, 12)
@@ -229,13 +230,17 @@ struct ExplorerView: View {
     private var queueBadge: some View {
         ZStack(alignment: .topTrailing) {
             Image(systemName: queue.cleanup.showQueue ? "tray.full" : "tray")
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.bounce, value: reduceMotion ? 0 : queue.selectedCount)
             if queue.selectedCount > 0 {
                 Text("\(queue.selectedCount)").font(.system(size: 9, weight: .bold)).monospacedDigit().foregroundStyle(.white)
+                    .contentTransition(.numericText(value: Double(queue.selectedCount)))
                     .padding(.horizontal, queue.selectedCount > 9 ? 3 : 0)
                     .frame(minWidth: 14, minHeight: 14).background(Circle().fill(.red))
                     .fixedSize().offset(x: 7, y: -7).accessibilityHidden(true)
             }
         }.frame(width: 30, height: 22)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: queue.selectedCount)
     }
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {

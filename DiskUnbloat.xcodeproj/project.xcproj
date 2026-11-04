@@ -77,6 +77,7 @@
                   "path": "Views",
                   "children": [
                     { "path": "ExplorerView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    { "path": "MapMotion.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                     { "path": "TreemapView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                   ],
                 },
@@ -120,6 +121,7 @@
                   "kind": "group",
                   "path": "Views",
                   "children": [
+                    { "path": "ScanMosaic.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                     { "path": "ScanOptionsView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                     { "path": "ScanningView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
                   ],
@@ -278,6 +280,7 @@
         { "path": "MapAfterSelectionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapFirstFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapInputTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "MapMotionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "NativeOpenTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PartialRefreshSafetyTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PresentationTestSupport.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

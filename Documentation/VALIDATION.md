@@ -2,6 +2,15 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Livelier scanning screen and map motion — 2026-11-04
+
+- Scanning: `ScanMosaic` is now a time-driven living treemap (morphing cells, fill levels, light beam, flying particles, glow) with Reduce Motion / Reduce Transparency fallbacks; counters, progress bar and stage icons animate their value changes.
+- Map: first-map assembly sweep, zoom-in/zoom-out focus navigation, gliding same-folder relayouts, gliding hover highlight, selection ping, legend crossfade, queue badge bounce and counting total.
+- Passed: `swift test --package-path Packages/DiskCore` (90 tests), hosted `DiskUnbloatTests` (89 tests, including new `MapMotionTests`: relayout start/settle frames, size limits, intro ordering, zoom-frame math, mosaic tiling at every sampled moment), universal Release build, UI-test build, localization audit (548 entries; no new strings).
+- Visual check: mosaic frames at t = 0.25 s, 2.1 s and 5.7 s rendered through a temporary `ImageRenderer` probe (removed afterwards); it exposed and fixed a hard-edged glow.
+- Fixed crash: the layout can emit `CGRect.null` tiles (infinite origin), which made the intro sweep delay and the cleanup sleep infinite (`Duration` conversion trap in `TreemapView.apply`). Undrawable rects are now excluded from motion, delays are clamped, and the wait is capped at 1 s; regression test `nullAndDegenerateRectsNeverMakeTheMotionInfinite` (hosted suite 90/90).
+- Not verified: map motion was not observed in the running app (there is no debug route to reach results without a real scan and consent flow), nor frame pacing on very dense maps, live-resize behavior, or Reduce Motion in the running app.
+
 ## Four nested quick-select levels and app-version deep clean — 2026-11-04
 
 - **Change:** the two quick-select buttons became a level picker (Junk ⊂ Caches ⊂ Rebuildable ⊂ Deep clean) with one Select button and normalized per-level estimates. Junk equals the former tier 1 and Rebuildable the former tier 2 (all migrated tests kept their exact sets). Caches adds live `~/Library/Caches` and package stores. Deep clean adds older app-version settings folders (exact-path managed-data exemptions only) and long-unused installers in Downloads.

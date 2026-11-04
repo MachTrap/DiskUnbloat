@@ -14,10 +14,11 @@ struct ScanningView: View {
     private func content(compact: Bool) -> some View {
         VStack(spacing: compact ? 16 : 26) {
             Spacer()
-            ScanMosaic(active: scenePhase == .active && !reduceMotion).frame(width: 300, height: 230).scaleEffect(compact ? 0.7 : 1).frame(height: compact ? 155 : 230).accessibilityHidden(true)
+            ScanMosaic(active: scenePhase == .active && !reduceMotion).scaleEffect(compact ? 0.7 : 1).frame(height: ScanMosaic.size.height * (compact ? 0.7 : 1)).accessibilityHidden(true)
             VStack(spacing: 10) {
                 Text(model.cancellationRequested ? "Finishing partial results" : preparing ? "A clearer picture is almost ready." : "Scanning in progress.")
                     .font(.system(size: compact ? 27 : 32, weight: .semibold, design: .rounded))
+                    .contentTransition(.opacity)
                 Text((model.refreshNode?.url ?? model.root)?.lastPathComponent ?? "Selected disk").font(.title3).foregroundStyle(.secondary)
             }
             HStack(spacing: 28) {
@@ -32,6 +33,7 @@ struct ScanningView: View {
             if let percent = model.progressPercent {
                 VStack(spacing: 5) {
                     ProgressView(value: Double(percent), total: 100).frame(width: compact ? 220 : 320)
+                        .animation(motion(.smooth(duration: 0.5)), value: percent)
                     Text("Approximate share of this volume's used data read so far").font(.caption2).foregroundStyle(.tertiary)
                 }
             }
@@ -41,10 +43,13 @@ struct ScanningView: View {
                         let active = preparing ? stage == .preparingMap : stage == model.stage
                         HStack(spacing: 6) {
                             Image(systemName: active ? "circle.inset.filled" : index < stageIndex ? "checkmark.circle.fill" : "circle")
+                                .contentTransition(.symbolEffect(.replace))
+                                .symbolEffect(.pulse, options: .repeating, isActive: active && !reduceMotion)
                             Text(L10n.text(stage.rawValue))
                         }.font(.caption).foregroundStyle(active ? Color.teal : .secondary)
                     }
                 }
+                .animation(motion(.snappy(duration: 0.3)), value: stageIndex)
                 Text(model.snapshot?.currentFolder ?? model.root?.path ?? "")
                     .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle).frame(maxWidth: 650)
                 if let errors = model.snapshot?.errors, errors > 0 {
@@ -61,36 +66,12 @@ struct ScanningView: View {
             Spacer()
             Text("Reading metadata, never file contents. Some locations may be protected by macOS.").font(.caption).foregroundStyle(.tertiary).padding(.bottom, 24)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(24).accessibilityElement(children: .contain).accessibilityIdentifier("scanningScreen")
+        .animation(motion(.easeInOut(duration: 0.3)), value: preparing)
     }
+    /// Value transitions follow real updates, so they are skipped entirely under Reduce Motion.
+    private func motion(_ animation: Animation) -> Animation? { reduceMotion ? nil : animation }
     private var stageIndex: Int { preparing ? 2 : ScanStage.allCases.firstIndex(of: model.stage) ?? 0 }
     private func scanStat(_ title: String, _ value: String) -> some View {
-        VStack(spacing: 5) { Text(value).font(.title2.weight(.medium)).monospacedDigit().contentTransition(.numericText()); Text(L10n.text(title)).font(.caption).foregroundStyle(.secondary) }
-    }
-}
-
-private struct ScanMosaic: View {
-    let active: Bool
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @State private var started = Date()
-    private let rects: [CGRect] = [CGRect(x: 8,y: 8,width: 120,height: 214), CGRect(x: 136,y: 8,width: 156,height: 100), CGRect(x: 136,y: 116,width: 72,height: 106), CGRect(x: 216,y: 116,width: 76,height: 60), CGRect(x: 216,y: 184,width: 76,height: 38)]
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !active)) { timeline in
-            let time = active ? timeline.date.timeIntervalSinceReferenceDate : 0
-            Canvas { context, _ in
-                for (index, rect) in rects.enumerated() {
-                    let phase = sin(time * 1.4 - Double(index) * 0.7)
-                    let assembly = active ? min(1, max(0, (timeline.date.timeIntervalSince(started) - Double(index) * 0.08) / 0.65)) : 1
-                    let shifted = rect.offsetBy(dx: (1 - assembly) * (index.isMultiple(of: 2) ? -24 : 24), dy: active ? phase * 3 + (1 - assembly) * 18 : 0)
-                    let path = Path(roundedRect: shifted, cornerRadius: 12)
-                    let colors: [Color] = [.teal, .cyan, .indigo, .mint, .blue]
-                    if reduceTransparency { context.fill(path, with: .color(colors[index])) }
-                    else { context.fill(path, with: .linearGradient(Gradient(colors: [colors[index].opacity((0.75 + phase * 0.12) * assembly), colors[index].opacity(0.3)]), startPoint: shifted.origin, endPoint: CGPoint(x: shifted.maxX, y: shifted.maxY))) }
-                    context.stroke(path, with: .color(.white.opacity(0.12)), lineWidth: 1)
-                }
-            }
-        }
-        .phaseAnimator(active ? [false, true] : [false]) { content, phase in
-            content.scaleEffect(phase ? 1.015 : 1)
-        } animation: { _ in .easeInOut(duration: 2) }
+        VStack(spacing: 5) { Text(value).font(.title2.weight(.medium)).monospacedDigit().contentTransition(.numericText()).animation(motion(.snappy(duration: 0.35)), value: value); Text(L10n.text(title)).font(.caption).foregroundStyle(.secondary) }
     }
 }

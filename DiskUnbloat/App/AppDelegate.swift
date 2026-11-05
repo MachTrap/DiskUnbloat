@@ -1,6 +1,7 @@
 import AppKit
 
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+/// Not final: the agent Testing build subclasses it to own the bridge session.
+@MainActor class AppDelegate: NSObject, NSApplicationDelegate {
     private var pendingOpen: [URL]?
     var model: WorkspaceViewModel? {
         didSet {

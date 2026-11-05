@@ -1,8 +1,15 @@
 import SwiftUI
 
 @main struct DiskUnbloatApp: App {
+    #if AGENT_TESTING
+    // Agent verification build only (DiskUnbloatTesting target): the Testing session
+    // owns the workspace, its isolated services, and the AgentDevKit bridge.
+    @NSApplicationDelegateAdaptor(TestingSession.self) private var delegate
+    private var model: WorkspaceViewModel { delegate.workspace }
+    #else
     @State private var model = WorkspaceViewModel()
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+    #endif
     var body: some Scene {
         WindowGroup {
             WorkspaceView(model: model)

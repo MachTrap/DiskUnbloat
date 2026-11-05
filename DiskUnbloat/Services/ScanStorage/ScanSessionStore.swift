@@ -7,10 +7,12 @@ struct ScanSessionStore {
     private let base: URL
     private let directory: URL
 
-    init() {
-        base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+    /// `base` defaults to `~/Library/Caches/Scans`; the agent Testing build passes a
+    /// folder inside its isolated profile so it never touches the shipping app's indexes.
+    init(base: URL? = nil) {
+        self.base = base ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Scans", isDirectory: true)
-        directory = base.appendingPathComponent(String(getpid()), isDirectory: true)
+        directory = self.base.appendingPathComponent(String(getpid()), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
     }
 

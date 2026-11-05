@@ -10,7 +10,7 @@ enum WorkspacePhase: Equatable {
 
 /// Coordinates feature lifetimes; feature-specific state and behavior belong to child view models.
 @MainActor @Observable final class WorkspaceViewModel {
-    let location = LocationSelectionViewModel()
+    let location: LocationSelectionViewModel
     private(set) var phase: WorkspacePhase = .choosing
     let authorization: AuthorizationStore
     let settings: SettingsViewModel
@@ -47,16 +47,19 @@ enum WorkspacePhase: Equatable {
         settings: SettingsViewModel = SettingsViewModel(),
         filePresentation: any FilePresenting = FilePresentationService(),
         fullDiskAccess: any FullDiskAccessChecking = SystemFullDiskAccessProbe(),
-        openFullDiskAccessPane: @escaping () -> Void = { FullDiskAccessSettings.open() }
+        openFullDiskAccessPane: @escaping () -> Void = { FullDiskAccessSettings.open() },
+        catalog: LocationCatalog = LocationCatalog(),
+        storage: ScanSessionStore = ScanSessionStore()
     ) {
+        location = LocationSelectionViewModel(catalog: catalog)
         self.authorization = authorization
         self.settings = settings
         self.filePresentation = filePresentation
         self.fullDiskAccess = fullDiskAccess
         self.openFullDiskAccessPane = openFullDiskAccessPane
-        scan = ScanViewModel(coordinator: coordinator)
+        scan = ScanViewModel(coordinator: coordinator, storage: storage)
         explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
-        cleanup = CleanupViewModel(service: cleanupService, diagnostics: CleanupDiagnosticsService())
+        cleanup = CleanupViewModel(service: cleanupService, homePath: catalog.home.path, diagnostics: CleanupDiagnosticsService())
         // The queue is the one source of hidden map paths: every queue mutation (manual
         // picks, quick-select, refresh invalidations) is forwarded to the explorer from
         // the model, never through a view-side relay like `.onChange` on a big array,

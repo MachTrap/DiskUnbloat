@@ -15,6 +15,9 @@
     {
       "kind": "local",
       "path": "Packages/DiskCore",
+    }, {
+      "kind": "local",
+      "path": "../../AgentDevKit",
     },
   ],
   "files": [
@@ -26,8 +29,19 @@
           "kind": "group",
           "path": "App",
           "children": [
-            { "path": "AppDelegate.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-            { "path": "DiskUnbloatApp.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+            {
+              "path": "AppDelegate.swift",
+              "target-membership": [
+                "DiskUnbloat/compile-sources",
+                "DiskUnbloatTesting/compile-sources",
+              ],
+            }, {
+              "path": "DiskUnbloatApp.swift",
+              "target-membership": [
+                "DiskUnbloat/compile-sources",
+                "DiskUnbloatTesting/compile-sources",
+              ],
+            },
             { "path": "Info.plist" },
             { "path": "DiskUnbloat.entitlements" },
           ],
@@ -43,21 +57,49 @@
                   "kind": "group",
                   "path": "Models",
                   "children": [
-                    { "path": "CleanupQueueModels.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "CleanupQueueModels.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "ViewModels",
                   "children": [
-                    { "path": "CleanupQueueModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "CleanupViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "CleanupQueueModel.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "CleanupViewModel.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "CleanupQueueView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "CleanupReportView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "CleanupQueueView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "CleanupReportView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 },
               ],
@@ -69,16 +111,43 @@
                   "kind": "group",
                   "path": "ViewModels",
                   "children": [
-                    { "path": "ExplorerQueries.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "ExplorerViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "ExplorerQueries.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "ExplorerViewModel.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "ExplorerView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "MapMotion.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "TreemapView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "ExplorerView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "MapMotion.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "TreemapView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 },
               ],
@@ -90,20 +159,43 @@
                   "kind": "group",
                   "path": "Models",
                   "children": [
-                    { "path": "KnownLocation.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "ScanTarget.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "KnownLocation.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "ScanTarget.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "ViewModels",
                   "children": [
-                    { "path": "LocationSelectionViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "LocationSelectionViewModel.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "LocationSelectionView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "LocationSelectionView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 },
               ],
@@ -115,15 +207,37 @@
                   "kind": "group",
                   "path": "ViewModels",
                   "children": [
-                    { "path": "ScanViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "ScanViewModel.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "ScanMosaic.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "ScanOptionsView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                    { "path": "ScanningView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "ScanMosaic.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "ScanOptionsView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "ScanningView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 },
               ],
@@ -135,13 +249,25 @@
                   "kind": "group",
                   "path": "ViewModels",
                   "children": [
-                    { "path": "SettingsViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "SettingsViewModel.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "SettingsView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "SettingsView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 },
               ],
@@ -153,13 +279,25 @@
                   "kind": "group",
                   "path": "ViewModels",
                   "children": [
-                    { "path": "WorkspaceViewModel.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "WorkspaceViewModel.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 }, {
                   "kind": "group",
                   "path": "Views",
                   "children": [
-                    { "path": "WorkspaceView.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                    {
+                      "path": "WorkspaceView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
                   ],
                 },
               ],
@@ -169,15 +307,37 @@
           "kind": "group",
           "path": "PreviewContent",
           "children": [
-            { "path": "Previews.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+            {
+              "path": "Previews.swift",
+              "target-membership": [
+                "DiskUnbloat/compile-sources",
+                "DiskUnbloatTesting/compile-sources",
+              ],
+            },
           ],
         }, {
           "kind": "group",
           "path": "Resources",
           "children": [
-            { "path": "Localizable.xcstrings", "target-membership": [ "DiskUnbloat/resources" ] },
-            { "path": "PrivacyInfo.xcprivacy", "target-membership": [ "DiskUnbloat/resources" ] },
-            { "path": "Assets.xcassets", "target-membership": [ "DiskUnbloat/resources" ] },
+            {
+              "path": "Localizable.xcstrings",
+              "target-membership": [
+                "DiskUnbloat/resources",
+                "DiskUnbloatTesting/resources",
+              ],
+            }, {
+              "path": "PrivacyInfo.xcprivacy",
+              "target-membership": [
+                "DiskUnbloat/resources",
+                "DiskUnbloatTesting/resources",
+              ],
+            }, {
+              "path": "Assets.xcassets",
+              "target-membership": [
+                "DiskUnbloat/resources",
+                "DiskUnbloatTesting/resources",
+              ],
+            },
           ],
         }, {
           "kind": "group",
@@ -187,40 +347,91 @@
               "kind": "group",
               "path": "ApplicationActivity",
               "children": [
-                { "path": "ApplicationActivityService.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "ApplicationActivityService.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             }, {
               "kind": "group",
               "path": "Authorization",
               "children": [
-                { "path": "AuthorizationStore.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                { "path": "BookmarkAccess.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                { "path": "FullDiskAccessProbe.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "AuthorizationStore.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                }, {
+                  "path": "BookmarkAccess.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                }, {
+                  "path": "FullDiskAccessProbe.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             }, {
               "kind": "group",
               "path": "Diagnostics",
               "children": [
-                { "path": "CleanupDiagnostics.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "CleanupDiagnostics.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             }, {
               "kind": "group",
               "path": "FilePresentation",
               "children": [
-                { "path": "FilePresentationService.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "FilePresentationService.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             }, {
               "kind": "group",
               "path": "MapNavigation",
               "children": [
-                { "path": "MapHistoryGesture.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                { "path": "MapNavigationAdapter.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "MapHistoryGesture.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                }, {
+                  "path": "MapNavigationAdapter.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             }, {
               "kind": "group",
               "path": "ScanStorage",
               "children": [
-                { "path": "ScanSessionStore.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "ScanSessionStore.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             },
           ],
@@ -232,21 +443,49 @@
               "kind": "group",
               "path": "Formatting",
               "children": [
-                { "path": "ByteFormatting.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "ByteFormatting.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             }, {
               "kind": "group",
               "path": "Localization",
               "children": [
-                { "path": "CleanupRulePresentation.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                { "path": "L10n.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
-                { "path": "MapEntryPresentation.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "CleanupRulePresentation.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                }, {
+                  "path": "L10n.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                }, {
+                  "path": "MapEntryPresentation.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             }, {
               "kind": "group",
               "path": "Styling",
               "children": [
-                { "path": "MapPalette.swift", "target-membership": [ "DiskUnbloat/compile-sources" ] },
+                {
+                  "path": "MapPalette.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
               ],
             },
           ],
@@ -259,6 +498,7 @@
         { "path": "<PRODUCTS>/DiskUnbloat.app", "id": "000000000000000000000006", "type": "wrapper.application", "index": false },
         { "path": "<PRODUCTS>/DiskUnbloatUITests.xctest", "id": "000000000000000000000029", "type": "wrapper.cfbundle" },
         { "path": "<PRODUCTS>/DiskUnbloatTests.xctest", "id": "00000000000000000000003D", "type": "wrapper.cfbundle" },
+        { "path": "<PRODUCTS>/DiskUnbloatTesting.app", "id": "000000000000000000000051", "type": "wrapper.application", "index": false },
       ],
     }, {
       "kind": "group",
@@ -288,6 +528,15 @@
         { "path": "PresentationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "QueuePerformanceBench.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "WorkspaceRecoveryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+      ],
+    }, {
+      "kind": "group",
+      "path": "DiskUnbloatTesting",
+      "children": [
+        { "path": "DiskUnbloatAgentAdapter.swift", "target-membership": [ "DiskUnbloatTesting/compile-sources" ] },
+        { "path": "FixtureTrees.swift", "target-membership": [ "DiskUnbloatTesting/compile-sources" ] },
+        { "path": "TestingComposition.swift", "target-membership": [ "DiskUnbloatTesting/compile-sources" ] },
+        { "path": "TestingSession.swift", "target-membership": [ "DiskUnbloatTesting/compile-sources" ] },
       ],
     },
   ],
@@ -390,6 +639,59 @@
         "PRODUCT_NAME": "$(TARGET_NAME)",
         "SWIFT_VERSION": "6.0",
         "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/DiskUnbloat.app/Contents/MacOS/DiskUnbloat",
+      },
+    }, {
+      "name": "DiskUnbloatTesting",
+      "id": "000000000000000000000050",
+      "product": "Products/DiskUnbloatTesting.app",
+      "product-type": "application",
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+        "resources",
+      ],
+      "package-product-members": [
+        {
+          "package": "AgentDevKit",
+          "product-name": "AgentDevKitCore",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "AgentDevKit",
+          "product-name": "AgentDevKitHost",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "DiskCore",
+          "product-name": "DiskCore",
+          "build-phase": { "build-phase": "frameworks" },
+        },
+      ],
+      "build-settings": {
+        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+        "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
+        "CODE_SIGN_ENTITLEMENTS": "DiskUnbloat/App/DiskUnbloat.entitlements",
+        "CODE_SIGN_IDENTITY": "Apple Development: iwasraisedinacity@gmail.com (XWUEYX48E4)",
+        "CODE_SIGN_STYLE": "Manual",
+        "COMBINE_HIDPI_IMAGES": "YES",
+        "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "24Q556TG24",
+        "ENABLE_HARDENED_RUNTIME": "YES",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "INFOPLIST_FILE": "DiskUnbloat/App/Info.plist",
+        "INFOPLIST_KEY_CFBundleDisplayName": "DiskUnbloat Testing",
+        "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.utilities",
+        "INFOPLIST_KEY_NSHumanReadableCopyright": "Copyright © 2026 DiskUnbloat",
+        "LD_RUNPATH_SEARCH_PATHS": [
+          "$(inherited)",
+          "@executable_path/../Frameworks",
+        ],
+        "MARKETING_VERSION": "1.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.diskunbloat.app.testing",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug]": "DEBUG AGENT_TESTING",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Release]": "AGENT_TESTING",
+        "SWIFT_EMIT_LOC_STRINGS": "YES",
+        "SWIFT_STRICT_CONCURRENCY": "complete",
+        "SWIFT_VERSION": "6.0",
       },
     },
   ],

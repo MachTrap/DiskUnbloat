@@ -30,6 +30,12 @@ The app target signs **Manual** with the owner's Apple Development certificate (
 
 Run `swift test --package-path Packages/DiskCore`, a generic macOS Release build, and relevant app/UI test compilation after structural changes. Add tests for changed behavior, especially asynchronous session replacement and cleanup. Never perform destructive tests on user-selected files; use unique generated fixtures. Record unrun or environment-blocked validation honestly in `Documentation/VALIDATION.md`.
 
+## Agent Testing target (AgentDevKit)
+
+`DiskUnbloatTesting` is a Debug-only build of the same sources plus `DiskUnbloatTesting/`, linking the local AgentDevKit package (`../../AgentDevKit`, or `AGENTDEVKIT_PATH`). The generator adds it only when that package exists, so a clone without it still builds the shipping app. It has its own bundle ID (`com.diskunbloat.app.testing`: separate defaults and a clean TCC state), an isolated `TestingProfile` for scan indexes and a generated fixture home, a dry-run cleanup service that never moves or deletes anything, and a compile-time `#error` outside Debug. Shipping targets never contain bridge code: the Release audit (`nm`/`otool -L` on `DiskUnbloat.app`) must find no AgentDevKit symbols.
+
+Run `Tools/agent-testing.sh [--fixture sample-home|dense-map|permission-wait] [--real-home]`, then drive it with `agentdevctl --session com.diskunbloat.app.testing` (`fixtures load`, `state`, `action invoke`, `ui capture`, `ui tree`). Fixtures generate real trees and run the real `ScanCoordinator`; adapters read production view models and call their intent methods only. Use it to verify UI and behavior changes in the running app instead of describing them as unverified. TCC experiments use `--real-home` on the Testing bundle ID only, never a reset of the shipping app's grants.
+
 ## Native macOS app verification policy
 
 Build success alone does not establish correctness for behavior or UI changes. The full toolchain, route map, and workflow live in `Documentation/AGENT_NATIVE_MACOS_DEVELOPMENT_GUIDE.md`; the rules that cost nothing to follow and directly prevent wasted agent work are:

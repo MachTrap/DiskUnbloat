@@ -48,8 +48,6 @@ UI automation requires a logged-in desktop session with Xcode authorized for aut
 
 The project is checked in and opens directly without generators; it uses the Xcode 27 JSON project format (`project.xcproj`) and therefore requires Xcode 27 or later. `Tools/generate-project.py` can reproduce its structure using Python's standard library. Icon generation uses AppKit via `Tools/generate-icon.swift`; the master and all required macOS icon sizes are included. SwiftUI previews live in `DiskUnbloat/PreviewContent/Previews.swift`.
 
-See [architecture](Documentation/ARCHITECTURE.md) and [validation results](Documentation/VALIDATION.md).
-
 ### Focused analysis
 
 Rescan the current folder from Scan → Rescan Folder or a map folder's context menu. Refresh uses a staging index and restores the previous map on cancellation/failure. Successful refresh retains surviving selections/navigation and removes overlapping cleanup-review entries for another review.

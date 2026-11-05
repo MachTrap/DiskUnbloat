@@ -19,6 +19,7 @@ enum WorkspacePhase: Equatable {
     let explorer: ExplorerViewModel
     let cleanup: CleanupViewModel
     let queue: CleanupQueueModel
+    let duplicates: DuplicatesViewModel
     @ObservationIgnored private let filePresentation: any FilePresenting
     @ObservationIgnored private var locationTask: Task<Void, Never>?
     private(set) var restoringLocation = false
@@ -72,6 +73,18 @@ enum WorkspacePhase: Equatable {
             Task { await explorer.updateHiddenPaths(entries.map { $0.node.path }) }
         }
         queue = CleanupQueueModel(cleanup: cleanup)
+        duplicates = DuplicatesViewModel(defaults: defaults)
+        duplicates.context = { [unowned self] in
+            guard canClean, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return nil }
+            return DuplicatesViewModel.Context(index: index, roots: scan.roots, home: canonicalURL(location.catalog.home).path)
+        }
+        duplicates.apply = { [unowned self] result in
+            let outcome = cleanup.applyAutoSelection(result, roots: scan.roots, keepsGroupLocation: true)
+            message = outcome.skipped > 0
+                ? L10n.format("Selected %lld duplicate copies. %lld were skipped by safety checks.", outcome.applied, outcome.skipped)
+                : L10n.format("Selected %lld duplicate copies.", outcome.applied)
+            return outcome
+        }
     }
 
     var isBusy: Bool { scan.scanning || phase == .preparingResults || cleanup.cleaning || restoringLocation }
@@ -90,6 +103,7 @@ enum WorkspacePhase: Equatable {
 
     func shutdown() async {
         shuttingDown = true
+        duplicates.cancel()
         stopWaitingForFullDiskAccess()
         locationTask?.cancel()
         selectionTask?.cancel()
@@ -277,6 +291,7 @@ enum WorkspacePhase: Equatable {
 
     private func launchScan(preservingCleanupReport: Bool) {
         guard let request = scan.prepare() else { return }
+        duplicates.reset()
         phase = .scanning
         explorer.reset()
         cleanup.reset(preservingReport: preservingCleanupReport)

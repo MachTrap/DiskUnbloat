@@ -10483,6 +10483,330 @@
           }
         }
       }
+    },
+    "Duplicate files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate files"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дубликаты файлов"
+          }
+        }
+      }
+    },
+    "Select duplicate copies?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select duplicate copies?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать копии-дубликаты?"
+          }
+        }
+      }
+    },
+    "This selects %lld copies (%@) and keeps one copy of each of %lld sets: %@. The kept copy is checked again right before anything is removed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This selects %lld copies (%@) and keeps one copy of each of %lld sets: %@. The kept copy is checked again right before anything is removed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будет выбрано копий: %lld (%@). Из каждого из %lld наборов остаётся одна копия: %@. Оставляемая копия проверяется ещё раз прямо перед удалением."
+          }
+        }
+      }
+    },
+    "keep the oldest copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keep the oldest copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "оставить самую старую копию"
+          }
+        }
+      }
+    },
+    "keep the newest copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keep the newest copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "оставить самую новую копию"
+          }
+        }
+      }
+    },
+    "keep the copy with the shortest path" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keep the copy with the shortest path"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "оставить копию с самым коротким путём"
+          }
+        }
+      }
+    },
+    "Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Находит файлы с одинаковым содержимым, читая их. Только ваши файлы: ничего из Library, пакетов приложений и защищённых папок."
+          }
+        }
+      }
+    },
+    "Keep" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставить"
+          }
+        }
+      }
+    },
+    "Find duplicates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find duplicates"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найти дубликаты"
+          }
+        }
+      }
+    },
+    "Comparing…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparing…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнение…"
+          }
+        }
+      }
+    },
+    "%@ of %@ files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ of %@ files"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ из %@ файлов"
+          }
+        }
+      }
+    },
+    "No duplicates found." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No duplicates found."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дубликаты не найдены."
+          }
+        }
+      }
+    },
+    "Find again" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find again"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найти снова"
+          }
+        }
+      }
+    },
+    "Selected %lld duplicate copies. %lld were skipped by safety checks." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected %lld duplicate copies. %lld were skipped by safety checks."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрано копий-дубликатов: %lld. Пропущено проверками безопасности: %lld."
+          }
+        }
+      }
+    },
+    "Selected %lld duplicate copies." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected %lld duplicate copies."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрано копий-дубликатов: %lld."
+          }
+        }
+      }
+    },
+    "The copy being kept is missing or changed. Find duplicates again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy being kept is missing or changed. Find duplicates again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставляемая копия отсутствует или изменилась. Найдите дубликаты снова."
+          }
+        }
+      }
+    },
+    "The copy being kept is also selected for deletion, so this duplicate stays." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy being kept is also selected for deletion, so this duplicate stays."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставляемая копия тоже выбрана для удаления, поэтому этот дубликат остаётся."
+          }
+        }
+      }
+    },
+    "%lld copies" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copy"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copies"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копия"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копии"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копий"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копии"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -168,7 +168,9 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// manual selection (refusals are counted, never forced), a fully covered scan root
     /// collapses to one emptied entry, and a fresh recommendation replaces the previous
     /// one while manual picks stay.
-    func applyAutoSelection(_ result: AutoSelectionResult, roots: [URL]) -> AutoSelectionApplyOutcome {
+    /// `keepsGroupLocation`: duplicate sets, where each group's location is the copy being
+    /// kept; every queued copy records it as the survivor cleanup re-verifies.
+    func applyAutoSelection(_ result: AutoSelectionResult, roots: [URL], keepsGroupLocation: Bool = false) -> AutoSelectionApplyOutcome {
         guard !cleaning, !roots.isEmpty else { return AutoSelectionApplyOutcome() }
         // The new recommendation's exemptions replace the previous one's, except where a
         // manually kept entry still lies inside an earlier exemption.
@@ -186,7 +188,8 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
             for node in proposed {
                 let resolved = resolvedOperation(for: node, roots: roots, cacheRoots: cacheRoots, blockedCaches: blockedCaches)
                 if let operation = resolved.operation {
-                    entries.append(CleanupEntry(node: node, operation: operation))
+                    entries.append(CleanupEntry(node: node, operation: operation,
+                                                survivor: keepsGroupLocation ? CleanupEntry.Survivor(group.location) : nil))
                 } else {
                     outcome.skipped += 1
                 }

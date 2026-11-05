@@ -38,8 +38,17 @@ struct CleanupQueueView: View {
     /// The last chosen quick-select level, remembered per viewer.
     @AppStorage("quickSelectLevel") private var levelValue = AutoSelectionLevel.junk.rawValue
     private var level: AutoSelectionLevel { AutoSelectionLevel(rawValue: levelValue) ?? .junk }
+    /// Duplicates are a separate choice in the same menu, outside the nested levels.
+    @AppStorage("quickSelectDuplicates") private var duplicatesChosen = false
+    @State private var confirmDuplicates = false
+    /// Menu tag: a level's raw value, or 0 for duplicates.
+    private var choice: Binding<Int> {
+        Binding(get: { duplicatesChosen ? 0 : levelValue },
+                set: { value in duplicatesChosen = value == 0; if value != 0 { levelValue = value } })
+    }
 
     private var cleanup: CleanupViewModel { model.cleanup }
+    var duplicates: DuplicatesViewModel?
 
     private struct RefreshKey: Equatable { let revision: Int; let currentID: Int64? }
 
@@ -136,9 +145,13 @@ struct CleanupQueueView: View {
     /// every broader level first shows a warning with its honest estimate.
     private var quickSelect: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker(L10n.text("Quick select"), selection: $levelValue) {
+            Picker(L10n.text("Quick select"), selection: choice) {
                 ForEach(AutoSelectionLevel.allCases) { level in
                     Text(Self.title(level)).tag(level.rawValue)
+                }
+                if duplicates != nil {
+                    Divider()
+                    Text(L10n.text("Duplicate files")).tag(0)
                 }
             }
             // A menu picker has no width floor: four segmented labels (longer still in
@@ -147,6 +160,9 @@ struct CleanupQueueView: View {
             .labelsHidden()
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier("selectionLevel")
+            if duplicatesChosen, let duplicates {
+                DuplicatesSection(model: duplicates, canClean: canClean && !cleanup.cleaning, confirm: { confirmDuplicates = true })
+            } else {
             Text(Self.subtitle(level))
                 .font(.caption2).foregroundStyle(.secondary)
                 .lineLimit(3, reservesSpace: true)
@@ -173,7 +189,17 @@ struct CleanupQueueView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }.padding(.horizontal, 16).padding(.vertical, 10)
+        .alert(L10n.text("Select duplicate copies?"), isPresented: $confirmDuplicates) {
+            Button(L10n.text("Select")) { duplicates?.select() }
+            Button(L10n.text("Cancel"), role: .cancel) {}
+        } message: {
+            if let duplicates, let search = duplicates.search {
+                Text(L10n.format("This selects %lld copies (%@) and keeps one copy of each of %lld sets: %@. The kept copy is checked again right before anything is removed.",
+                                 search.copyCount, sizeText(search.reclaimableBytes), search.sets.count, DuplicatesSection.strategyTitle(duplicates.strategy)))
+            }
+        }
     }
 
     private func choose(_ level: AutoSelectionLevel) {
@@ -448,4 +474,66 @@ struct CleanupQueueView: View {
         case .unchecked: L10n.text("Not selected")
         }
     }
+}
+
+/// Find → review → select for duplicate files. Finding reads contents, so it is a
+/// deliberate step with progress and cancel; the strategy picks which copy stays.
+private struct DuplicatesSection: View {
+    @Bindable var model: DuplicatesViewModel
+    let canClean: Bool
+    let confirm: () -> Void
+
+    static func strategyTitle(_ strategy: DuplicateKeepStrategy) -> String {
+        switch strategy {
+        case .oldest: L10n.text("keep the oldest copy")
+        case .newest: L10n.text("keep the newest copy")
+        case .shortestPath: L10n.text("keep the copy with the shortest path")
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders.")
+                .font(.caption2).foregroundStyle(.secondary)
+                .lineLimit(3, reservesSpace: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Picker(L10n.text("Keep"), selection: $model.strategy) {
+                ForEach(DuplicateKeepStrategy.allCases) { Text(Self.strategyTitle($0).capitalizedFirst).tag($0) }
+            }
+            .pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("duplicateStrategy")
+            HStack(spacing: 8) {
+                switch model.state {
+                case .idle, .failed:
+                    Button { model.find() } label: { Text(L10n.text("Find duplicates")).frame(minWidth: 60) }
+                        .buttonStyle(.borderedProminent).tint(.teal).disabled(!canClean)
+                        .accessibilityIdentifier("findDuplicates")
+                    if case .failed(let reason) = model.state { Text(reason).font(.caption).foregroundStyle(.orange).lineLimit(1) }
+                case .searching(let completed, let total):
+                    ProgressView(value: Double(completed), total: Double(max(total, 1))).frame(maxWidth: 120)
+                    Text(total == 0 ? L10n.text("Comparing…") : L10n.format("%@ of %@ files", completed.formatted(), total.formatted()))
+                        .font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+                    Button(L10n.text("Cancel")) { model.cancel() }.buttonStyle(.borderless)
+                        .accessibilityIdentifier("cancelDuplicates")
+                case .found(let search):
+                    Button { confirm() } label: { Text(L10n.text("Select")).frame(minWidth: 60) }
+                        .buttonStyle(.borderedProminent).tint(.teal).disabled(!canClean || search.sets.isEmpty)
+                        .accessibilityIdentifier("selectDuplicates")
+                    Text(search.sets.isEmpty ? L10n.text("No duplicates found.")
+                         : L10n.count("%lld copies", search.copyCount) + " · " + L10n.format("%@ estimated", sizeText(search.reclaimableBytes)))
+                        .font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1).truncationMode(.middle)
+                        .accessibilityIdentifier("duplicatesEstimate")
+                    Spacer(minLength: 0)
+                    Button { model.find() } label: { Image(systemName: "arrow.clockwise") }
+                        .buttonStyle(.borderless).help(L10n.text("Find again")).disabled(!canClean)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .contain).accessibilityIdentifier("duplicatesSection")
+    }
+}
+
+private extension String {
+    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }

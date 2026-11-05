@@ -64,6 +64,16 @@ import DiskCore
         fields["matchCount"] = .integer(Int64(explorer.searchMatches.count))
         fields["litTiles"] = .integer(Int64(explorer.tileStyle.searchLit?.count ?? -1))
         fields["unreachedBytes"] = .integer(explorer.unreached?.bytes ?? 0)
+        switch workspace.duplicates.state {
+        case .idle: fields["duplicates"] = "idle"
+        case .searching: fields["duplicates"] = "searching"
+        case .failed: fields["duplicates"] = "failed"
+        case .found(let search):
+            fields["duplicates"] = "found"
+            fields["duplicateSets"] = .integer(Int64(search.sets.count))
+            fields["duplicateCopies"] = .integer(Int64(search.copyCount))
+        }
+        fields["queuedSurvivors"] = .integer(Int64(cleanup.basket.filter { $0.survivor != nil }.count))
         fields["unreachedTile"] = .bool(explorer.scene.entries.contains { $0.kind == .unreached })
         if let path = scan.awaitingPermission { fields["awaitingPermission"] = .string(relative(path)) }
         if let current = explorer.current { fields["currentFolder"] = .string(relative(current.path)) }
@@ -86,6 +96,12 @@ import DiskCore
                 self?.observeChanges()
             }
         }
+    }
+
+    /// The workspace window (largest visible, non-panel); sheets are composited onto it.
+    func window(for windowId: String?) -> NSWindow? {
+        NSApp.windows.filter { $0.isVisible && !($0 is NSPanel) && $0.sheetParent == nil }
+            .max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
     }
 
     // MARK: Fixtures
@@ -133,6 +149,8 @@ import DiskCore
     private struct Mode: Decodable { let mode: String; let highlight: String? }
     private struct Search: Decodable { let text: String; let mode: String? }
     private struct Unreached: Decodable { let megabytes: Int; let visible: Bool? }
+    private struct Strategy: Decodable { let strategy: String? }
+    private struct Panel: Decodable { let duplicates: Bool }
 
     private var actions: [AgentAction] {
         let workspace = workspace, composition = composition
@@ -184,6 +202,26 @@ import DiskCore
                 workspace.explorer.setUnreached(input.megabytes == 0 ? nil : UnreachedSpace(bytes: Int64(input.megabytes) << 20, purgeable: 3 << 20, localSnapshots: 2, unreadableLocations: 4))
                 await workspace.explorer.loadResults()
                 return .completed
+            },
+            AgentAction("duplicates.find", scope: "current-screen",
+                        input: ObjectSchema(["strategy": .string(maxLength: 16, oneOf: DuplicateKeepStrategy.allCases.map(\.rawValue))]),
+                        as: Strategy.self, enabled: { workspace.phase == .exploring }) { input, _ in
+                if let strategy = input.strategy.flatMap(DuplicateKeepStrategy.init(rawValue:)) { workspace.duplicates.strategy = strategy }
+                workspace.duplicates.find()
+                for _ in 0..<400 where workspace.duplicates.searching { try? await Task.sleep(for: .milliseconds(25)) }
+                return .completed
+            },
+            AgentAction("duplicates.select", scope: "current-screen", input: .empty, as: Empty.self,
+                        enabled: { workspace.duplicates.search != nil }) { _, _ in
+                workspace.duplicates.select(); return .completed
+            },
+            // The panel's choice is the same stored preference its menu writes.
+            AgentAction("quickSelect.panel", scope: "current-screen", input: ObjectSchema(["duplicates": .boolean], required: ["duplicates"]),
+                        as: Panel.self) { input, _ in
+                UserDefaults.standard.set(input.duplicates, forKey: "quickSelectDuplicates"); return .completed
+            },
+            AgentAction("message.dismiss", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
+                workspace.message = nil; return .completed
             },
             AgentAction("quickSelect.apply", scope: "current-screen",
                         input: ObjectSchema(["level": .string(maxLength: 16, oneOf: AutoSelectionLevel.allCases.map(\.agentName))], required: ["level"]),

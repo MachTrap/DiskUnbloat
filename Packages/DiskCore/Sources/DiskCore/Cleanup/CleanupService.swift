@@ -20,7 +20,7 @@ public actor CleanupService: CleanupServing {
             switch entry.operation {
             case .remove:
                 let result: CleanupResult = await withCheckedContinuation { continuation in
-                    queue.async { continuation.resume(returning: Self.remove(entry.node, plan: plan)) }
+                    queue.async { continuation.resume(returning: Self.remove(entry.node, survivor: entry.survivor, plan: plan)) }
                 }
                 emit(result.succeeded ? .itemSucceeded(path: result.path, message: result.message)
                                       : .itemFailed(path: result.path, message: result.message))
@@ -37,8 +37,19 @@ public actor CleanupService: CleanupServing {
         return results
     }
 
-    private nonisolated static func remove(_ node: FileNode, plan: CleanupPlan) -> CleanupResult {
+    private nonisolated static func remove(_ node: FileNode, survivor: CleanupEntry.Survivor? = nil, plan: CleanupPlan) -> CleanupResult {
                     do {
+                        if let survivor {
+                            // A duplicate goes only while its kept copy is still there, unchanged.
+                            guard let kept = try? FileIdentity.read(URL(fileURLWithPath: survivor.path)), !kept.link, !kept.directory,
+                                  kept.identity == survivor.identity, survivor.fingerprint.map({ $0 == kept.fingerprint }) ?? true,
+                                  kept.identity != node.identity
+                            else { throw CleanupError.refused("The copy being kept is missing or changed. Find duplicates again.") }
+                            // Queued for removal itself (or inside a queued folder): keep this copy.
+                            if plan.items.contains(where: { survivor.path == $0.node.path || survivor.path.isWithin($0.node.path) }) {
+                                throw CleanupError.refused("The copy being kept is also selected for deletion, so this duplicate stays.")
+                            }
+                        }
                         if let reason = CleanupSafety.blockedReason(node, roots: plan.roots, exemptingCacheRoots: plan.knownCacheRoots) { throw CleanupError.refused(reason) }
                         let parent = node.url.deletingLastPathComponent()
                         // Resolving parent ancestry detects replaced directory components, without following the leaf link.

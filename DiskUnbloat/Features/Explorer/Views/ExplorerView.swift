@@ -4,6 +4,7 @@ import DiskCore
 struct ExplorerView: View {
     @Bindable var model: ExplorerViewModel
     let queue: CleanupQueueModel
+    var duplicates: DuplicatesViewModel?
     let scan: ScanViewModel
     let canClean: Bool
     let queuedPaths: [String]
@@ -58,7 +59,7 @@ struct ExplorerView: View {
             legend
         }
         .inspector(isPresented: showQueue) {
-            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, selecting: selecting, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup, selectLevel: selectLevel, previewLevel: previewLevel, levelEstimates: levelEstimates, focusFolder: { model.navigate($0) }, preview: preview, reveal: reveal, refreshFolder: refreshFolder)
+            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, selecting: selecting, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup, selectLevel: selectLevel, previewLevel: previewLevel, levelEstimates: levelEstimates, focusFolder: { model.navigate($0) }, preview: preview, reveal: reveal, refreshFolder: refreshFolder, duplicates: duplicates)
                 .inspectorColumnWidth(min: 280, ideal: 340, max: 480)
         }
         .toolbar { toolbar }

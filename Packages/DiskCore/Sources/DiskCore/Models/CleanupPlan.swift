@@ -29,9 +29,22 @@ public enum CleanupEvent: Sendable {
 public struct CleanupEntry: Sendable, Identifiable, Equatable {
     public let node: FileNode
     public let operation: CleanupOperation
+    /// For a duplicate copy: the copy that must still exist, unchanged, for this one to
+    /// be removed. Cleanup refuses the removal otherwise, so a set never loses every copy.
+    public let survivor: Survivor?
     public var id: Int64 { node.id }
-    public init(node: FileNode, operation: CleanupOperation) {
-        self.node = node; self.operation = operation
+    public init(node: FileNode, operation: CleanupOperation, survivor: Survivor? = nil) {
+        self.node = node; self.operation = operation; self.survivor = survivor
+    }
+
+    public struct Survivor: Sendable, Equatable, Hashable {
+        public let path: String
+        public let identity: String
+        public let fingerprint: String?
+        public init(path: String, identity: String, fingerprint: String?) {
+            self.path = path; self.identity = identity; self.fingerprint = fingerprint
+        }
+        public init(_ node: FileNode) { self.init(path: node.path, identity: node.identity, fingerprint: node.fingerprint) }
     }
 }
 

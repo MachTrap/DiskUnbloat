@@ -47,6 +47,10 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// Presents the per-item report after a completed cleanup run.
     var showReport = false
     private(set) var results: [CleanupResult] = []
+    /// The last run's mode and the known on-disk bytes of its succeeded entries. Moved
+    /// items still occupy the disk until the user empties the Trash; the report says so.
+    private(set) var lastRunMode: CleanupMode = .trash
+    private(set) var lastRunBytes: Int64 = 0
 
     /// Estimated on-disk bytes of the normalized queue, using the same known-size
     /// accounting the map subtracts when queued items disappear. An estimate, not a
@@ -259,6 +263,9 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
             await MainActor.run { CleanupViewModel.activityMessage(path, activity: activity, home: home) }
         }, knownCacheRoots: exemptRoots, diagnostics: { recorder.event($0) })
         results = refused + (await service.execute(plan))
+        let succeeded = Set(results.filter(\.succeeded).map(\.id))
+        lastRunMode = mode
+        lastRunBytes = plan.items.filter { succeeded.contains($0.node.id) }.reduce(0) { $0 + $1.node.knownSize(for: .allocated) }
         diagnostics.runFinished(succeeded: results.filter(\.succeeded).count, failed: results.count - results.filter(\.succeeded).count)
         return results.contains(where: \.succeeded)
     }

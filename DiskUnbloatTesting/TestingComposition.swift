@@ -51,7 +51,8 @@ import DiskCore
             settings: SettingsViewModel(history: ScanHistoryStore(base: profileDirectory.appendingPathComponent("History", isDirectory: true))),
             fullDiskAccess: fullDiskAccess,
             catalog: LocationCatalog(home: home),
-            storage: ScanSessionStore(base: profileDirectory.appendingPathComponent("Scans", isDirectory: true)))
+            storage: ScanSessionStore(base: profileDirectory.appendingPathComponent("Scans", isDirectory: true)),
+            toolRunner: DryRunToolRunner())
     }
 }
 
@@ -87,6 +88,13 @@ actor DryRunCleanupService: CleanupServing {
         return plan.items.map { CleanupResult(id: $0.node.id, path: $0.node.path, succeeded: true, message: "Dry run — nothing was moved") }
     }
     func planCount() -> Int { plans.count }
+}
+
+/// Developer-tool commands are never executed in the Testing app.
+struct DryRunToolRunner: ToolCommandRunning {
+    func run(executable: String, arguments: [String], timeout: Duration) async -> ToolRunResult {
+        ToolRunResult(status: 0, output: "Dry run — would run: \(([executable] + arguments).joined(separator: " "))")
+    }
 }
 
 struct TestingFullDiskAccess: FullDiskAccessChecking {

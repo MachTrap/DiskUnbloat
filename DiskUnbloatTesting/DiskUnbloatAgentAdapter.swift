@@ -73,6 +73,7 @@ import DiskCore
             fields["duplicateSets"] = .integer(Int64(search.sets.count))
             fields["duplicateCopies"] = .integer(Int64(search.copyCount))
         }
+        fields["tools"] = .array(workspace.developerTools.rows.map { .string($0.id) })
         fields["queuedSurvivors"] = .integer(Int64(cleanup.basket.filter { $0.survivor != nil }.count))
         fields["unreachedTile"] = .bool(explorer.scene.entries.contains { $0.kind == .unreached })
         if let path = scan.awaitingPermission { fields["awaitingPermission"] = .string(relative(path)) }
@@ -219,6 +220,9 @@ import DiskCore
             AgentAction("quickSelect.panel", scope: "current-screen", input: ObjectSchema(["duplicates": .boolean], required: ["duplicates"]),
                         as: Panel.self) { input, _ in
                 UserDefaults.standard.set(input.duplicates, forKey: "quickSelectDuplicates"); return .completed
+            },
+            AgentAction("tools.open", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
+                await workspace.developerTools.open(); return .completed
             },
             AgentAction("message.dismiss", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
                 workspace.message = nil; return .completed

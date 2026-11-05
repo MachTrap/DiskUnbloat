@@ -20,6 +20,7 @@ enum WorkspacePhase: Equatable {
     let cleanup: CleanupViewModel
     let queue: CleanupQueueModel
     let duplicates: DuplicatesViewModel
+    let developerTools: DeveloperToolsViewModel
     @ObservationIgnored private let filePresentation: any FilePresenting
     @ObservationIgnored private var locationTask: Task<Void, Never>?
     private(set) var restoringLocation = false
@@ -52,7 +53,8 @@ enum WorkspacePhase: Equatable {
         openFullDiskAccessPane: @escaping () -> Void = { FullDiskAccessSettings.open() },
         catalog: LocationCatalog = LocationCatalog(),
         storage: ScanSessionStore = ScanSessionStore(),
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        toolRunner: any ToolCommandRunning = ProcessToolRunner()
     ) {
         location = LocationSelectionViewModel(catalog: catalog)
         self.authorization = authorization
@@ -73,10 +75,23 @@ enum WorkspacePhase: Equatable {
             Task { await explorer.updateHiddenPaths(entries.map { $0.node.path }) }
         }
         queue = CleanupQueueModel(cleanup: cleanup)
+        developerTools = DeveloperToolsViewModel(runner: toolRunner)
         duplicates = DuplicatesViewModel(defaults: defaults)
         duplicates.context = { [unowned self] in
             guard canClean, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return nil }
             return DuplicatesViewModel.Context(index: index, roots: scan.roots, home: canonicalURL(location.catalog.home).path)
+        }
+        developerTools.context = { [unowned self] in
+            scan.index.map { (index: $0, home: canonicalURL(location.catalog.home).path) }
+        }
+        // After a tool cleaned its cache, rescan the first affected location in scope.
+        developerTools.didRun = { [unowned self] paths in
+            Task {
+                let home = canonicalURL(location.catalog.home).path
+                for relative in paths {
+                    if let node = await scan.index?.node(path: home + "/" + relative) { refreshFolder(node); return }
+                }
+            }
         }
         duplicates.apply = { [unowned self] result in
             let outcome = cleanup.applyAutoSelection(result, roots: scan.roots, keepsGroupLocation: true)
@@ -636,5 +651,6 @@ enum WorkspacePhase: Equatable {
     }
 
     func reveal(_ node: FileNode) { filePresentation.reveal(node) }
+    func openTrash() { filePresentation.openTrash() }
     func preview(_ node: FileNode) { previewURL = node.url }
 }

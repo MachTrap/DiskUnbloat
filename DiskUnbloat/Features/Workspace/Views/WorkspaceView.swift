@@ -17,7 +17,7 @@ struct WorkspaceView: View {
         .frame(maxWidth: .infinity,maxHeight: .infinity)
         .navigationTitle(model.phase == .exploring ? model.explorer.current?.name ?? "DiskUnbloat" : "DiskUnbloat")
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: model.phase)
-        .sheet(isPresented: $cleanup.showReport) { CleanupReportView(results: cleanup.results) { cleanup.showReport = false } }
+        .sheet(isPresented: $cleanup.showReport) { CleanupReportView(results: cleanup.results, mode: cleanup.lastRunMode, bytes: cleanup.lastRunBytes, openTrash: model.openTrash) { cleanup.showReport = false } }
         .sheet(isPresented: $scan.showIssues) { issuesSheet }
         .safeAreaInset(edge: .bottom) {
             if let warning = model.authorization.bookmarkWarning {
@@ -54,7 +54,7 @@ struct WorkspaceView: View {
             case .scanning, .preparingResults:
                 ScanningView(model: scan, preparing: model.phase == .preparingResults, cancel: model.cancel, issues: { scan.showIssues = true })
             case .exploring:
-                ExplorerView(model: model.explorer, queue: model.queue, duplicates: model.duplicates, scan: scan, canClean: model.canClean, queuedPaths: cleanup.basket.map { $0.node.path }, membership: { model.cleanup.membership($0) }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, selectForCleanup: model.addToBasket, deselectFromCleanup: model.deselect, addSelection: model.addSelectionToBasket, performCleanup: model.performCleanup, selecting: model.selectingItems, selectLevel: model.selectItems, previewLevel: model.previewSelection, levelEstimates: model.selectionEstimates, highlight: { model.explorer.select($0.id) })
+                ExplorerView(model: model.explorer, queue: model.queue, duplicates: model.duplicates, developerTools: model.developerTools, scan: scan, canClean: model.canClean, queuedPaths: cleanup.basket.map { $0.node.path }, membership: { model.cleanup.membership($0) }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, selectForCleanup: model.addToBasket, deselectFromCleanup: model.deselect, addSelection: model.addSelectionToBasket, performCleanup: model.performCleanup, selecting: model.selectingItems, selectLevel: model.selectItems, previewLevel: model.previewSelection, levelEstimates: model.selectionEstimates, highlight: { model.explorer.select($0.id) })
             case .cancelled: outcome(cancelled: true, message: "The scan stopped with partial results. You can explore what was read, but cleanup will stay disabled.")
             case .failed(let error): outcome(cancelled: false, message: error)
             }

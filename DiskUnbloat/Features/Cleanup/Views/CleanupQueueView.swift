@@ -49,6 +49,7 @@ struct CleanupQueueView: View {
 
     private var cleanup: CleanupViewModel { model.cleanup }
     var duplicates: DuplicatesViewModel?
+    var developerTools: DeveloperToolsViewModel?
 
     private struct RefreshKey: Equatable { let revision: Int; let currentID: Int64? }
 
@@ -189,6 +190,16 @@ struct CleanupQueueView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let developerTools {
+                Button { Task { await developerTools.open() } } label: {
+                    Label(L10n.text("Developer tools…"), systemImage: "hammer")
+                }
+                .buttonStyle(.borderless).font(.caption)
+                .accessibilityIdentifier("openDeveloperTools")
+                .sheet(isPresented: Binding(get: { developerTools.showSheet }, set: { developerTools.showSheet = $0 })) {
+                    DeveloperToolsSheet(model: developerTools)
+                }
             }
         }.padding(.horizontal, 16).padding(.vertical, 10)
         .alert(L10n.text("Select duplicate copies?"), isPresented: $confirmDuplicates) {

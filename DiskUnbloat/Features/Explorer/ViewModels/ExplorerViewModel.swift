@@ -46,6 +46,17 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     @ObservationIgnored private var searchHighlight: SearchHighlight?
     @ObservationIgnored private var matchCursor = -1
     static let matchLimit = 5000
+    /// The map's current layout, handed up by the treemap for keyboard movement. Not
+    /// observed: it never drives rendering.
+    @ObservationIgnored var layoutTiles: [SceneTile] = []
+
+    /// Arrow keys: select the nearest tile in that direction (siblings first).
+    func moveSelection(_ direction: MapDirection) {
+        let current = selection.flatMap { id in layoutTiles.first { $0.id == id } }
+        guard let next = MapKeyboardNavigator.next(from: current, in: layoutTiles, direction: direction) else { return }
+        select(next.entry, extending: false)
+    }
+
     /// Earlier scans of this scope (newest first) and the one Growth compares with.
     private(set) var historyDates: [Date] = []
     var compareDate: Date? { didSet { if compareDate != oldValue { loadBaseline() } } }

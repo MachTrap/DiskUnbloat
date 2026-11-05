@@ -9,6 +9,8 @@ struct TreemapView: View {
     /// Breakdown for the unreached-space tile's hover card.
     var unreached: UnreachedSpace?
     var growthNote: (MapEntry) -> String? = { _ in nil }
+    /// Receives each committed layout (keyboard navigation works on tile geometry).
+    var onLayout: ([SceneTile]) -> Void = { _ in }
     let fitRevision: Int
     let select: (MapEntry, Bool) -> Void
     let open: (FileNode) -> Void
@@ -180,6 +182,7 @@ struct TreemapView: View {
             : growIn ? MapMorph.intro(newTiles, in: size, sweep: first ? 0.3 : 0.14)
             : rootChanged ? nil : MapMorph.relayout(from: oldTiles, to: newTiles)
         tiles = newTiles; previousRoot = scene.rootID; previousSize = size; hovered = nil
+        onLayout(newTiles)
         morph = nextMorph; morphStart = Date()
         if let target, snapshot != nil {
             withAnimation(.smooth(duration: 0.34)) { snapshotFrame = target; snapshotOpacity = 0 }

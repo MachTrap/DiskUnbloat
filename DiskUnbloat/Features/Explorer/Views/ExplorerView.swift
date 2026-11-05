@@ -47,7 +47,7 @@ struct ExplorerView: View {
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, unreached: model.unreached, growthNote: model.growthNote, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, unreached: model.unreached, growthNote: model.growthNote, onLayout: { model.layoutTiles = $0 }, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
                 .overlay {
                     if model.isLoading {
@@ -68,6 +68,24 @@ struct ExplorerView: View {
         .focusable().focusEffectDisabled()
         .onKeyPress(.return) { guard let node = model.selected else { return .ignored }; if model.canNavigate(node) { model.navigate(node) } else { preview(node) }; return .handled }
         .onKeyPress(.space) { guard let node = model.selected else { return .ignored }; preview(node); return .handled }
+        .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow]) { press in
+            // ⌘↑ stays "Go to parent" (menu shortcut); plain arrows move between tiles.
+            guard press.modifiers.isEmpty else { return .ignored }
+            let direction: MapDirection = switch press.key {
+            case .upArrow: .up
+            case .downArrow: .down
+            case .leftArrow: .left
+            default: .right
+            }
+            model.moveSelection(direction)
+            return .handled
+        }
+        .onKeyPress(keys: [.delete, .deleteForward]) { _ in
+            // Delete queues the selection for review; it never deletes anything itself.
+            guard !model.selectionIDs.isEmpty, canClean else { return .ignored }
+            addSelection()
+            return .handled
+        }
         .onExitCommand { if !model.selectionIDs.isEmpty { model.selectionIDs = [] } else { model.up() } }
         .accessibilityIdentifier("explorerScreen")
     }

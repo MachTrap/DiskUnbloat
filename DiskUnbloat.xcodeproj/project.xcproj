@@ -135,6 +135,12 @@
                         "DiskUnbloat/compile-sources",
                         "DiskUnbloatTesting/compile-sources",
                       ],
+                    }, {
+                      "path": "MapKeyboardNavigator.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
                     },
                   ],
                 }, {
@@ -595,6 +601,7 @@
         { "path": "MapColoringTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapFirstFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapInputTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "MapKeyboardNavigatorTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapMotionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MinimalPermissionFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "NativeOpenTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

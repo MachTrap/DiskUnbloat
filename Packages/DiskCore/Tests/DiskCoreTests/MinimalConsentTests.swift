@@ -24,21 +24,27 @@ struct MinimalConsentTests {
         return ScanRequest(root: home, options: options)
     }
 
-    @Test func minimalPolicyProbesOnlyTheAppDataConsent() throws {
+    @Test func minimalPolicyAsksMediaThenAppDataUpFront() throws {
         let home = try home(); defer { try? FileManager.default.removeItem(at: home) }
         let canonical = canonicalURL(home).path
         let minimal = ScanPermissionPreflight.targets(for: request(home, .minimal)).map(\.url.path)
-        #expect(minimal == [canonical + "/Library/Containers", canonical + "/Library/Application Support"])
+        // Photos first, then the app-data probes (no Music/TV library in this fixture).
+        #expect(minimal == [canonical + "/Pictures/Photos Library.photoslibrary", canonical + "/Library/Containers", canonical + "/Library/Application Support"])
         // The full policy still brings every in-scope dialog up front.
         let full = ScanPermissionPreflight.targets(for: request(home, .fullDiskAccess)).map(\.url.path)
         #expect(full.contains(canonical + "/Desktop") && full.contains(canonical + "/Library/Mail"))
         #expect(ScanPermissionPreflight.skippedPaths(for: request(home, .fullDiskAccess)).isEmpty)
         // Lexical, never stat-ed: every store under the home, whether or not it exists.
         let skipped = Set(ScanPermissionPreflight.skippedPaths(for: request(home, .minimal)))
-        #expect(skipped.isSuperset(of: [canonical + "/Pictures/Photos Library.photoslibrary", canonical + "/Library/Mail", canonical + "/Library/Containers/com.apple.Music", canonical + "/Movies/TV"]))
+        #expect(skipped.isSuperset(of: [canonical + "/Library/Mail", canonical + "/Library/Containers/com.apple.mail"]))
+        // Media libraries, iCloud Drive, Safari and Apple app containers are read, never skipped.
+        for kept in ["/Pictures/Photos Library.photoslibrary", "/Movies/TV", "/Library/Mobile Documents", "/Library/Safari", "/Library/Containers/com.apple.Music"] {
+            #expect(!skipped.contains(canonical + kept), "\(kept)")
+        }
         #expect(skipped.count == ScanPermissionPreflight.minimalSkippedRelativePaths.count)
-        // The app-data probe only ever opens third-party children.
-        #expect(ScanPermissionPreflight.minimalConsentTargets.allSatisfy { $0.depth == .thirdPartyChildren })
+        // The app-data probes only ever open third-party children; media probes come first.
+        #expect(ScanPermissionPreflight.minimalConsentTargets.filter { $0.path == "Library/Containers" || $0.path == "Library/Application Support" }.allSatisfy { $0.depth == .thirdPartyChildren })
+        #expect(ScanPermissionPreflight.minimalConsentTargets.prefix(4).map(\.path) == ["Pictures/Photos Library.photoslibrary", "Music/Music", "Movies/TV", "Library/Mobile Documents"])
     }
 
     @Test func minimalScanSkipsPersonalStoresUnopenedAndExplainsOnce() async throws {
@@ -50,24 +56,21 @@ struct MinimalConsentTests {
         for await event in await coordinator.scan(request(home, .minimal), into: index) {
             if case .protectedFoldersRefused = event { refused = true }
         }
-        #expect(probed.withLock { $0 } == ["Containers", "Application Support"])
+        #expect(probed.withLock { $0 } == ["Photos Library.photoslibrary", "Containers", "Application Support"])
         #expect(refused)
         let canonical = canonicalURL(home).path
-        // The store itself is listed with an honest issue, but nothing inside was read.
+        // Media libraries are measured (their consent was asked up front)…
         #expect(await index.node(path: canonical + "/Pictures/Photos Library.photoslibrary") != nil)
-        #expect(await index.node(path: canonical + "/Pictures/Photos Library.photoslibrary/originals") == nil)
+        // …while Mail is listed with an honest issue and nothing inside it is read.
         #expect(await index.node(path: canonical + "/Library/Mail/V10") == nil)
         #expect(await index.node(path: canonical + "/Documents/notes.txt") != nil)
-        // Every Apple container is listed but never opened; third-party ones are read.
-        #expect(await index.node(path: canonical + "/Library/Containers/com.apple.AMPArtworkAgent") != nil)
-        #expect(await index.node(path: canonical + "/Library/Containers/com.apple.AMPArtworkAgent/Data") == nil)
-        #expect(await index.node(path: canonical + "/Library/Group Containers/243LU875E5.groups.com.apple.podcasts/x") == nil)
+        // Apple and third-party app containers are both read (macOS decides what it refuses).
+        #expect(await index.node(path: canonical + "/Library/Containers/com.apple.AMPArtworkAgent/Data") != nil)
+        #expect(await index.node(path: canonical + "/Library/Group Containers/243LU875E5.groups.com.apple.podcasts/x") != nil)
         #expect(await index.node(path: canonical + "/Library/Containers/com.example.editor/Data") != nil)
-        // Media-library bundles are skipped wherever they live, not only at the usual paths.
-        #expect(await index.node(path: canonical + "/Movies/iMovie Theater.theater") != nil)
-        #expect(await index.node(path: canonical + "/Movies/iMovie Theater.theater/Content") == nil)
-        #expect(await index.node(path: canonical + "/Movies/iMovie Library.imovielibrary/Media") == nil)
-        #expect(await index.node(path: canonical + "/Elsewhere/Old.photoslibrary/originals") == nil)
+        // Other media libraries are measured like any package (sized whole, contents not listed).
+        let theater = await index.node(path: canonical + "/Movies/iMovie Theater.theater")
+        #expect(theater != nil && theater?.unknownAllocatedCount == 0)
         let issues = await index.issues().map(\.path)
         #expect(issues.contains(canonical + "/Library/Mail"))
         await index.close()

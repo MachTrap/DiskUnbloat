@@ -73,7 +73,6 @@ struct PendingGroup: Sendable {
 
         static func isProtection(raw: String) -> Bool {
             raw.localizedCaseInsensitiveContains("not permitted") || raw.hasPrefix("Protected by macOS")
-                || raw.hasPrefix("Apple app containers here are protected")
         }
     }
 

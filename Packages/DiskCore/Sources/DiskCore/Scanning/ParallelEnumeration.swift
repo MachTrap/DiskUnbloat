@@ -52,8 +52,6 @@ final class ParallelEnumeration: @unchecked Sendable {
     private let summarizedPaths: Set<String>
     /// Personal-data stores skipped unopened under the minimal consent policy.
     let protectedSkips: Set<String>
-    /// Parents whose Apple-owned children are skipped too (minimal policy).
-    let appleChildParents: Set<String>
     private let minimalPolicy: Bool
     /// Parent folder → protected child names (minimal policy): these parents are listed
     /// carefully so the protected entries' metadata is never requested.
@@ -90,14 +88,12 @@ final class ParallelEnumeration: @unchecked Sendable {
         }
         summarizedNames = names; summarizedPaths = paths
         protectedSkips = Set(ScanPermissionPreflight.skippedPaths(for: request))
-        appleChildParents = Set(ScanPermissionPreflight.appleChildParents(for: request))
         minimalPolicy = request.options.consentPolicy == .minimal
         var children: [String: Set<String>] = [:]
         for path in protectedSkips {
             let url = URL(fileURLWithPath: path)
             children[url.deletingLastPathComponent().path, default: []].insert(url.lastPathComponent)
         }
-        for parent in appleChildParents where children[parent] == nil { children[parent] = [] }
         protectedChildren = children
         workerCount = max(1, workers)
     }
@@ -210,11 +206,7 @@ final class ParallelEnumeration: @unchecked Sendable {
         let started = DispatchTime.now().uptimeNanoseconds
         do {
             if minimalPolicy, let names = protectedChildren[job.path] {
-                let appleParent = appleChildParents.contains(job.path)
-                try reader.readCarefully(job.path, skip: { name, isDirectory in
-                    names.contains(name) || (appleParent && ScanPermissionPreflight.isAppleOwned(name))
-                        || (isDirectory && ScanPermissionPreflight.isMediaLibraryBundle(name))
-                }) { entries.append($0) }
+                try reader.readCarefully(job.path, skip: { name, _ in names.contains(name) }) { entries.append($0) }
             } else {
                 try reader.read(job.path) { entries.append($0) }
             }
@@ -228,7 +220,7 @@ final class ParallelEnumeration: @unchecked Sendable {
         var newIssues: [(String, String)] = failure.map { [$0] } ?? []
         var discovered: Int64 = 0
         var hardLinks: [(String, Int64)] = []
-        var skippedHere = 0, appleSkipped = 0
+        var skippedHere = 0
 
         condition.lock()
         var id = nextID; nextID += Int64(entries.count)
@@ -251,13 +243,7 @@ final class ParallelEnumeration: @unchecked Sendable {
             if !directory {
                 if entry.links <= 1 { discovered += entry.allocated } else { hardLinks.append((entry.identity, entry.allocated)) }
                 nodes.append(node); derived.append(DerivedColumns(node))
-            } else if appleChildParents.contains(job.path) && ScanPermissionPreflight.isAppleOwned(entry.name) {
-                // Apple app containers: listed with unknown size, reported once per parent
-                // below (hundreds of identical lines would read as failures).
-                skippedHere += 1; appleSkipped += 1
-                nodes.append(node); derived.append(DerivedColumns(node))
-            } else if (!protectedSkips.isEmpty && protectedSkips.contains(path))
-                        || (minimalPolicy && directory && ScanPermissionPreflight.isMediaLibraryBundle(entry.name)) {
+            } else if !protectedSkips.isEmpty && protectedSkips.contains(path) {
                 // Opening it would raise its own consent dialog; size stays unknown.
                 skippedHere += 1
                 nodes.append(node); derived.append(DerivedColumns(node))
@@ -276,7 +262,6 @@ final class ParallelEnumeration: @unchecked Sendable {
 
         condition.lock()
         for (identity, allocated) in hardLinks where seenHardLinks.insert(identity).inserted { discovered += allocated }
-        if appleSkipped > 0 { newIssues.append((job.path, "Apple app containers here are protected by macOS. Allow Full Disk Access to measure them.")) }
         if seconds >= Self.slowReadThreshold { slowReads.append((job.path, seconds)) }
         skippedProtected += skippedHere
         output += nodes

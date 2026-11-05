@@ -95,7 +95,29 @@ struct AutoSelectionLevelTests {
         #expect(estimates[.caches]?.items == 4)
         #expect(estimates[.rebuildable]?.items == 6)
         #expect(estimates[.deep]?.items ?? 0 >= 6)
+        // Map colouring by safety reads the same rules: lowest level wins, nesting holds.
+        let safety = await index.safetyClassification(home: home, unusedDays: 90)
+        #expect(safety.level(of: home + "/Library/Developer/Xcode/DerivedData/Build") == .junk)
+        // Every child of DerivedData is Junk, so the folder reads as Junk too.
+        #expect(safety.level(of: home + "/Library/Developer/Xcode/DerivedData") == .junk)
+        #expect(safety.level(of: home + "/Library/Caches/com.example.app") == .caches)
+        #expect(safety.level(of: home + "/web/node_modules/x") == .rebuildable)
+        #expect(safety.level(of: home + "/web/package.json") == nil)
+        #expect(safety.containsSelectable(below: home + "/web") && !safety.containsSelectable(below: home + "/web/package.json"))
+        for level in AutoSelectionLevel.allCases {
+            for node in await index.autoSelectionCandidates(home: home, level: level, unusedDays: 90).nodes {
+                #expect(safety.level(of: node.path).map { $0 <= level } == true, "\(node.path) at \(level)")
+            }
+        }
         await index.close()
+    }
+
+    @Test func safetyClassificationPrefersTheLowestCoveringLevel() {
+        let safety = SafetyClassification(levels: ["/h/Caches": .caches, "/h/Caches/old": .junk, "/h/Downloads/a.dmg": .deep])
+        #expect(safety.level(of: "/h/Caches/old/x") == .junk)
+        #expect(safety.level(of: "/h/Caches/new") == .caches)
+        #expect(safety.level(of: "/h/CachesX") == nil)
+        #expect(safety.containsSelectable(below: "/h/Downloads") && !safety.containsSelectable(below: "/h/Documents"))
     }
 }
 

@@ -27,6 +27,7 @@ enum FixtureTrees {
         // Developer rebuildables.
         try file(home, "Library/Developer/Xcode/DerivedData/App-abc/Build/Products/App.o", 8 * mb, seed: 4)
         try file(home, "Projects/web/package.json", 1024, seed: 5)
+        try file(home, "Projects/web/package-lock.json", 2048, seed: 15)
         try file(home, "Projects/web/node_modules/left-pad/index.js", 2 * mb, seed: 6)
         try file(home, "Projects/web/node_modules/react/umd/react.js", 3 * mb, seed: 7)
         // Older app versions (Deep clean) — the newest survives.

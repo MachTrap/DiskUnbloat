@@ -74,7 +74,7 @@ import DiskCore
         #expect(model.explorer.normalizedSelection.map(\.id) == [2])
         #expect(model.explorer.selectionBytes == 4096)
         let geometryBefore = model.explorer.scene
-        model.explorer.highlightedCategory = .video
+        model.explorer.highlightedClass = .junk; model.explorer.colorMode = .age
         #expect(model.explorer.scene == geometryBefore)
         await model.shutdown()
     }

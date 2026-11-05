@@ -46,6 +46,10 @@ extension ScanIndex {
             .mapValues(AutoSelectionPreview.init)
     }
 
+    func autoSelectionResultsForAllLevels(home: String, unusedDays: Int, inspectPackages: Bool) -> [AutoSelectionLevel: AutoSelectionResult] {
+        autoSelectionResults(home: home, levels: AutoSelectionLevel.allCases, unusedDays: unusedDays, inspectPackages: inspectPackages)
+    }
+
     private func autoSelectionResults(
         home: String, levels: [AutoSelectionLevel], unusedDays: Int, inspectPackages: Bool
     ) -> [AutoSelectionLevel: AutoSelectionResult] {

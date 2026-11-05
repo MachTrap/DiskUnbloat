@@ -86,8 +86,8 @@ import DiskCore
         let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let scene = model.explorer.scene
-        model.explorer.highlightedCategory = .video
-        // Category highlighting only dims the map; geometry never depends on it.
+        model.explorer.highlightedClass = .junk; model.explorer.colorMode = .age
+        // Colour modes and class highlighting only restyle the map; geometry never depends on them.
         #expect(model.explorer.scene == scene)
         // Descriptions exist only for curated locations, and never for other paths.
         let home = try #require(model.explorer.homePath)

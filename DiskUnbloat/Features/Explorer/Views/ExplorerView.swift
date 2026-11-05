@@ -44,7 +44,7 @@ struct ExplorerView: View {
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            TreemapView(scene: model.scene, selection: model.selectionIDs, highlighted: model.highlightedCategory, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
                 .overlay {
                     if model.isLoading {
@@ -214,17 +214,40 @@ struct ExplorerView: View {
             Button { model.selectionIDs = [] } label: { Image(systemName: "xmark") }.help("Clear selection")
         }.buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 10).background(.bar)
     }
+    /// Colour-mode picker plus the mode's classes with their share of the view. Clicking
+    /// a class dims every other one; geometry and filters never change.
     private var legend: some View {
         HStack(spacing: 12) {
-            ForEach(model.availableCategories) { category in
-                Button { model.highlightedCategory = model.highlightedCategory == category ? nil : category } label: {
-                    HStack(spacing: 5) { Circle().fill(category.color).frame(width: 6,height: 6); Text(L10n.text(category.rawValue)) }
-                        .opacity(model.highlightedCategory == nil || model.highlightedCategory == category ? 1 : 0.4)
-                }.buttonStyle(.plain).accessibilityAddTraits(model.highlightedCategory == category ? .isSelected : [])
+            Menu {
+                Picker("Colour by", selection: $model.colorMode) {
+                    ForEach(MapColorMode.allCases) { Text($0.title).tag($0) }
+                }.pickerStyle(.inline)
+            } label: {
+                Label(model.colorMode.title, systemImage: "paintpalette")
             }
-            if model.highlightedCategory != nil { Button("Show all") { model.highlightedCategory = nil }.buttonStyle(.plain).foregroundStyle(.teal) }
+            .menuStyle(.borderlessButton).fixedSize()
+            .help("Colour by").accessibilityIdentifier("mapColorMode")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(model.legendClasses) { tileClass in
+                        Button { model.highlightedClass = model.highlightedClass == tileClass ? nil : tileClass } label: {
+                            HStack(spacing: 5) {
+                                Circle().fill(tileClass.color).frame(width: 7, height: 7)
+                                Text(tileClass.title)
+                                Text(sizeText(model.classShares[tileClass] ?? 0)).foregroundStyle(.secondary).monospacedDigit()
+                            }
+                            .opacity(model.highlightedClass == nil || model.highlightedClass == tileClass ? 1 : 0.4)
+                        }
+                        .buttonStyle(.plain).help(tileClass.explanation)
+                        .accessibilityAddTraits(model.highlightedClass == tileClass ? .isSelected : [])
+                        .accessibilityIdentifier("legendClass." + tileClass.rawValue)
+                    }
+                    if model.highlightedClass != nil { Button("Show all") { model.highlightedClass = nil }.buttonStyle(.plain).foregroundStyle(.teal) }
+                }
+            }
             Spacer(minLength: 4)
-        }.font(.caption2).padding(.horizontal, 20).padding(.vertical, 10).background(.bar)
+        }.font(.caption2).padding(.horizontal, 20).padding(.vertical, 8).background(.bar)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.colorMode)
     }
     /// Toolbar tray icon with a small badge showing the queued item count.
     private var queueBadge: some View {

@@ -25,7 +25,20 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     private var options = ScanOptions()
     private let cacheRootPath: String?
     private var catalog: LocationCatalog?
-    private(set) var legendCategories: [FileCategory] = []
+    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private var roots: [URL] = []
+    @ObservationIgnored private var exemptCacheRoots: [String] = []
+    @ObservationIgnored private var safety = SafetyClassification.empty
+    /// What tile colour means; persisted. Restyles only, never re-queries.
+    var colorMode: MapColorMode = .safety {
+        didSet { defaults.set(colorMode.rawValue, forKey: "mapColorMode"); if colorMode != oldValue { highlightedClass = nil; recolor() } }
+    }
+    /// Legend highlight: dims every other class. Independent of layout and filters.
+    var highlightedClass: TileClass? { didSet { tileStyle.highlighted = highlightedClass } }
+    private(set) var tileStyle = MapTileStyle()
+    /// Leaf-tile bytes per class in the current scene, for the legend.
+    private(set) var classShares: [TileClass: Int64] = [:]
+    var legendClasses: [TileClass] { colorMode.classes.filter { (classShares[$0] ?? 0) > 0 } }
     var scene = MapScene()
     var selectionIDs: Set<Int64> = []
     var selection: Int64? {
@@ -49,7 +62,6 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var olderDays = 0
     var extensionFilter = ""
     var metric: SizeMetric = .allocated
-    var highlightedCategory: FileCategory?
     var fitRevision = 0
     var searchRequested = 0
     var isLoading = false
@@ -61,21 +73,18 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     @ObservationIgnored private var queuedPaths: [String] = []
     @ObservationIgnored private var hiddenGeneration = 0
     var hasFilters: Bool { !search.isEmpty || suggestion != nil || minimumGB > 0 || olderDays > 0 || !extensionFilter.isEmpty }
-    var availableCategories: [FileCategory] {
-        let present = Set(legendCategories)
-        return FileCategory.allCases.filter { present.contains($0) }
-    }
-
-    init(settings: SettingsViewModel, userCacheRoot: URL? = nil, activity: any ApplicationActivityProviding = ApplicationActivityService()) {
-        self.settings = settings; self.activity = activity; cacheRootPath = userCacheRoot?.path
+    init(settings: SettingsViewModel, userCacheRoot: URL? = nil, activity: any ApplicationActivityProviding = ApplicationActivityService(), defaults: UserDefaults = .standard) {
+        self.settings = settings; self.activity = activity; self.defaults = defaults; cacheRootPath = userCacheRoot?.path
+        colorMode = defaults.string(forKey: "mapColorMode").flatMap(MapColorMode.init(rawValue:)) ?? .safety
         homePath = userCacheRoot?.deletingLastPathComponent().deletingLastPathComponent().path
     }
 
     func reset() {
         refreshTask?.cancel(); queryGeneration += 1; index = nil; nodesByID = [:]
         sceneCache = [:]; sceneCacheOrder = []
-        legendCategories = []; scene = MapScene(); current = nil; selectionIDs = []
-        breadcrumbs = []; back = []; forward = []; suggestion = nil; highlightedCategory = nil
+        scene = MapScene(); current = nil; selectionIDs = []
+        safety = .empty; roots = []; tileStyle = MapTileStyle(); classShares = [:]
+        breadcrumbs = []; back = []; forward = []; suggestion = nil; highlightedClass = nil
         search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current
         hiddenPaths = []; hiddenSubtrees = []; queuedPaths = []; hiddenGeneration += 1
         isLoading = false
@@ -114,12 +123,32 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         sceneCache = [:]; sceneCacheOrder = []
     }
 
-    func attach(_ index: ScanIndex, options: ScanOptions, grouped: Bool = false) async {
+    func attach(_ index: ScanIndex, options: ScanOptions, grouped: Bool = false, roots: [URL] = []) async {
         self.index = index; self.options = options; groupScan = grouped
+        self.roots = roots
+        exemptCacheRoots = homePath.map { CleanupRule.knownCacheRoots(home: $0) } ?? []
         let root = await index.node(1)
         guard self.index === index else { return }
         current = root
         await loadResults(); await loadBreadcrumbs()
+        await loadSafety()
+    }
+
+    /// The safety classes come from the same one-pass quick-select evaluation as the
+    /// level picker, so map colours and selections always agree.
+    func loadSafety() async {
+        guard let index, let homePath else { return }
+        let classification = await index.safetyClassification(home: homePath, unusedDays: options.longUnusedDays, inspectPackages: options.inspectPackages)
+        guard self.index === index else { return }
+        safety = classification
+        recolor()
+    }
+
+    private func recolor() {
+        let coloring = MapColoring(mode: colorMode, safety: safety, roots: roots, exemptCacheRoots: exemptCacheRoots)
+        let result = coloring.classify(scene)
+        tileStyle = MapTileStyle(classes: result.classes, highlighted: highlightedClass, mode: colorMode)
+        classShares = result.shares
     }
 
     func suspendQueries() {
@@ -147,6 +176,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         nodesByID = Dictionary(uniqueKeysWithValues: surviving.map { ($0.id,$0) })
         selectionIDs = Set(surviving.map(\.id))
         await loadResults(); await loadBreadcrumbs()
+        await loadSafety()
     }
 
     func scheduleRefresh() {
@@ -173,7 +203,6 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     }
 
     func loadResults() async {
-        print("LOAD entry hidden=\(hiddenPaths.count)")
         guard let index, let current else { return }
         queryGeneration += 1; let generation = queryGeneration
         isLoading = true
@@ -182,10 +211,8 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         let filtered = queries.hasFilters
         let sceneKey = "\(revision):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
         let resolvedScene: MapScene
-        let resolvedLegend: [FileCategory]
         if let cachedScene = filtered ? nil : sceneCache[sceneKey] {
             resolvedScene = cachedScene
-            resolvedLegend = await index.categoryList(queries.legendQuery())
         } else {
             // One actor call produces a consistent map and legend for the same revision.
             let snap = await index.mapSnapshot(
@@ -197,18 +224,17 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             // cancelled-but-current load silently leaves the previous map in place.
             guard snap.revision == revision, generation == queryGeneration, self.index === index else { return }
             resolvedScene = snap.scene
-            resolvedLegend = snap.legendCategories
             if !filtered {
                 sceneCache[sceneKey] = snap.scene; sceneCacheOrder.removeAll { $0 == sceneKey }; sceneCacheOrder.append(sceneKey)
                 while sceneCacheOrder.count > 4 { sceneCache.removeValue(forKey: sceneCacheOrder.removeFirst()) }
             }
         }
         let retainedSelection = selectedNodes
-        scene = resolvedScene; legendCategories = resolvedLegend
+        scene = resolvedScene
+        recolor()
         nodesByID = Dictionary(resolvedScene.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for n in retainedSelection { nodesByID[n.id] = n }
         selectionIDs.formIntersection(nodesByID.keys); isLoading = false
-        print("LOAD commit entries=\(scene.entries.count) summary=\(scene.summary.knownBytes) rootID=\(scene.rootID) currentID=\(current.id)")
     }
 
     func select(_ id: Int64?) { selection = id }
@@ -237,7 +263,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     func navigate(_ node: FileNode, record: Bool = true) {
         guard canNavigate(node), node.id != current?.id else { return }
         if record, let current { back.append(current.id); forward = [] }
-        current = node; selectionIDs = []; highlightedCategory = nil
+        current = node; selectionIDs = []
         refreshTask?.cancel()
         refreshTask = Task { await loadResults(); await loadBreadcrumbs() }
     }

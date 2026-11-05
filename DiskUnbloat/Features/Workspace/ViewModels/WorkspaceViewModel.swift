@@ -321,7 +321,7 @@ enum WorkspacePhase: Equatable {
                 }
                 phase = .preparingResults
                 scan.stage = .preparingMap
-                await explorer.attach(db, options: request.options, grouped: scan.isGroupScan)
+                await explorer.attach(db, options: request.options, grouped: scan.isGroupScan, roots: request.roots)
                 queue.attach(IndexCleanupQueueProvider(index: db, inspectPackages: request.options.inspectPackages))
                 cleanup.showQueue = true
                 phase = .exploring
@@ -499,7 +499,7 @@ enum WorkspacePhase: Equatable {
         guard phase == .cancelled, let index = scan.index else { return }
         phase = .preparingResults; scan.stage = .preparingMap
         scanTask = Task {
-            await explorer.attach(index, options: scan.options, grouped: scan.isGroupScan)
+            await explorer.attach(index, options: scan.options, grouped: scan.isGroupScan, roots: scan.roots)
             // Cancelled results stay opt-in: the queue panel does not open itself here.
             queue.attach(IndexCleanupQueueProvider(index: index, inspectPackages: scan.options.inspectPackages))
             phase = .exploring

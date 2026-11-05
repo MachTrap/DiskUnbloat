@@ -55,7 +55,10 @@ import DiskCore
             "queueCount": .integer(Int64(cleanup.basket.count)),
             "queueBytes": .integer(cleanup.estimatedBytes),
             "realHome": .bool(composition.usesRealHome),
+            "colorMode": .string(explorer.colorMode.rawValue),
+            "legend": .array(explorer.legendClasses.map { .string($0.rawValue + "=" + String(explorer.classShares[$0] ?? 0)) }),
         ]
+        if let highlighted = explorer.highlightedClass { fields["highlightedClass"] = .string(highlighted.rawValue) }
         if let path = scan.awaitingPermission { fields["awaitingPermission"] = .string(relative(path)) }
         if let current = explorer.current { fields["currentFolder"] = .string(relative(current.path)) }
         if let message = workspace.message { fields["message"] = .string(ScreenSnapshot.preview(message)) }
@@ -121,6 +124,7 @@ import DiskCore
     private struct Level: Decodable { let level: String }
     private struct Visible: Decodable { let visible: Bool }
     private struct Path: Decodable { let path: String }
+    private struct Mode: Decodable { let mode: String; let highlight: String? }
 
     private var actions: [AgentAction] {
         let workspace = workspace, composition = composition
@@ -146,6 +150,14 @@ import DiskCore
                 let path = input.path == "~" ? composition.home.path : composition.home.appendingPathComponent(String(input.path.drop(while: { $0 == "~" || $0 == "/" }))).path
                 guard let node = await workspace.scan.index?.node(path: path) else { throw Failure(.invalidParams, "No scanned folder at that path.", details: ["field": "arguments.path"]) }
                 workspace.explorer.navigate(node); return .completed
+            },
+            AgentAction("explorer.colorMode", scope: "current-screen",
+                        input: ObjectSchema(["mode": .string(maxLength: 16, oneOf: MapColorMode.allCases.map(\.rawValue)),
+                                             "highlight": .string(maxLength: 32, oneOf: TileClass.allCases.map(\.rawValue))], required: ["mode"]),
+                        as: Mode.self, enabled: { workspace.phase == .exploring }) { input, _ in
+                workspace.explorer.colorMode = MapColorMode(rawValue: input.mode) ?? .safety
+                workspace.explorer.highlightedClass = input.highlight.flatMap(TileClass.init(rawValue:))
+                return .completed
             },
             AgentAction("quickSelect.apply", scope: "current-screen",
                         input: ObjectSchema(["level": .string(maxLength: 16, oneOf: AutoSelectionLevel.allCases.map(\.agentName))], required: ["level"]),

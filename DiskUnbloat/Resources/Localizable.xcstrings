@@ -9739,6 +9739,438 @@
           }
         }
       }
+    },
+    "Cleanup safety" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleanup safety"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Безопасность очистки"
+          }
+        }
+      }
+    },
+    "Last modified" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last modified"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последнее изменение"
+          }
+        }
+      }
+    },
+    "Growth" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Growth"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рост"
+          }
+        }
+      }
+    },
+    "Colour by" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colour by"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цвет по"
+          }
+        }
+      }
+    },
+    "Contains reclaimable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contains reclaimable"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Содержит удаляемое"
+          }
+        }
+      }
+    },
+    "Protected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защищено"
+          }
+        }
+      }
+    },
+    "Your data" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваши данные"
+          }
+        }
+      }
+    },
+    "This month" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This month"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом месяце"
+          }
+        }
+      }
+    },
+    "Within 6 months" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Within 6 months"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За 6 месяцев"
+          }
+        }
+      }
+    },
+    "Within a year" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Within a year"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За год"
+          }
+        }
+      }
+    },
+    "Within 2 years" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Within 2 years"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За 2 года"
+          }
+        }
+      }
+    },
+    "Older" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Older"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Старше"
+          }
+        }
+      }
+    },
+    "Unknown date" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown date"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата неизвестна"
+          }
+        }
+      }
+    },
+    "Grew" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grew"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выросло"
+          }
+        }
+      }
+    },
+    "Shrank" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrank"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уменьшилось"
+          }
+        }
+      }
+    },
+    "New" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое"
+          }
+        }
+      }
+    },
+    "Unchanged" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unchanged"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без изменений"
+          }
+        }
+      }
+    },
+    "No earlier data" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No earlier data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет прежних данных"
+          }
+        }
+      }
+    },
+    "Selected by the Junk level: old versions, build data and known caches." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected by the Junk level: old versions, build data and known caches."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается уровнем «Мусор»: старые версии, данные сборок и известные кэши."
+          }
+        }
+      }
+    },
+    "Selected from the Caches level: apps rebuild these, sometimes signing you out." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected from the Caches level: apps rebuild these, sometimes signing you out."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается начиная с уровня «Кэши»: приложения создадут их заново, иногда с повторным входом."
+          }
+        }
+      }
+    },
+    "Selected from the Rebuildable level: tools can download or rebuild it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected from the Rebuildable level: tools can download or rebuild it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается начиная с уровня «Восстановимое»: инструменты могут скачать или собрать это заново."
+          }
+        }
+      }
+    },
+    "Selected only by Deep clean: older app settings and long-unused installers." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected only by Deep clean: older app settings and long-unused installers."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается только глубокой очисткой: настройки старых версий приложений и давно неиспользуемые установщики."
+          }
+        }
+      }
+    },
+    "Some items inside are selected by a quick-select level." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some items inside are selected by a quick-select level."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Часть содержимого выбирается одним из уровней быстрого выбора."
+          }
+        }
+      }
+    },
+    "Protected: DiskUnbloat never removes this." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected: DiskUnbloat never removes this."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защищено: DiskUnbloat никогда это не удаляет."
+          }
+        }
+      }
+    },
+    "No quick-select level touches this. Review it yourself." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No quick-select level touches this. Review it yourself."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ни один уровень быстрого выбора это не трогает. Проверьте сами."
+          }
+        }
+      }
+    },
+    "Newest content change inside. Age alone never makes something safe to delete." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest content change inside. Age alone never makes something safe to delete."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Самое свежее изменение содержимого. Возраст сам по себе не делает удаление безопасным."
+          }
+        }
+      }
+    },
+    "Some modification dates inside are unknown." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some modification dates inside are unknown."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Некоторые даты изменения внутри неизвестны."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

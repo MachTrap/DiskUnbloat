@@ -109,6 +109,18 @@
               "children": [
                 {
                   "kind": "group",
+                  "path": "Models",
+                  "children": [
+                    {
+                      "path": "MapColoring.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    },
+                  ],
+                }, {
+                  "kind": "group",
                   "path": "ViewModels",
                   "children": [
                     {
@@ -137,6 +149,18 @@
                       ],
                     }, {
                       "path": "MapMotion.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "MapOverlays.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "MapPainter.swift",
                       "target-membership": [
                         "DiskUnbloat/compile-sources",
                         "DiskUnbloatTesting/compile-sources",
@@ -481,18 +505,6 @@
                   ],
                 },
               ],
-            }, {
-              "kind": "group",
-              "path": "Styling",
-              "children": [
-                {
-                  "path": "MapPalette.swift",
-                  "target-membership": [
-                    "DiskUnbloat/compile-sources",
-                    "DiskUnbloatTesting/compile-sources",
-                  ],
-                },
-              ],
             },
           ],
         },
@@ -525,6 +537,7 @@
         { "path": "GroupedScanTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "LocalizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapAfterSelectionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "MapColoringTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapFirstFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapInputTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapMotionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

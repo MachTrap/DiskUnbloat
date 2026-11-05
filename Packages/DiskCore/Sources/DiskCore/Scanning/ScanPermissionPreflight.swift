@@ -72,6 +72,45 @@ public enum ScanPermissionPreflight: Sendable {
         ("Library/Daemon Containers", .childrenAndBundles),
     ]
 
+    /// The single consent the minimal policy asks for: other applications' data. Probing
+    /// app containers (and Application Support children) raises that one dialog; once it
+    /// is answered, later probes of the same service do not prompt again.
+    public static let minimalConsentTargets: [(path: String, depth: ProbeDepth)] = [
+        ("Library/Containers", .childrenAndBundles),
+        ("Library/Application Support", .childrenAndBundles),
+    ]
+
+    /// Personal-data stores each guarded by their own consent service. Under the minimal
+    /// policy they are never opened — their size stays honestly unknown and the scan
+    /// explains Full Disk Access once — so no further dialog can appear mid-scan.
+    public static let minimalSkippedRelativePaths: [String] = [
+        "Pictures/Photos Library.photoslibrary",
+        "Music/Music",
+        "Music/iTunes",
+        "Movies/TV",
+        "Library/Photos",
+        "Library/Mail",
+        "Library/Messages",
+        "Library/Safari",
+        "Library/HomeKit",
+        "Library/Calendars",
+        "Library/Reminders",
+        "Library/Mobile Documents",
+        "Library/Application Support/AddressBook",
+        "Library/Application Support/com.apple.avfoundation",
+        "Library/Group Containers/group.com.apple.photolibraryd",
+        "Library/Group Containers/group.com.apple.calendar",
+        "Library/Group Containers/group.com.apple.reminders",
+        "Library/Group Containers/group.com.apple.notes",
+        "Library/Group Containers/group.com.apple.music",
+    ]
+
+    /// In-scope personal-data stores the minimal policy skips (empty for full access).
+    public static func skippedPaths(for request: ScanRequest, homes: [URL]? = nil) -> [String] {
+        guard request.options.consentPolicy == .minimal else { return [] }
+        return scoped(request, homes: homes, relative: minimalSkippedRelativePaths.map { ($0, .directoryOnly) }, includeVolumes: false).map(\.url.path)
+    }
+
     private static let mediaBundleSuffixes: [String] = [
         ".photoslibrary",
         ".photoboothlibrary",
@@ -84,6 +123,13 @@ public enum ScanPermissionPreflight: Sendable {
     /// Only directories that lie within the request's roots, are not excluded, and match the
     /// volume-crossing policy are returned.
     public static func targets(for request: ScanRequest, homes: [URL]? = nil) -> [Target] {
+        switch request.options.consentPolicy {
+        case .fullDiskAccess: scoped(request, homes: homes, relative: homeRelativeTargets, includeVolumes: true)
+        case .minimal: scoped(request, homes: homes, relative: minimalConsentTargets, includeVolumes: false)
+        }
+    }
+
+    private static func scoped(_ request: ScanRequest, homes: [URL]?, relative: [(path: String, depth: ProbeDepth)], includeVolumes: Bool) -> [Target] {
         let rootEntries: [(path: String, device: Int32)] = ([request.root] + request.extraRoots).compactMap { url in
             let canonical = canonicalURL(url)
             guard let id = try? FileIdentity.read(canonical), id.directory, !id.link else { return nil }
@@ -101,7 +147,8 @@ public enum ScanPermissionPreflight: Sendable {
             return true
         }
 
-        let candidateHomes = resolvedHomes(explicit: homes, rootPaths: rootEntries.map(\.path))
+        let explicit = homes ?? request.options.homePaths.map { $0.map { URL(fileURLWithPath: $0) } }
+        let candidateHomes = resolvedHomes(explicit: explicit, rootPaths: rootEntries.map(\.path))
         var seen = Set<String>()
         var result: [Target] = []
 
@@ -111,10 +158,11 @@ public enum ScanPermissionPreflight: Sendable {
         }
 
         for home in candidateHomes where rootEntries.contains(where: { $0.path.overlaps(home) }) {
-            for entry in homeRelativeTargets {
+            for entry in relative {
                 appendTarget(home + "/" + entry.path, depth: entry.depth)
             }
         }
+        guard includeVolumes else { return result }
 
         // If the scan covers `/Volumes` (either because cross-volume traversal is enabled on `/`
         // or because `/Volumes` itself was chosen), probe mounted volumes upfront as well.

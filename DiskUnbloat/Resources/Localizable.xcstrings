@@ -9691,6 +9691,54 @@
           }
         }
       }
+    },
+    "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы сканировать без полного доступа к диску, разрешите DiskUnbloat читать эту папку. Нажмите «Открыть», чтобы продолжить."
+          }
+        }
+      }
+    },
+    "The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранная папка не охватывает всё, что нужно для этого сканирования. Выберите предложенную папку, чтобы продолжить."
+          }
+        }
+      }
+    },
+    "Protected by macOS. Allow Full Disk Access to measure it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected by macOS. Allow Full Disk Access to measure it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защищено macOS. Разрешите полный доступ к диску, чтобы измерить."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

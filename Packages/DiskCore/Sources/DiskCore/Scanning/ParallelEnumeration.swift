@@ -47,6 +47,8 @@ final class ParallelEnumeration: @unchecked Sendable {
     private let excludedPaths: [String]
     private let summarizedNames: Set<String>
     private let summarizedPaths: Set<String>
+    /// Personal-data stores skipped unopened under the minimal consent policy.
+    let protectedSkips: Set<String>
     private let workerCount: Int
     private let drainQueue = DispatchQueue(label: "DiskUnbloat.enumeration.drain", qos: .userInitiated)
 
@@ -73,6 +75,7 @@ final class ParallelEnumeration: @unchecked Sendable {
             if entry.contains("/") { paths.insert(canonicalURL(URL(fileURLWithPath: entry)).path) } else { names.insert(entry.lowercased()) }
         }
         summarizedNames = names; summarizedPaths = paths
+        protectedSkips = Set(ScanPermissionPreflight.skippedPaths(for: request))
         workerCount = max(1, workers)
     }
 
@@ -211,6 +214,10 @@ final class ParallelEnumeration: @unchecked Sendable {
             if !directory {
                 if entry.links <= 1 { discovered += entry.allocated } else { hardLinks.append((entry.identity, entry.allocated)) }
                 nodes.append(node); derived.append(DerivedColumns(node))
+            } else if !protectedSkips.isEmpty && protectedSkips.contains(path) {
+                // Opening it would raise its own consent dialog; size stays unknown.
+                nodes.append(node); derived.append(DerivedColumns(node))
+                newIssues.append((path, "Protected by macOS. Allow Full Disk Access to measure it."))
             } else if entry.isDataless {
                 nodes.append(node); derived.append(DerivedColumns(node))
                 newIssues.append((path, "Cloud directory is not downloaded; contents were not requested."))

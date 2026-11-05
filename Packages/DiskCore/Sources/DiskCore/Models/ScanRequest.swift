@@ -1,6 +1,22 @@
 import Foundation
 
+/// How much macOS consent a scan may ask for.
+public enum ConsentPolicy: String, Sendable, Codable {
+    /// Full Disk Access is granted (or the full upfront preflight is wanted): every
+    /// protected folder in scope is probed so its dialog appears before enumeration.
+    case fullDiskAccess
+    /// No Full Disk Access: the scan relies on the user's folder grant and asks for one
+    /// consent only — other applications' data. Personal-data stores that would raise
+    /// their own dialogs (Photos, Music, Mail, Messages, Contacts, Calendars, …) are
+    /// skipped unopened and reported as needing Full Disk Access.
+    case minimal
+}
+
 public struct ScanOptions: Sendable, Codable {
+    public var consentPolicy: ConsentPolicy = .fullDiskAccess
+    /// Home folders whose protected stores the consent policy applies to; `nil` means the
+    /// real user homes. The app passes its catalog home (a generated one in tests).
+    public var homePaths: [String]?
     public var includeHidden = true
     public var inspectPackages = false
     public var crossVolumes = false

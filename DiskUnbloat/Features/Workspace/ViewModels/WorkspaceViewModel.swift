@@ -60,6 +60,7 @@ enum WorkspacePhase: Equatable {
         self.openFullDiskAccessPane = openFullDiskAccessPane
         scan = ScanViewModel(coordinator: coordinator, storage: storage)
         scan.diagnostics = diagnostics
+        scan.homePaths = [canonicalURL(catalog.home).path]
         explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
         cleanup = CleanupViewModel(service: cleanupService, homePath: catalog.home.path, diagnostics: CleanupDiagnosticsService())
         // The queue is the one source of hidden map paths: every queue mutation (manual
@@ -143,7 +144,46 @@ enum WorkspacePhase: Equatable {
         stopWaitingForFullDiskAccess()
         let preserving = offerPreservingCleanupReport
         offerPreservingCleanupReport = false
+        scan.consentPolicy = .minimal
+        guard ensureMinimalFolderGrant() else { return }
         launchScan(preservingCleanupReport: preserving)
+    }
+
+    /// Without Full Disk Access, the user's own folder choice is the consent for its
+    /// contents (macOS shows no dialog for a folder picked in the open panel). When the
+    /// planned roots touch the home folder and no live grant covers them, ask once for
+    /// their common parent. Returns false when the user declines or picks too little.
+    private func ensureMinimalFolderGrant() -> Bool {
+        let roots = scan.plannedRoots
+        guard let target = Self.folderGrantTarget(roots: roots, home: location.catalog.home),
+              !roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) else { return true }
+        diagnostics.record("consent", "Asked for a folder grant on \(target.lastPathComponent)")
+        do {
+            guard try authorization.choose(suggestedLocation: target, message: L10n.text(
+                "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue.")) != nil
+            else { diagnostics.record("consent", "Folder grant declined"); return false }
+        } catch { message = L10n.format("Couldn’t open that location. %@", error.diagnosticDescription); return false }
+        guard roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) else {
+            message = L10n.text("The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue.")
+            return false
+        }
+        return true
+    }
+
+    /// The folder whose grant covers `roots` when they touch the home folder: the home
+    /// itself when every root is inside it, otherwise the common ancestor of the roots.
+    /// `nil` when no root is inside or above the home (nothing there is consent-gated).
+    static func folderGrantTarget(roots: [URL], home: URL) -> URL? {
+        let homePath = canonicalURL(home).path
+        let paths = roots.map { canonicalURL($0).path }
+        guard paths.contains(where: { $0.isWithin(homePath) || homePath.isWithin($0) }) else { return nil }
+        if paths.allSatisfy({ $0.isWithin(homePath) }) { return URL(fileURLWithPath: homePath, isDirectory: true) }
+        var common = paths[0].split(separator: "/").map(String.init)
+        for path in paths.dropFirst() {
+            let parts = path.split(separator: "/").map(String.init)
+            common = Array(zip(common, parts).prefix { $0 == $1 }.map(\.0))
+        }
+        return URL(fileURLWithPath: "/" + common.joined(separator: "/"), isDirectory: true)
     }
 
     /// The user dismissed the offer without deciding; nothing starts.
@@ -173,6 +213,7 @@ enum WorkspacePhase: Equatable {
             stopWaitingForFullDiskAccess()
             let preserving = offerPreservingCleanupReport
             offerPreservingCleanupReport = false
+            scan.consentPolicy = .fullDiskAccess
             launchScan(preservingCleanupReport: preserving)
         }
         // Still missing: stay quiet — the next explicit scan attempt re-offers.
@@ -217,9 +258,12 @@ enum WorkspacePhase: Equatable {
             let granted = await fullDiskAccess.isGranted()
             guard !Task.isCancelled, !shuttingDown else { return }
             if granted {
+                scan.consentPolicy = .fullDiskAccess
                 launchScan(preservingCleanupReport: preservingCleanupReport)
             } else if !scan.scanning {
                 if phase == .exploring {
+                    // The user already answered the offer this session: rescans stay minimal.
+                    scan.consentPolicy = .minimal
                     launchScan(preservingCleanupReport: preservingCleanupReport)
                 } else {
                     offerPreservingCleanupReport = preservingCleanupReport

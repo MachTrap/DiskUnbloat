@@ -528,6 +528,7 @@
         { "path": "MapFirstFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapInputTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapMotionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "MinimalPermissionFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "NativeOpenTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PartialRefreshSafetyTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PermissionWaitTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

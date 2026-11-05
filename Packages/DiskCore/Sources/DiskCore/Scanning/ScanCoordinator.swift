@@ -56,6 +56,7 @@ public actor ScanCoordinator: ScanServing {
                     if outcome == .containsDeniedChildren { protectedUnreadable = true }
                 }
                 continuation.yield(.awaitingPermission(nil))
+                if !worker.protectedSkips.isEmpty { protectedUnreadable = true }
                 if protectedUnreadable { continuation.yield(.protectedFoldersRefused) }
                 if Task.isCancelled {
                     continuation.yield(.finished(ScanSnapshot(items: 0, bytes: 0, elapsed: Date().timeIntervalSince(start), errors: 0, cancelled: true, complete: false)))

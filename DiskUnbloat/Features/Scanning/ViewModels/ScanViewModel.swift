@@ -52,6 +52,10 @@ struct PendingGroup: Sendable {
         didSet { if oldValue != awaitingPermission { noteConsentWait(ended: oldValue) } }
     }
     @ObservationIgnored var diagnostics: DiagnosticsLog?
+    /// Set by the workspace from the Full Disk Access decision before each scan.
+    @ObservationIgnored var consentPolicy: ConsentPolicy = .fullDiskAccess
+    /// The catalog home(s) the consent policy applies to.
+    @ObservationIgnored var homePaths: [String]?
     @ObservationIgnored private var consentWaitStarted: Date?
     private(set) var scanning = false
     private(set) var snapshot: ScanSnapshot?
@@ -91,6 +95,14 @@ struct PendingGroup: Sendable {
     }
 
     /// Prepares state synchronously before the workspace starts its lifecycle task.
+    /// The roots `prepare()` would scan, without starting a session.
+    var plannedRoots: [URL] {
+        if pendingRoot == nil, let group = pendingGroup, !group.roots.isEmpty { return group.roots }
+        if let chosen = pendingRoot { return [chosen] }
+        if !groupRoots.isEmpty { return groupRoots }
+        return root.map { [$0] } ?? []
+    }
+
     func prepare() -> ScanRequest? {
         guard !scanning else { return nil }
         // A grouped quick action, or the same scope again after a cleanup rescan.
@@ -112,6 +124,8 @@ struct PendingGroup: Sendable {
         showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []
         protectedFoldersRefused = false; awaitingPermission = nil
         volumeUsedBytes = volume.flatMap(Self.volumeUsedBytes(for:))
+        options.consentPolicy = consentPolicy
+        options.homePaths = homePaths
         options.exclusions = exclusionText.split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         options.summarizedFolders = summarizedText.split(separator: "\n")

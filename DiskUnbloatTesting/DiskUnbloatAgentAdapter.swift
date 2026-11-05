@@ -149,6 +149,7 @@ import DiskCore
     private struct Level: Decodable { let level: String }
     private struct Visible: Decodable { let visible: Bool }
     private struct Path: Decodable { let path: String }
+    private struct PickProbe: Decodable { let path: String; let pick: Bool? }
     private struct Mode: Decodable { let mode: String; let highlight: String? }
     private struct Search: Decodable { let text: String; let mode: String? }
     private struct Unreached: Decodable { let megabytes: Int; let visible: Bool? }
@@ -184,6 +185,37 @@ import DiskCore
                 var info = stat()
                 let result = lstat(path, &info)
                 workspace.diagnostics.record("probe", "lstat \(result) on \(path)")
+                return .completed
+            },
+            // TCC experiment: how many children (and their Data folders) of a Library folder
+            // can be opened, optionally after the user picks that folder in an open panel.
+            AgentAction("probe.readable", scope: "current-screen",
+                        input: ObjectSchema(["path": .string(maxLength: 1024), "pick": .boolean], required: ["path"]),
+                        as: PickProbe.self) { input, _ in
+                let url = composition.home.appendingPathComponent(String(input.path.drop(while: { $0 == "~" || $0 == "/" })))
+                if input.pick == true {
+                    let panel = NSOpenPanel()
+                    panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.showsHiddenFiles = true
+                    panel.directoryURL = url
+                    panel.message = "Experiment: you are inside “\(url.lastPathComponent)”. Click Open without selecting anything."
+                    panel.prompt = "Open"
+                    let picked = panel.runModal() == .OK ? panel.url?.path ?? "none" : "cancelled"
+                    workspace.diagnostics.record("probe", "picked \(picked)")
+                }
+                var total = 0, readable = 0, dataTotal = 0, dataReadable = 0
+                let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
+                for name in names where !name.hasPrefix(".") {
+                    let child = url.appendingPathComponent(name).path
+                    total += 1
+                    if let dir = opendir(child) { _ = readdir(dir); closedir(dir); readable += 1 }
+                    let data = child + "/Data"
+                    var info = stat()
+                    if lstat(data, &info) == 0 {
+                        dataTotal += 1
+                        if let dir = opendir(data) { _ = readdir(dir); closedir(dir); dataReadable += 1 }
+                    }
+                }
+                workspace.diagnostics.record("probe", "\(url.lastPathComponent): \(readable)/\(total) children open, \(dataReadable)/\(dataTotal) Data folders open")
                 return .completed
             },
             AgentAction("scan.cancel", scope: "current-screen", input: .empty, as: Empty.self,

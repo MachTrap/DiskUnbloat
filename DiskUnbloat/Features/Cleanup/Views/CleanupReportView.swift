@@ -5,6 +5,9 @@ import DiskCore
 /// queue panel because a successful run returns the workspace to the location chooser.
 struct CleanupReportView: View {
     let results: [CleanupResult]
+    var mode: CleanupMode = .trash
+    var bytes: Int64 = 0
+    var openTrash: () -> Void = {}
     let done: () -> Void
 
     private var succeededCount: Int { results.filter(\.succeeded).count }
@@ -21,6 +24,7 @@ struct CleanupReportView: View {
                     .font(.largeTitle)
                     .foregroundStyle(succeededCount == results.count ? Color.teal : Color.orange)
             }
+            if bytes > 0 { spaceNote }
             List(results) { result in
                 Label {
                     VStack(alignment: .leading, spacing: 2) {
@@ -33,12 +37,31 @@ struct CleanupReportView: View {
                 }
             }.listStyle(.inset)
             HStack {
+                if mode == .trash && bytes > 0 {
+                    Button("Open Trash", systemImage: "trash", action: openTrash).accessibilityIdentifier("openTrash")
+                }
                 Spacer()
                 Button("Done", action: done).keyboardShortcut(.defaultAction)
             }
         }
         .padding(24)
-        .frame(width: 560, height: 440)
+        .frame(width: 560, height: 480)
         .accessibilityIdentifier("cleanupReport")
+    }
+
+    /// Honest about where the space is: Trash keeps it until emptied, by the user.
+    private var spaceNote: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: mode == .trash ? "trash" : "checkmark.seal").foregroundStyle(.teal)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(mode == .trash ? L10n.format("≈ %@ moved to Trash", sizeText(bytes)) : L10n.format("≈ %@ deleted", sizeText(bytes)))
+                    .font(.callout.weight(.medium))
+                if mode == .trash {
+                    Text("The space returns when you empty the Trash. DiskUnbloat never empties it for you.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine).accessibilityIdentifier("cleanupSpace")
     }
 }

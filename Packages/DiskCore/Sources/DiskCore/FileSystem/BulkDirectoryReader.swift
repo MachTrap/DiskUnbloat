@@ -80,6 +80,46 @@ final class BulkDirectoryReader {
         }
     }
 
+    /// Lists `path` without ever requesting attributes of entries `skip` names: names come
+    /// from `readdir`, every other entry is read with `getattrlist`. For folders that hold
+    /// a protected store (Movies with the TV library, Library/Containers…), where touching
+    /// the store's metadata alone can raise a consent dialog. Skipped entries carry only
+    /// what `readdir` reports (name, inode, type) and a zero size.
+    func readCarefully(_ path: String, skip: (_ name: String, _ isDirectory: Bool) -> Bool, _ body: (BulkEntry) -> Void) throws {
+        guard let dir = opendir(path) else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        defer { closedir(dir) }
+        var parent = stat()
+        let device = lstat(path, &parent) == 0 ? Int32(parent.st_dev) : 0
+        var list = attrlist()
+        list.bitmapcount = u_short(ATTR_BIT_MAP_COUNT)
+        // ATTR_CMN_ERROR is valid only for getattrlistbulk; per-path failures come from errno.
+        list.commonattr = Self.common & ~0x2000_0000
+        list.dirattr = Self.directory
+        list.fileattr = Self.file
+        while let item = readdir(dir) {
+            let name = withUnsafePointer(to: item.pointee.d_name) { pointer in
+                pointer.withMemoryRebound(to: CChar.self, capacity: Int(item.pointee.d_namlen) + 1) { String(cString: $0) }
+            }
+            if name == "." || name == ".." { continue }
+            let isDirectory = item.pointee.d_type == UInt8(DT_DIR)
+            if skip(name, isDirectory) {
+                body(BulkEntry(name: name, kind: isDirectory ? .directory : .other, device: device, inode: item.pointee.d_ino,
+                               modified: timespec(), changed: timespec(), mode: isDirectory ? UInt32(S_IFDIR) : 0, flags: 0,
+                               finderFlags: 0, links: 1, size: 0, allocated: 0, error: 0))
+                continue
+            }
+            let full = path == "/" ? "/" + name : path + "/" + name
+            if getattrlist(full, &list, buffer, capacity, UInt32(FSOPT_NOFOLLOW)) == 0 {
+                var entry = Self.parse(buffer)
+                entry.name = name
+                body(entry)
+            } else {
+                body(BulkEntry(name: name, kind: .other, device: device, inode: item.pointee.d_ino, modified: timespec(), changed: timespec(),
+                               mode: 0, flags: 0, finderFlags: 0, links: 1, size: 0, allocated: 0, error: errno))
+            }
+        }
+    }
+
     private static func parse(_ start: UnsafeMutableRawPointer) -> BulkEntry {
         var cursor = start + 4
         let returned = cursor.loadUnaligned(as: attribute_set_t.self)

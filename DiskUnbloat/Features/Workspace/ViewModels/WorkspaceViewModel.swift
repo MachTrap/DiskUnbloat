@@ -10,7 +10,8 @@ enum WorkspacePhase: Equatable {
 
 /// Coordinates feature lifetimes; feature-specific state and behavior belong to child view models.
 @MainActor @Observable final class WorkspaceViewModel {
-    let location = LocationSelectionViewModel()
+    let location: LocationSelectionViewModel
+    let diagnostics = DiagnosticsLog()
     private(set) var phase: WorkspacePhase = .choosing
     let authorization: AuthorizationStore
     let settings: SettingsViewModel
@@ -18,6 +19,8 @@ enum WorkspacePhase: Equatable {
     let explorer: ExplorerViewModel
     let cleanup: CleanupViewModel
     let queue: CleanupQueueModel
+    let duplicates: DuplicatesViewModel
+    let developerTools: DeveloperToolsViewModel
     @ObservationIgnored private let filePresentation: any FilePresenting
     @ObservationIgnored private var locationTask: Task<Void, Never>?
     private(set) var restoringLocation = false
@@ -47,16 +50,23 @@ enum WorkspacePhase: Equatable {
         settings: SettingsViewModel = SettingsViewModel(),
         filePresentation: any FilePresenting = FilePresentationService(),
         fullDiskAccess: any FullDiskAccessChecking = SystemFullDiskAccessProbe(),
-        openFullDiskAccessPane: @escaping () -> Void = { FullDiskAccessSettings.open() }
+        openFullDiskAccessPane: @escaping () -> Void = { FullDiskAccessSettings.open() },
+        catalog: LocationCatalog = LocationCatalog(),
+        storage: ScanSessionStore = ScanSessionStore(),
+        defaults: UserDefaults = .standard,
+        toolRunner: any ToolCommandRunning = ProcessToolRunner()
     ) {
+        location = LocationSelectionViewModel(catalog: catalog)
         self.authorization = authorization
         self.settings = settings
         self.filePresentation = filePresentation
         self.fullDiskAccess = fullDiskAccess
         self.openFullDiskAccessPane = openFullDiskAccessPane
-        scan = ScanViewModel(coordinator: coordinator)
-        explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
-        cleanup = CleanupViewModel(service: cleanupService, diagnostics: CleanupDiagnosticsService())
+        scan = ScanViewModel(coordinator: coordinator, storage: storage)
+        scan.diagnostics = diagnostics
+        scan.homePaths = [canonicalURL(catalog.home).path]
+        explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"), defaults: defaults)
+        cleanup = CleanupViewModel(service: cleanupService, homePath: catalog.home.path, diagnostics: CleanupDiagnosticsService())
         // The queue is the one source of hidden map paths: every queue mutation (manual
         // picks, quick-select, refresh invalidations) is forwarded to the explorer from
         // the model, never through a view-side relay like `.onChange` on a big array,
@@ -65,6 +75,29 @@ enum WorkspacePhase: Equatable {
             Task { await explorer.updateHiddenPaths(entries.map { $0.node.path }) }
         }
         queue = CleanupQueueModel(cleanup: cleanup)
+        developerTools = DeveloperToolsViewModel(runner: toolRunner)
+        duplicates = DuplicatesViewModel(defaults: defaults)
+        duplicates.context = { [unowned self] in
+            guard canClean, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return nil }
+            return DuplicatesViewModel.Context(
+                index: index, roots: scan.roots, home: canonicalURL(location.catalog.home).path,
+                unusedDays: scan.options.longUnusedDays, inspectPackages: scan.options.inspectPackages)
+        }
+        developerTools.context = { [unowned self] in
+            scan.index.map { (index: $0, home: canonicalURL(location.catalog.home).path) }
+        }
+        // After a tool cleaned its cache, rescan the first affected location in scope.
+        developerTools.didRun = { [unowned self] paths in
+            Task {
+                let home = canonicalURL(location.catalog.home).path
+                for relative in paths {
+                    if let node = await scan.index?.node(path: home + "/" + relative) { refreshFolder(node); return }
+                }
+            }
+        }
+        duplicates.apply = { [unowned self] entries, context, isCurrent in
+            await cleanup.commitReviewedDuplicates(entries, roots: context.roots, index: context.index, isCurrent: isCurrent)
+        }
     }
 
     var isBusy: Bool { scan.scanning || phase == .preparingResults || cleanup.cleaning || restoringLocation }
@@ -83,10 +116,12 @@ enum WorkspacePhase: Equatable {
 
     func shutdown() async {
         shuttingDown = true
+        duplicates.cancel()
         stopWaitingForFullDiskAccess()
         locationTask?.cancel()
         selectionTask?.cancel()
         await selectionTask?.value
+        await duplicates.waitForWork()
         await cleanupTask?.value
         await scan.cancel()
         await scanTask?.value
@@ -123,6 +158,7 @@ enum WorkspacePhase: Equatable {
     /// The pre-scan offer's settings action: the pane opens, the pending scan waits, and
     /// returning to the app with the grant in place resumes it automatically.
     func openFullDiskAccessSettings() {
+        diagnostics.record("consent", "Full Disk Access offer: opened settings")
         showFullDiskAccessOffer = false
         awaitingFullDiskAccessGrant = true
         openFullDiskAccessPane()
@@ -132,15 +168,65 @@ enum WorkspacePhase: Equatable {
     /// The user declined Full Disk Access; the scan proceeds and the preflight raises
     /// the remaining folder/media consents one at a time before enumerating.
     func continueWithoutFullDiskAccess() {
+        diagnostics.record("consent", "Full Disk Access offer: continued without it")
         showFullDiskAccessOffer = false
         stopWaitingForFullDiskAccess()
         let preserving = offerPreservingCleanupReport
         offerPreservingCleanupReport = false
-        launchScan(preservingCleanupReport: preserving)
+        scan.consentPolicy = .minimal
+        startPipeline = Task {
+            guard await ensureMinimalFolderGrant() else { return }
+            launchScan(preservingCleanupReport: preserving)
+        }
+    }
+
+    /// Without Full Disk Access, the user's own folder choice is the consent for its
+    /// contents (macOS shows no dialog for a folder picked in the open panel). When the
+    /// planned roots touch the home folder and no live grant covers them, ask once for
+    /// their common parent. Returns false when the user declines or picks too little.
+    private func ensureMinimalFolderGrant() async -> Bool {
+        let roots = scan.plannedRoots
+        guard let target = Self.folderGrantTarget(roots: roots, home: location.catalog.home),
+              !roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) else { return true }
+        // A remembered pick that covers the scope restores silently: the picker (and the
+        // media consent its sidebar can raise) appears once, not on every scan.
+        if let covering = authorization.coveringLocation(for: roots), (try? await authorization.restore(covering)) != nil,
+           roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) {
+            diagnostics.record("consent", "Restored the remembered folder grant")
+            return true
+        }
+        diagnostics.record("consent", "Asked for a folder grant on \(target.lastPathComponent)")
+        do {
+            guard try authorization.choose(suggestedLocation: target, message: L10n.text(
+                "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue.")) != nil
+            else { diagnostics.record("consent", "Folder grant declined"); return false }
+        } catch { message = L10n.format("Couldn’t open that location. %@", error.diagnosticDescription); return false }
+        guard roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) else {
+            message = L10n.text("The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue.")
+            return false
+        }
+        return true
+    }
+
+    /// The folder whose grant covers `roots` when they touch the home folder: the home
+    /// itself when every root is inside it, otherwise the common ancestor of the roots.
+    /// `nil` when no root is inside or above the home (nothing there is consent-gated).
+    static func folderGrantTarget(roots: [URL], home: URL) -> URL? {
+        let homePath = canonicalURL(home).path
+        let paths = roots.map { canonicalURL($0).path }
+        guard paths.contains(where: { $0.isWithin(homePath) || homePath.isWithin($0) }) else { return nil }
+        if paths.allSatisfy({ $0.isWithin(homePath) }) { return URL(fileURLWithPath: homePath, isDirectory: true) }
+        var common = paths[0].split(separator: "/").map(String.init)
+        for path in paths.dropFirst() {
+            let parts = path.split(separator: "/").map(String.init)
+            common = Array(zip(common, parts).prefix { $0 == $1 }.map(\.0))
+        }
+        return URL(fileURLWithPath: "/" + common.joined(separator: "/"), isDirectory: true)
     }
 
     /// The user dismissed the offer without deciding; nothing starts.
     func cancelFullDiskAccessOffer() {
+        diagnostics.record("consent", "Full Disk Access offer: dismissed")
         showFullDiskAccessOffer = false
         stopWaitingForFullDiskAccess()
         offerPreservingCleanupReport = false
@@ -165,6 +251,7 @@ enum WorkspacePhase: Equatable {
             stopWaitingForFullDiskAccess()
             let preserving = offerPreservingCleanupReport
             offerPreservingCleanupReport = false
+            scan.consentPolicy = .fullDiskAccess
             launchScan(preservingCleanupReport: preserving)
         }
         // Still missing: stay quiet — the next explicit scan attempt re-offers.
@@ -193,6 +280,11 @@ enum WorkspacePhase: Equatable {
         }
     }
 
+    /// Help-menu intents: the report is built from the live trail and handed to the user.
+    func diagnosticsReport() async -> String { diagnostics.report(fullDiskAccess: await fullDiskAccess.isGranted()) }
+    func copyDiagnostics() { Task { DiagnosticsExport.copy(await diagnosticsReport()); message = L10n.text("Diagnostics copied to the clipboard.") } }
+    func saveDiagnostics() { Task { DiagnosticsExport.save(await diagnosticsReport()) } }
+
     private func startScan(preservingCleanupReport: Bool) {
         guard !cleanup.cleaning, !shuttingDown, !restoringLocation, !showFullDiskAccessOffer else { return }
         // Full Disk Access is the one decision that covers every folder and media consent
@@ -204,9 +296,12 @@ enum WorkspacePhase: Equatable {
             let granted = await fullDiskAccess.isGranted()
             guard !Task.isCancelled, !shuttingDown else { return }
             if granted {
+                scan.consentPolicy = .fullDiskAccess
                 launchScan(preservingCleanupReport: preservingCleanupReport)
             } else if !scan.scanning {
                 if phase == .exploring {
+                    // The user already answered the offer this session: rescans stay minimal.
+                    scan.consentPolicy = .minimal
                     launchScan(preservingCleanupReport: preservingCleanupReport)
                 } else {
                     offerPreservingCleanupReport = preservingCleanupReport
@@ -219,11 +314,13 @@ enum WorkspacePhase: Equatable {
 
     private func launchScan(preservingCleanupReport: Bool) {
         guard let request = scan.prepare() else { return }
+        duplicates.cancel()
         phase = .scanning
         explorer.reset()
         cleanup.reset(preservingReport: preservingCleanupReport)
         queue.reset()
         scanTask = Task {
+            await duplicates.waitForWork()
             // Access without consent fails with a TCC denial even while metadata stays
             // readable — a silently failed remembered-location restore makes the scan fail
             // before its first row with no dialog to answer. When a stored location covers
@@ -264,11 +361,30 @@ enum WorkspacePhase: Equatable {
                 }
                 phase = .preparingResults
                 scan.stage = .preparingMap
-                await explorer.attach(db, options: request.options, grouped: scan.isGroupScan)
+                await explorer.attach(db, options: request.options, grouped: scan.isGroupScan, roots: request.roots)
                 queue.attach(IndexCleanupQueueProvider(index: db, inspectPackages: request.options.inspectPackages))
                 cleanup.showQueue = true
                 phase = .exploring
+                recordHistory(index: db, roots: request.roots)
+                // Volume scans also account for the space they could not reach.
+                if request.extraRoots.isEmpty, scan.snapshot?.cancelled != true {
+                    let known = await db.node(1)?.knownSize(for: .allocated) ?? 0
+                    explorer.setUnreached(await VolumeSpaceService.unreached(root: request.root, knownBytes: known, unreadableLocations: scan.issues.count))
+                }
             } catch { phase = .failed(L10n.format("Couldn’t start the scan. %@", error.diagnosticDescription)) }
+        }
+    }
+
+    /// Growth compares against the newest earlier scan of the same scope; then this scan
+    /// joins the history (unless the user turned it off). Cancelled scans are never kept.
+    private func recordHistory(index: ScanIndex, roots: [URL]) {
+        let key = ScanHistorySnapshot.rootKey(roots)
+        let store = settings.history
+        explorer.setHistory(dates: store.dates(rootKey: key)) { store.load(rootKey: key, date: $0) }
+        guard settings.keepScanHistory, scan.snapshot?.cancelled != true else { return }
+        let partial = scan.snapshot?.complete == false
+        Task.detached(priority: .utility) {
+            if let snapshot = await index.historySnapshot(roots: roots, partial: partial) { try? store.save(snapshot) }
         }
     }
 
@@ -277,8 +393,10 @@ enum WorkspacePhase: Equatable {
         // The synthetic group root stands for the whole scan; refreshing it reruns every location.
         if node.isGroupRoot { startScan(preservingCleanupReport: true); return }
         guard let request = scan.prepareRefresh(node) else { return }
+        duplicates.cancel()
         explorer.suspendQueries(); phase = .scanning
         scanTask = Task {
+            await duplicates.waitForWork()
             do {
                 if try await scan.runRefresh(request, node: node) {
                     let count = cleanup.invalidate(overlapping: node.path)
@@ -365,6 +483,7 @@ enum WorkspacePhase: Equatable {
 
     func chooseAnotherLocation() {
         guard !isBusy else { return }
+        duplicates.cancel()
         phase = .choosing
     }
 
@@ -442,7 +561,7 @@ enum WorkspacePhase: Equatable {
         guard phase == .cancelled, let index = scan.index else { return }
         phase = .preparingResults; scan.stage = .preparingMap
         scanTask = Task {
-            await explorer.attach(index, options: scan.options, grouped: scan.isGroupScan)
+            await explorer.attach(index, options: scan.options, grouped: scan.isGroupScan, roots: scan.roots)
             // Cancelled results stay opt-in: the queue panel does not open itself here.
             queue.attach(IndexCleanupQueueProvider(index: index, inspectPackages: scan.options.inspectPackages))
             phase = .exploring
@@ -525,8 +644,14 @@ enum WorkspacePhase: Equatable {
 
     func performCleanup(_ mode: CleanupMode) {
         guard canClean, !scan.roots.isEmpty, let index = scan.index, let items = cleanup.begin() else { return }
+        duplicates.cancel()
+        diagnostics.record("cleanup", "Started \(mode == .permanent ? "permanent deletion" : "move to Trash") of \(items.count) entries")
         cleanupTask = Task {
-            if await cleanup.execute(items, roots: scan.roots, index: index, mode: mode) {
+            await duplicates.waitForWork()
+            let succeeded = await cleanup.execute(items, roots: scan.roots, index: index, mode: mode)
+            let results = cleanup.results
+            diagnostics.record("cleanup", "Finished: \(results.filter(\.succeeded).count) succeeded, \(results.filter { !$0.succeeded }.count) failed or refused")
+            if succeeded {
                 // The map is stale after removals: rerun the scan of the same scope on the
                 // spot — the deletion report survives the scan — and land back on the
                 // updated map instead of sending the user to the location chooser to
@@ -540,5 +665,6 @@ enum WorkspacePhase: Equatable {
     }
 
     func reveal(_ node: FileNode) { filePresentation.reveal(node) }
+    func openTrash() { filePresentation.openTrash() }
     func preview(_ node: FileNode) { previewURL = node.url }
 }

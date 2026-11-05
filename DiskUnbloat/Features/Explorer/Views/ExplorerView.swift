@@ -4,6 +4,8 @@ import DiskCore
 struct ExplorerView: View {
     @Bindable var model: ExplorerViewModel
     let queue: CleanupQueueModel
+    var duplicates: DuplicatesViewModel?
+    var developerTools: DeveloperToolsViewModel?
     let scan: ScanViewModel
     let canClean: Bool
     let queuedPaths: [String]
@@ -26,7 +28,8 @@ struct ExplorerView: View {
     let levelEstimates: () async -> [AutoSelectionLevel: AutoSelectionPreview]
     /// Highlights an item on the map, e.g. when a panel row is tapped.
     let highlight: (FileNode) -> Void
-    @State private var showOptions = false
+    private enum DisplayPanel { case controls, scanOptions }
+    @State private var displayPanel: DisplayPanel?
     @FocusState private var searchFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -38,13 +41,14 @@ struct ExplorerView: View {
         VStack(spacing: 0) {
             pathBar
             if model.hasFilters { filterChips }
+            if model.highlightSearchActive { matchBar }
             if scan.snapshot?.complete == false {
                 HStack {
                     Label(scan.snapshot?.cancelled == true ? "Cancelled scan · partial results · cleanup disabled" : "Some locations couldn’t be read. Map sizes are partial.", systemImage: "exclamationmark.triangle")
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            TreemapView(scene: model.scene, selection: model.selectionIDs, highlighted: model.highlightedCategory, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, labelDetail: model.labelDetail, unreached: model.unreached, growthNote: model.growthNote, onLayout: { model.layoutTiles = $0 }, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
                 .overlay {
                     if model.isLoading {
@@ -57,7 +61,7 @@ struct ExplorerView: View {
             legend
         }
         .inspector(isPresented: showQueue) {
-            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, selecting: selecting, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup, selectLevel: selectLevel, previewLevel: previewLevel, levelEstimates: levelEstimates, focusFolder: { model.navigate($0) }, preview: preview, reveal: reveal, refreshFolder: refreshFolder)
+            CleanupQueueView(model: queue, current: model.current, selected: model.selected, selectedIDs: model.selectionIDs, canClean: canClean, selecting: selecting, select: selectForCleanup, deselect: deselectFromCleanup, highlight: highlight, performCleanup: performCleanup, selectLevel: selectLevel, previewLevel: previewLevel, levelEstimates: levelEstimates, focusFolder: { model.navigate($0) }, preview: preview, reveal: reveal, refreshFolder: refreshFolder, duplicates: duplicates, developerTools: developerTools)
                 .inspectorColumnWidth(min: 280, ideal: 340, max: 480)
         }
         .toolbar { toolbar }
@@ -65,7 +69,29 @@ struct ExplorerView: View {
         .focusable().focusEffectDisabled()
         .onKeyPress(.return) { guard let node = model.selected else { return .ignored }; if model.canNavigate(node) { model.navigate(node) } else { preview(node) }; return .handled }
         .onKeyPress(.space) { guard let node = model.selected else { return .ignored }; preview(node); return .handled }
-        .onExitCommand { if !model.selectionIDs.isEmpty { model.selectionIDs = [] } else { model.up() } }
+        .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow]) { press in
+            // ⌘↑ stays "Go to parent" (menu shortcut); plain arrows move between tiles.
+            guard displayPanel == nil, press.modifiers.isEmpty else { return .ignored }
+            let direction: MapDirection = switch press.key {
+            case .upArrow: .up
+            case .downArrow: .down
+            case .leftArrow: .left
+            default: .right
+            }
+            model.moveSelection(direction)
+            return .handled
+        }
+        .onKeyPress(keys: [.delete, .deleteForward]) { _ in
+            // Delete queues the selection for review; it never deletes anything itself.
+            guard !model.selectionIDs.isEmpty, canClean else { return .ignored }
+            addSelection()
+            return .handled
+        }
+        .onExitCommand {
+            if displayPanel != nil { displayPanel = nil }
+            else if !model.selectionIDs.isEmpty { model.selectionIDs = [] }
+            else { model.up() }
+        }
         .accessibilityIdentifier("explorerScreen")
     }
 
@@ -124,7 +150,10 @@ struct ExplorerView: View {
     /// typing does not commit a query (and chip) per keystroke. Return commits immediately.
     private struct SearchField: View {
         @Binding var text: String
+        @Binding var mode: SearchMode
         var focused: FocusState<Bool>.Binding
+        /// Return on an already committed highlight search steps to the next match.
+        var stepToNextMatch: () -> Void = {}
         @State private var draft = ""
         @State private var commitTask: Task<Void, Never>?
         private static let debounce: Duration = .milliseconds(350)
@@ -135,7 +164,9 @@ struct ExplorerView: View {
                 TextField("Search", text: $draft)
                     .textFieldStyle(.plain)
                     .focused(focused)
-                    .onSubmit { commit(immediately: true) }
+                    .onSubmit {
+                        if mode == .highlight, draft == text, !text.isEmpty { stepToNextMatch() } else { commit(immediately: true) }
+                    }
                     .accessibilityIdentifier("searchFiles")
                 if !draft.isEmpty {
                     Button { draft = ""; commit(immediately: true) } label: {
@@ -143,9 +174,19 @@ struct ExplorerView: View {
                     }
                     .buttonStyle(.plain).help("Clear").accessibilityLabel("Clear")
                 }
+                Divider().frame(height: 14)
+                // Old (filter) and new (highlight) search, switchable at any time.
+                Button { mode = mode == .filter ? .highlight : .filter } label: {
+                    Image(systemName: mode.symbol).foregroundStyle(mode == .highlight ? Color.accentColor : .secondary)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.plain)
+                .help(mode == .filter ? L10n.text("Search filters the map. Click to highlight matches instead.") : L10n.text("Search highlights matches on the map. Click to filter instead."))
+                .accessibilityLabel(mode.title)
+                .accessibilityIdentifier("searchMode")
             }
             .padding(.horizontal, 8).padding(.vertical, 4)
-            .frame(width: 200)
+            .frame(width: 232)
             .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7))
             .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(focused.wrappedValue ? Color.accentColor.opacity(0.6) : .clear, lineWidth: 1.5))
             .onAppear { draft = text }
@@ -188,7 +229,7 @@ struct ExplorerView: View {
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                if !model.search.isEmpty { chip("“\(model.search)”") { model.search = "" } }
+                if model.searchMode == .filter, !model.search.isEmpty { chip("“\(model.search)”") { model.search = "" } }
                 if let suggestion = model.suggestion { chip(L10n.text(suggestion.rawValue)) { model.suggestion = nil } }
                 if model.minimumGB > 0 { chip(L10n.format("%@ GB+", model.minimumGB.formatted())) { model.minimumGB = 0 } }
                 if model.olderDays > 0 { chip(L10n.count("Older than %lld days", model.olderDays)) { model.olderDays = 0 } }
@@ -197,6 +238,20 @@ struct ExplorerView: View {
                 Button("Clear", action: model.clearFilters).buttonStyle(.plain).foregroundStyle(.teal)
             }.font(.caption).padding(.horizontal, 20).padding(.bottom, 8)
         }
+    }
+    /// Highlight search readout: the map is unfiltered, so the count lives here.
+    private var matchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "highlighter").foregroundStyle(Color.accentColor)
+            Text(model.searchMatches.isEmpty ? L10n.format("No matches for “%@”", model.search)
+                 : model.matchesTruncated ? L10n.format("%@+ matches for “%@”", SearchMode.matchCount(ExplorerViewModel.matchLimit), model.search)
+                 : L10n.format("%@ matches for “%@”", SearchMode.matchCount(model.searchMatches.count), model.search))
+            if !model.searchMatches.isEmpty { Text("Return shows the next one").foregroundStyle(.secondary) }
+            Spacer()
+            Button("Clear") { model.search = "" }.buttonStyle(.plain).foregroundStyle(.teal)
+        }
+        .font(.caption).padding(.horizontal, 20).padding(.bottom, 8)
+        .accessibilityElement(children: .contain).accessibilityIdentifier("searchMatches")
     }
     private func chip(_ title: String, remove: @escaping () -> Void) -> some View {
         Button(action: remove) { HStack(spacing: 5) { Text(title); Image(systemName: "xmark").font(.system(size: 8, weight: .bold)) }.padding(.horizontal, 9).padding(.vertical, 5).background(.teal.opacity(0.09), in: Capsule()) }.buttonStyle(.plain)
@@ -214,17 +269,57 @@ struct ExplorerView: View {
             Button { model.selectionIDs = [] } label: { Image(systemName: "xmark") }.help("Clear selection")
         }.buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 10).background(.bar)
     }
+    /// Colour-mode picker plus the mode's classes with their share of the view. Clicking
+    /// a class dims every other one; geometry and filters never change.
     private var legend: some View {
         HStack(spacing: 12) {
-            ForEach(model.availableCategories) { category in
-                Button { model.highlightedCategory = model.highlightedCategory == category ? nil : category } label: {
-                    HStack(spacing: 5) { Circle().fill(category.color).frame(width: 6,height: 6); Text(L10n.text(category.rawValue)) }
-                        .opacity(model.highlightedCategory == nil || model.highlightedCategory == category ? 1 : 0.4)
-                }.buttonStyle(.plain).accessibilityAddTraits(model.highlightedCategory == category ? .isSelected : [])
+            Menu {
+                Picker("Colour by", selection: $model.colorMode) {
+                    ForEach(MapColorMode.allCases) { Text($0.title).tag($0) }
+                }.pickerStyle(.inline)
+                if model.colorMode == .growth {
+                    if model.historyDates.isEmpty {
+                        Text("No earlier scan of this location yet")
+                    } else {
+                        Picker("Compare with", selection: $model.compareDate) {
+                            ForEach(model.historyDates, id: \.self) { Text($0.formatted(date: .abbreviated, time: .shortened)).tag(Optional($0)) }
+                        }.accessibilityIdentifier("compareWith")
+                    }
+                }
+            } label: {
+                Label(model.colorMode.title, systemImage: "paintpalette")
             }
-            if model.highlightedCategory != nil { Button("Show all") { model.highlightedCategory = nil }.buttonStyle(.plain).foregroundStyle(.teal) }
+            .menuStyle(.borderlessButton).fixedSize()
+            .help("Colour by").accessibilityIdentifier("mapColorMode")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(model.legendClasses) { tileClass in
+                        Button { model.highlightedClass = model.highlightedClass == tileClass ? nil : tileClass } label: {
+                            HStack(spacing: 5) {
+                                Circle().fill(tileClass.color).frame(width: 7, height: 7)
+                                Text(tileClass.title)
+                                Text(sizeText(model.classShares[tileClass] ?? 0)).foregroundStyle(.secondary).monospacedDigit()
+                            }
+                            .opacity(model.highlightedClass == nil || model.highlightedClass == tileClass ? 1 : 0.4)
+                        }
+                        .buttonStyle(.plain).help(tileClass.explanation)
+                        .accessibilityAddTraits(model.highlightedClass == tileClass ? .isSelected : [])
+                        .accessibilityIdentifier("legendClass." + tileClass.rawValue)
+                    }
+                    if model.highlightedClass != nil { Button("Show all") { model.highlightedClass = nil }.buttonStyle(.plain).foregroundStyle(.teal) }
+                }
+            }
+            if let unreached = model.unreached {
+                Toggle(isOn: $model.showUnreached) {
+                    Text(L10n.format("Unreached ≈ %@", sizeText(unreached.bytes))).monospacedDigit()
+                }
+                .toggleStyle(.checkbox).fixedSize()
+                .help("Show space the scan couldn't reach")
+                .accessibilityIdentifier("legendShowUnreached")
+            }
             Spacer(minLength: 4)
-        }.font(.caption2).padding(.horizontal, 20).padding(.vertical, 10).background(.bar)
+        }.font(.caption2).padding(.horizontal, 20).padding(.vertical, 8).background(.bar)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.colorMode)
     }
     /// Toolbar tray icon with a small badge showing the queued item count.
     private var queueBadge: some View {
@@ -249,7 +344,7 @@ struct ExplorerView: View {
             Button(action: model.up) { Label("Up", systemImage: "arrow.up") }.disabled(model.breadcrumbs.count < 2).keyboardShortcut(.upArrow, modifiers: .command)
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            SearchField(text: $model.search, focused: $searchFocused)
+            SearchField(text: $model.search, mode: $model.searchMode, focused: $searchFocused, stepToNextMatch: model.stepToNextMatch)
             Menu {
                 Picker("Search scope", selection: $model.scope) { ForEach(ExplorerScope.allCases) { Text(L10n.text($0.rawValue)).tag($0) } }
                 Picker("Minimum size", selection: $model.minimumGB) { Text("Any size").tag(0.0); Text("100 MB+").tag(0.1); Text("1 GB+").tag(1.0); Text("10 GB+").tag(10.0) }
@@ -259,21 +354,81 @@ struct ExplorerView: View {
                 ForEach(Suggestion.allCases) { group in Button(L10n.text(group.rawValue)) { model.suggestion = group }.help(L10n.text(group.explanation)) }
                 Button("Clear filters", action: model.clearFilters)
             } label: { Label("Filter", systemImage: "line.3.horizontal.decrease") }
-            Menu {
-                Picker("Size", selection: $model.metric) { ForEach(SizeMetric.allCases) { Text(L10n.text($0.rawValue)).tag($0) } }
-                Divider()
-                Button("Fit map") { model.fitRevision += 1 }
-                Button("Scan options") { showOptions = true }
-                Button("Rescan folder") { if let node = model.current { refreshFolder(node) } }.accessibilityIdentifier("rescanFolder")
-                Button("Scan again", action: rescan)
-            } label: { Label("Display", systemImage: "rectangle.3.group") }
+            displayButton
             Button(action: newScan) { Label("New scan", systemImage: "folder.badge.plus") }
             Button { showQueue.wrappedValue.toggle() } label: { queueBadge }
                 .help(L10n.format("Select items to delete · %lld items · %@ estimated", queue.selectedCount, sizeText(queue.selectedBytes)))
                 .accessibilityIdentifier("reviewCleanup")
         }
-        ToolbarItem(placement: .automatic) {
-            Color.clear.frame(width: 0,height: 0).popover(isPresented: $showOptions) { ScanOptionsView(model: scan) }
+    }
+
+    private var displayButton: some View {
+        Button { displayPanel = .controls } label: {
+            Label("Display", systemImage: "rectangle.3.group")
         }
+        .accessibilityIdentifier("mapDisplay")
+        .popover(isPresented: Binding(
+            get: { displayPanel != nil },
+            set: { if !$0 { displayPanel = nil } }
+        )) {
+            Group {
+                switch displayPanel {
+                case .controls: displayControls
+                case .scanOptions: ScanOptionsView(model: scan)
+                case nil: EmptyView()
+                }
+            }
+            .onExitCommand { displayPanel = nil }
+        }
+    }
+
+    private var displayControls: some View {
+        let levels = MapLabelDetail.allCases
+        let sliderValue = Binding<Double>(
+            get: { Double(levels.firstIndex(of: model.labelDetail) ?? 0) },
+            set: { value in
+                guard let index = Int(exactly: value.rounded()), levels.indices.contains(index) else { return }
+                model.setLabelDetail(levels[index])
+            }
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Map detail")
+                Spacer()
+                Text(verbatim: model.labelDetail.title).foregroundStyle(.secondary)
+            }
+            Slider(value: sliderValue, in: 0...Double(levels.count - 1), step: 1) {
+                Text("Map detail")
+            }
+            .labelsHidden()
+            .accessibilityValue(Text(verbatim: model.labelDetail.title))
+            .accessibilityIdentifier("mapLabelDetail")
+            Divider()
+            Picker("Size", selection: $model.metric) {
+                ForEach(SizeMetric.allCases) { Text(L10n.text($0.rawValue)).tag($0) }
+            }
+            if model.unreached != nil {
+                Toggle("Show space the scan couldn't reach", isOn: $model.showUnreached)
+                    .accessibilityIdentifier("showUnreached")
+            }
+            Divider()
+            Button("Fit map") {
+                displayPanel = nil
+                model.fitRevision += 1
+            }
+            Button("Scan options") { displayPanel = .scanOptions }
+            Button("Rescan folder") {
+                displayPanel = nil
+                if let node = model.current { refreshFolder(node) }
+            }
+            .accessibilityIdentifier("rescanFolder")
+            Button("Scan again") {
+                displayPanel = nil
+                rescan()
+            }
+        }
+        .padding()
+        .frame(minWidth: 240, idealWidth: 280)
     }
 }

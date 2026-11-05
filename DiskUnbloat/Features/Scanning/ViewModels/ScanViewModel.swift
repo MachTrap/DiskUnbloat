@@ -48,10 +48,45 @@ struct PendingGroup: Sendable {
     private(set) var protectedFoldersRefused = false
     /// Protected directory the consent preflight is currently opening; macOS holds the
     /// open until its consent dialog is answered. `nil` outside the preflight.
-    private(set) var awaitingPermission: String?
+    private(set) var awaitingPermission: String? {
+        didSet { if oldValue != awaitingPermission { noteConsentWait(ended: oldValue) } }
+    }
+    @ObservationIgnored var diagnostics: DiagnosticsLog?
+    /// Set by the workspace from the Full Disk Access decision before each scan.
+    @ObservationIgnored var consentPolicy: ConsentPolicy = .fullDiskAccess
+    /// The catalog home(s) the consent policy applies to.
+    @ObservationIgnored var homePaths: [String]?
+    @ObservationIgnored private var consentWaitStarted: Date?
     private(set) var scanning = false
     private(set) var snapshot: ScanSnapshot?
     private(set) var issues: [String] = []
+    /// The same issues grouped by reason, largest group first: hundreds of identical
+    /// macOS refusals read as one line with a count instead of a wall of paths.
+    private(set) var issueGroups: [IssueGroup] = []
+    struct IssueGroup: Identifiable, Equatable {
+        let message: String
+        let paths: [String]
+        /// Refusals by macOS privacy protection (Full Disk Access is the remedy), decided on
+        /// the untranslated message so it holds in every language.
+        let isProtection: Bool
+        var id: String { message }
+
+        static func isProtection(raw: String) -> Bool {
+            raw.localizedCaseInsensitiveContains("not permitted") || raw.hasPrefix("Protected by macOS")
+        }
+    }
+
+    private func setIssues(_ records: [ScanIssue]) {
+        issues = records.map { $0.path + ": " + L10n.text($0.message) }
+        var grouped: [String: [String]] = [:]; var order: [String] = []; var protection: [String: Bool] = [:]
+        for record in records {
+            let message = L10n.text(record.message)
+            if grouped[message] == nil { order.append(message); protection[message] = IssueGroup.isProtection(raw: record.message) }
+            grouped[message, default: []].append(record.path)
+        }
+        issueGroups = order.map { IssueGroup(message: $0, paths: grouped[$0] ?? [], isProtection: protection[$0] ?? false) }
+            .sorted { $0.paths.count > $1.paths.count }
+    }
     /// Used space on the scanned volume; the honest denominator for overall progress.
     private(set) var volumeUsedBytes: Int64?
 
@@ -87,6 +122,14 @@ struct PendingGroup: Sendable {
     }
 
     /// Prepares state synchronously before the workspace starts its lifecycle task.
+    /// The roots `prepare()` would scan, without starting a session.
+    var plannedRoots: [URL] {
+        if pendingRoot == nil, let group = pendingGroup, !group.roots.isEmpty { return group.roots }
+        if let chosen = pendingRoot { return [chosen] }
+        if !groupRoots.isEmpty { return groupRoots }
+        return root.map { [$0] } ?? []
+    }
+
     func prepare() -> ScanRequest? {
         guard !scanning else { return nil }
         // A grouped quick action, or the same scope again after a cleanup rescan.
@@ -105,9 +148,11 @@ struct PendingGroup: Sendable {
         refreshNode = nil; previousSnapshot = nil
         root = roots[0]; pendingRoot = nil
         groupTitle = title; groupRoots = title == nil ? [] : roots
-        showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []
+        showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []; issueGroups = []
         protectedFoldersRefused = false; awaitingPermission = nil
         volumeUsedBytes = volume.flatMap(Self.volumeUsedBytes(for:))
+        options.consentPolicy = consentPolicy
+        options.homePaths = homePaths
         options.exclusions = exclusionText.split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         options.summarizedFolders = summarizedText.split(separator: "\n")
@@ -116,8 +161,24 @@ struct PendingGroup: Sendable {
         return ScanRequest(root: roots[0], extraRoots: title == nil ? [] : Array(roots.dropFirst()), groupTitle: title ?? "", options: options)
     }
 
+    /// Consent waits longer than half a second are what a stuck-looking scan is made of.
+    private func noteConsentWait(ended path: String?) {
+        if let path, let started = consentWaitStarted {
+            let seconds = Date().timeIntervalSince(started)
+            if seconds >= 0.5 { diagnostics?.record("consent", String(format: "Waited %.1f s on %@", seconds, URL(fileURLWithPath: path).lastPathComponent)) }
+        }
+        consentWaitStarted = awaitingPermission == nil ? nil : Date()
+    }
+
+    private func logOutcome(_ prefix: String) {
+        let started = startedAt.map { String(format: " after %.1f s", Date().timeIntervalSince($0)) } ?? ""
+        let s = snapshot
+        diagnostics?.record("scan", "\(prefix)\(started): \(s?.items ?? 0) items, \(s?.folders ?? 0) folders, \(s?.bytes ?? 0) bytes, \(s?.errors ?? 0) issues\(s?.cancelled == true ? ", cancelled" : "")\(protectedFoldersRefused ? ", protected folders refused" : "")")
+    }
+
     func run(_ request: ScanRequest) async throws {
         defer { scanning = false; awaitingPermission = nil }
+        diagnostics?.record("scan", "Started \(request.roots.map(\.path).joined(separator: ", "))")
         await discardIndex()
         sessionOptions = request.options
         let db = try storage.makeIndex()
@@ -127,24 +188,29 @@ struct PendingGroup: Sendable {
         var lastIssuesRefresh = Date.distantPast
         for await event in stream {
             switch event {
-            case .stage(let stage): self.stage = stage
+            case .stage(let stage):
+                self.stage = stage
+                diagnostics?.record("scan", "Stage: \(stage.rawValue)" + (startedAt.map { String(format: " at %.1f s", Date().timeIntervalSince($0)) } ?? ""))
             case .protectedFoldersRefused: protectedFoldersRefused = true
             case .awaitingPermission(let path): awaitingPermission = path
+            case .slowRead(let path, let seconds): diagnostics?.record("scan", String(format: "Read blocked %.1f s: %@", seconds, path))
             case .progress(let progress):
                 snapshot = progress; awaitingPermission = nil
                 // Unreachable locations are listable while the scan is still running.
                 if progress.errors > 0, Date().timeIntervalSince(lastIssuesRefresh) >= 1 {
                     lastIssuesRefresh = Date()
-                    issues = await db.issues().map { $0.path + ": " + L10n.text($0.message) }
+                    setIssues(await db.issues())
                 }
-            case .finished(let result): snapshot = result
-            case .failed(let error): throw ScanFailure(message: error)
+            case .finished(let result): snapshot = result; logOutcome("Finished")
+            case .failed(let error):
+                diagnostics?.record("scan", "Failed: \(error)")
+                throw ScanFailure(message: error)
             }
         }
         if cancellationRequested, let result = snapshot {
             snapshot = ScanSnapshot(items: result.items,bytes: result.bytes,elapsed: result.elapsed,errors: result.errors,cancelled: true,complete: false,folders: result.folders,currentFolder: result.currentFolder)
         }
-        issues = await db.issues().map { $0.path + ": " + L10n.text($0.message) }
+        setIssues(await db.issues())
     }
 
     private(set) var refreshNode: FileNode?
@@ -182,6 +248,7 @@ struct PendingGroup: Sendable {
                 case .failed(let error): throw ScanFailure(message: error)
                 case .protectedFoldersRefused: protectedFoldersRefused = true
                 case .awaitingPermission(let path): awaitingPermission = path
+                case .slowRead(let path, let seconds): diagnostics?.record("scan", String(format: "Read blocked %.1f s: %@", seconds, path))
                 }
             }
             if cancellationRequested || snapshot?.cancelled == true { await storage.discard(staging); return false }
@@ -190,7 +257,7 @@ struct PendingGroup: Sendable {
             await staging.close()
             _ = try await index.replaceBranch(BranchRefreshRequest(nodeID: node.id, identity: node.identity), stagingURL: staging.url)
             await storage.discard(staging)
-            issues = await index.issues().map { $0.path + ": " + L10n.text($0.message) }
+            setIssues(await index.issues())
             if let result = snapshot {
                 let remainsCancelled = previousSnapshot?.cancelled == true && node.parentID != nil
                 snapshot = ScanSnapshot(items: result.items, bytes: result.bytes, elapsed: result.elapsed, errors: issues.count, cancelled: remainsCancelled, complete: issues.isEmpty && !remainsCancelled, folders: result.folders, currentFolder: result.currentFolder)
@@ -207,7 +274,10 @@ struct PendingGroup: Sendable {
     func requestCancellation() { if !committingRefresh { cancellationRequested = true } }
     /// Stops waiting on macOS consent dialogs and starts reading now; folders whose
     /// dialog is still open are read (or refused) when the user answers it.
-    func skipPermissionRequests() async { await coordinator.skipPermissionPreflight() }
+    func skipPermissionRequests() async {
+        diagnostics?.record("consent", "User skipped the remaining permission checks")
+        await coordinator.skipPermissionPreflight()
+    }
 
     func cancel() async { guard !committingRefresh else { return }; cancellationRequested = true; await coordinator.cancel() }
 

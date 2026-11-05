@@ -34,15 +34,13 @@ import DiskCore
         #expect(model.breadcrumbs.map(\.name) == ["All caches"])
         // Filtering while focused on the wrapper searches the union of all listed locations.
         model.search = "mp3"
-        model.scheduleRefresh()
-        try await Task.sleep(for: .milliseconds(240))
+        await model.loadResults() // deterministic: no debounce timing under parallel load
         #expect(Set(model.scene.entries.map(\.id)) == [3, 5])
         // Inside one root the same filter is scoped to that subtree only.
         let caches = try #require(await index.node(2))
-        model.navigate(caches)
         model.search = "mp3"
-        model.scheduleRefresh()
-        try await Task.sleep(for: .milliseconds(240))
+        model.navigate(caches)
+        await model.settle() // the navigation's own load, not a fixed sleep
         #expect(model.scene.entries.map(\.id) == [3])
         #expect(model.breadcrumbs.map(\.name) == ["All caches", "Caches"])
         model.reset(); await discard(index)

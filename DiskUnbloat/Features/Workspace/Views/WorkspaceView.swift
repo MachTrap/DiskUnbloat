@@ -17,8 +17,13 @@ struct WorkspaceView: View {
         .frame(maxWidth: .infinity,maxHeight: .infinity)
         .navigationTitle(model.phase == .exploring ? model.explorer.current?.name ?? "DiskUnbloat" : "DiskUnbloat")
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: model.phase)
-        .sheet(isPresented: $cleanup.showReport) { CleanupReportView(results: cleanup.results) { cleanup.showReport = false } }
+        .sheet(isPresented: $cleanup.showReport) { CleanupReportView(results: cleanup.results, mode: cleanup.lastRunMode, bytes: cleanup.lastRunBytes, openTrash: model.openTrash) { cleanup.showReport = false } }
         .sheet(isPresented: $scan.showIssues) { issuesSheet }
+        .sheet(item: duplicateReview) { presentation in
+            DuplicateReviewView(model: model.duplicates, reveal: model.reveal)
+                .onAppear { model.duplicates.reviewDidAppear(presentation.id) }
+                .onDisappear { model.duplicates.reviewDidDisappear(presentation.id) }
+        }
         .safeAreaInset(edge: .bottom) {
             if let warning = model.authorization.bookmarkWarning {
                 Label(warning, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
@@ -47,6 +52,10 @@ struct WorkspaceView: View {
             updateWindow(for: model.phase, initial: true)
         }
     }
+    private var duplicateReview: Binding<DuplicatesViewModel.Presentation?> {
+        Binding(get: { model.duplicates.presentation }, set: { if $0 == nil { model.duplicates.dismissReview() } })
+    }
+
     @ViewBuilder private var phaseContent: some View {
             switch model.phase {
             case .choosing:
@@ -54,7 +63,7 @@ struct WorkspaceView: View {
             case .scanning, .preparingResults:
                 ScanningView(model: scan, preparing: model.phase == .preparingResults, cancel: model.cancel, issues: { scan.showIssues = true })
             case .exploring:
-                ExplorerView(model: model.explorer, queue: model.queue, scan: scan, canClean: model.canClean, queuedPaths: cleanup.basket.map { $0.node.path }, membership: { model.cleanup.membership($0) }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, selectForCleanup: model.addToBasket, deselectFromCleanup: model.deselect, addSelection: model.addSelectionToBasket, performCleanup: model.performCleanup, selecting: model.selectingItems, selectLevel: model.selectItems, previewLevel: model.previewSelection, levelEstimates: model.selectionEstimates, highlight: { model.explorer.select($0.id) })
+                ExplorerView(model: model.explorer, queue: model.queue, duplicates: model.duplicates, developerTools: model.developerTools, scan: scan, canClean: model.canClean, queuedPaths: cleanup.basket.map { $0.node.path }, membership: { model.cleanup.membership($0) }, newScan: model.chooseAnotherLocation, rescan: model.startScan, refreshFolder: model.refreshFolder, issues: { scan.showIssues = true }, preview: model.preview, reveal: model.reveal, selectForCleanup: model.addToBasket, deselectFromCleanup: model.deselect, addSelection: model.addSelectionToBasket, performCleanup: model.performCleanup, selecting: model.selectingItems, selectLevel: model.selectItems, previewLevel: model.previewSelection, levelEstimates: model.selectionEstimates, highlight: { model.explorer.select($0.id) })
             case .cancelled: outcome(cancelled: true, message: "The scan stopped with partial results. You can explore what was read, but cleanup will stay disabled.")
             case .failed(let error): outcome(cancelled: false, message: error)
             }
@@ -90,8 +99,22 @@ struct WorkspaceView: View {
                 .font(.callout).foregroundStyle(.secondary)
             }
             Text("These locations weren’t fully read. Their complete sizes are unknown; the map still includes known bytes. Showing up to 500 issues.").font(.caption).foregroundStyle(.secondary)
-            List(scan.issues, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
-                .frame(minHeight: 180)
+            List(scan.issueGroups) { group in
+                // Small groups open; big protection groups stay folded to a count.
+                DisclosureGroup {
+                    ForEach(group.paths, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: group.isProtection ? "lock.shield" : "exclamationmark.triangle")
+                            .foregroundStyle(group.isProtection ? Color.secondary : Color.orange)
+                        Text(group.message).font(.callout).lineLimit(2)
+                        Spacer(minLength: 6)
+                        Text(L10n.count("%lld locations", group.paths.count)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                }
+                .accessibilityIdentifier("issueGroup")
+            }
+            .frame(minHeight: 180)
             HStack {
                 if scan.protectedFoldersRefused {
                     Button("Open Full Disk Access settings") { FullDiskAccessSettings.open() }

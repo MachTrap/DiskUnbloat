@@ -136,3 +136,12 @@ actor InitiallyPartialScanner: ScanServing {
     }
     func cancel() async { await scanner.cancel() }
 }
+
+/// A throwaway defaults suite: tests that switch persisted explorer modes must not
+/// leak them into parallel tests (or the shipping app's domain).
+func isolatedDefaults() -> UserDefaults {
+    let name = "DiskUnbloatTests-" + UUID().uuidString
+    let defaults = UserDefaults(suiteName: name)!
+    defaults.removePersistentDomain(forName: name)
+    return defaults
+}

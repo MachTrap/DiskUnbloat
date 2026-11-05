@@ -6,7 +6,7 @@ import DiskCore
 
 #Preview("Compact scanning") { ScanningView(model: ScanViewModel(coordinator: ScanCoordinator()), preparing: true, cancel: {}, issues: {}).frame(width: 960,height: 640) }
 #Preview("Nested map · light") {
-    TreemapView(scene: PreviewMap.scene, selection: [], highlighted: nil, fitRevision: 0, select: { _,_ in }, open: { _ in }, aggregate: { _ in }, preview: { _ in }, reveal: { _ in }, selectForCleanup: { _ in }, deselectFromCleanup: { _ in }, queuedPaths: [], canClean: true)
+    TreemapView(scene: PreviewMap.scene, selection: [], style: MapTileStyle(), fitRevision: 0, select: { _,_ in }, open: { _ in }, aggregate: { _ in }, preview: { _ in }, reveal: { _ in }, selectForCleanup: { _ in }, deselectFromCleanup: { _ in }, queuedPaths: [], canClean: true)
         .frame(width: 960,height: 560).padding(16).preferredColorScheme(.light)
 }
 private enum PreviewMap {

@@ -17,15 +17,26 @@ Run with: ``python3 Tools/generate-project.py``
 
 from pathlib import Path
 import json
+import os
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 root = Path(__file__).resolve().parents[1]
 app_dir = root / 'DiskUnbloat'
 project_bundle = root / 'DiskUnbloat.xcodeproj'
 xcproj_path = project_bundle / 'project.xcproj'
-scheme_path = project_bundle / 'xcshareddata' / 'xcschemes' / 'DiskUnbloat.xcscheme'
+schemes_dir = project_bundle / 'xcshareddata' / 'xcschemes'
+scheme_path = schemes_dir / 'DiskUnbloat.xcscheme'
+testing_scheme_path = schemes_dir / 'DiskUnbloatTesting.xcscheme'
+testing_dir = root / 'DiskUnbloatTesting'
+
+# AgentDevKit (developer-only verification bridge) is a local package checked out next
+# to this repository. The Testing target exists only when it is present, so a fresh
+# clone without it still generates and builds the shipping app.
+agentdevkit_dir = Path(os.environ.get('AGENTDEVKIT_PATH', root.parents[1] / 'AgentDevKit')).resolve()
+TESTING_ENABLED = (agentdevkit_dir / 'Package.swift').exists() and testing_dir.is_dir()
 
 # --- stable identifiers -------------------------------------------------------
 # Targets and build products keep opaque IDs so external references (the shared
@@ -42,6 +53,8 @@ UITESTS_TARGET_ID = uid(40)
 UITESTS_PRODUCT_ID = uid(41)
 TESTS_TARGET_ID = uid(60)
 TESTS_PRODUCT_ID = uid(61)
+TESTING_TARGET_ID = uid(80)
+TESTING_PRODUCT_ID = uid(81)
 
 # Signing settings that survive regeneration (owner-configured in Xcode's UI).
 SIGNING_KEYS = {
@@ -156,6 +169,24 @@ def tests_build_settings(existing):
     return settings
 
 
+def testing_build_settings(existing):
+    """The agent Testing app: the shipping sources plus DiskUnbloatTesting/, its own
+    bundle ID (fresh TCC and defaults domain), Debug-only via a compile-time #error."""
+    settings = app_build_settings(existing)
+    for key in [k for k in settings if k.split('[')[0] in SIGNING_KEYS]:
+        if key.split('[')[0] == 'PRODUCT_BUNDLE_IDENTIFIER':
+            del settings[key]
+    settings.update({
+        'PRODUCT_BUNDLE_IDENTIFIER': 'com.diskunbloat.app.testing',
+        'PRODUCT_NAME': '$(TARGET_NAME)',
+        'INFOPLIST_KEY_CFBundleDisplayName': 'DiskUnbloat Testing',
+        'SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug]': 'DEBUG AGENT_TESTING',
+        'SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Release]': 'AGENT_TESTING',
+    })
+    settings.update(signing_overrides(existing, 'DiskUnbloatTesting'))
+    return settings
+
+
 # --- file tree ----------------------------------------------------------------
 def file_node(name, membership=None):
     node = {'path': name}
@@ -164,22 +195,28 @@ def file_node(name, membership=None):
     return node
 
 
+def app_targets(phase):
+    """App sources and resources also build into the Testing target when it exists."""
+    names = ['DiskUnbloat'] + (['DiskUnbloatTesting'] if TESTING_ENABLED else [])
+    return [f'{name}/{phase}' for name in names]
+
+
 def app_tree():
     """Mirror DiskUnbloat/'s on-disk directories as a nested file tree."""
     entries = []  # (relative_path, node)
     for p in sorted(app_dir.rglob('*.swift')):
         rel = p.relative_to(app_dir)
-        entries.append((rel, file_node(rel.name, ['DiskUnbloat/compile-sources'])))
+        entries.append((rel, file_node(rel.name, app_targets('compile-sources'))))
 
     # Fixed resources, in the order they appear in the navigator.
     entries.extend([
         (Path('Resources/Localizable.xcstrings'),
-         file_node('Localizable.xcstrings', ['DiskUnbloat/resources'])),
+         file_node('Localizable.xcstrings', app_targets('resources'))),
         (Path('App/Info.plist'), file_node('Info.plist')),
         (Path('Resources/PrivacyInfo.xcprivacy'),
-         file_node('PrivacyInfo.xcprivacy', ['DiskUnbloat/resources'])),
+         file_node('PrivacyInfo.xcprivacy', app_targets('resources'))),
         (Path('Resources/Assets.xcassets'),
-         file_node('Assets.xcassets', ['DiskUnbloat/resources'])),
+         file_node('Assets.xcassets', app_targets('resources'))),
         (Path('App/DiskUnbloat.entitlements'), file_node('DiskUnbloat.entitlements')),
     ])
 
@@ -208,7 +245,8 @@ def products_group():
              'type': 'wrapper.cfbundle'},
             {'path': '<PRODUCTS>/DiskUnbloatTests.xctest', 'id': TESTS_PRODUCT_ID,
              'type': 'wrapper.cfbundle'},
-        ],
+        ] + ([{'path': '<PRODUCTS>/DiskUnbloatTesting.app', 'id': TESTING_PRODUCT_ID,
+               'type': 'wrapper.application', 'index': False}] if TESTING_ENABLED else []),
     }
 
 
@@ -219,6 +257,24 @@ def diskcore_product_members():
     member = {'package': 'DiskCore', 'product-name': 'DiskCore',
               'build-phase': {'build-phase': 'frameworks'}}
     return [member, member]
+
+
+def agentdevkit_product_members():
+    return [{'package': agentdevkit_dir.name, 'product-name': name,
+             'build-phase': {'build-phase': 'frameworks'}}
+            for name in ('AgentDevKitHost', 'AgentDevKitCore')]
+
+
+def testing_target(existing):
+    return {
+        'name': 'DiskUnbloatTesting',
+        'id': TESTING_TARGET_ID,
+        'product': 'Products/DiskUnbloatTesting.app',
+        'product-type': 'application',
+        'build-phases': ['compile-sources', 'frameworks', 'resources'],
+        'package-product-members': diskcore_product_members()[:1] + agentdevkit_product_members(),
+        'build-settings': testing_build_settings(existing),
+    }
 
 
 def targets(existing):
@@ -251,7 +307,7 @@ def targets(existing):
             'package-product-members': diskcore_product_members(),
             'build-settings': tests_build_settings(existing),
         },
-    ]
+    ] + ([testing_target(existing)] if TESTING_ENABLED else [])
 
 
 # --- assembly -----------------------------------------------------------------
@@ -260,7 +316,8 @@ def build_project(existing):
         'default-configuration': 'Release',
         'configurations': ['Debug', 'Release'],
         'localizations': {'development': 'en', 'supported': ['Base', 'ru']},
-        'packages': [{'kind': 'local', 'path': 'Packages/DiskCore'}],
+        'packages': [{'kind': 'local', 'path': 'Packages/DiskCore'}] + (
+            [{'kind': 'local', 'path': os.path.relpath(agentdevkit_dir, root)}] if TESTING_ENABLED else []),
         'files': [
             app_tree(),
             products_group(),
@@ -273,7 +330,10 @@ def build_project(existing):
                 file_node(f.name, ['DiskUnbloatTests/compile-sources'])
                 for f in sorted((root / 'DiskUnbloatTests').rglob('*.swift'))
             ]},
-        ],
+        ] + ([{'kind': 'group', 'path': 'DiskUnbloatTesting', 'children': [
+                file_node(f.name, ['DiskUnbloatTesting/compile-sources'])
+                for f in sorted(testing_dir.rglob('*.swift'))
+            ] + [file_node(f.name) for f in sorted(testing_dir.glob('*.sh'))]}] if TESTING_ENABLED else []),
         'targets': targets(existing),
         'build-settings': project_build_settings(),
         'last-upgrade': '26.6',
@@ -297,49 +357,87 @@ def canonicalize():
           'project.xcproj', file=sys.stderr)
 
 
-def write_scheme():
-    scheme_path.parent.mkdir(parents=True, exist_ok=True)
-    scheme_path.write_text(
+def buildable(target_id, product, name):
+    return ('<BuildableReference BuildableIdentifier="primary" '
+            f'BlueprintIdentifier="{target_id}" BuildableName="{product}" '
+            f'BlueprintName="{name}" ReferencedContainer="container:DiskUnbloat.xcodeproj"/>')
+
+
+def scheme_xml(target_id, product, name, testables, launch_arguments=()):
+    ref = buildable(target_id, product, name)
+    tests = ''.join(f'<TestableReference skipped="NO">{buildable(*t)}</TestableReference>' for t in testables)
+    arguments = ''
+    if launch_arguments:
+        arguments = '<CommandLineArguments>' + ''.join(
+            f'<CommandLineArgument argument="{a}" isEnabled="YES"/>' for a in launch_arguments) + '</CommandLineArguments>'
+    return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<Scheme LastUpgradeVersion="2660" version="1.3">'
         '<BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">'
         '<BuildActionEntries>'
         '<BuildActionEntry buildForTesting="YES" buildForRunning="YES" '
         'buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">'
-        '<BuildableReference BuildableIdentifier="primary" '
-        f'BlueprintIdentifier="{APP_TARGET_ID}" BuildableName="DiskUnbloat.app" '
-        'BlueprintName="DiskUnbloat" ReferencedContainer="container:DiskUnbloat.xcodeproj"/>'
-        '</BuildActionEntry></BuildActionEntries></BuildAction>'
-        '<TestAction buildConfiguration="Debug"><Testables>'
-        '<TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" '
-        f'BlueprintIdentifier="{TESTS_TARGET_ID}" BuildableName="DiskUnbloatTests.xctest" '
-        'BlueprintName="DiskUnbloatTests" ReferencedContainer="container:DiskUnbloat.xcodeproj"/>'
-        '</TestableReference>'
-        '<TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" '
-        f'BlueprintIdentifier="{UITESTS_TARGET_ID}" BuildableName="DiskUnbloatUITests.xctest" '
-        'BlueprintName="DiskUnbloatUITests" ReferencedContainer="container:DiskUnbloat.xcodeproj"/>'
-        '</TestableReference></Testables></TestAction>'
+        f'{ref}</BuildActionEntry></BuildActionEntries></BuildAction>'
+        f'<TestAction buildConfiguration="Debug"><Testables>{tests}</Testables></TestAction>'
         '<LaunchAction buildConfiguration="Debug" '
         'selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" '
         'selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" '
         'useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" '
         'debugDocumentVersioning="YES" allowLocationSimulation="YES">'
-        '<BuildableProductRunnable runnableDebuggingMode="0">'
-        '<BuildableReference BuildableIdentifier="primary" '
-        f'BlueprintIdentifier="{APP_TARGET_ID}" BuildableName="DiskUnbloat.app" '
-        'BlueprintName="DiskUnbloat" ReferencedContainer="container:DiskUnbloat.xcodeproj"/>'
-        '</BuildableProductRunnable></LaunchAction>'
+        f'<BuildableProductRunnable runnableDebuggingMode="0">{ref}</BuildableProductRunnable>'
+        f'{arguments}</LaunchAction>'
         '<ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" '
         'savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES">'
-        '<BuildableProductRunnable runnableDebuggingMode="0">'
-        '<BuildableReference BuildableIdentifier="primary" '
-        f'BlueprintIdentifier="{APP_TARGET_ID}" BuildableName="DiskUnbloat.app" '
-        'BlueprintName="DiskUnbloat" ReferencedContainer="container:DiskUnbloat.xcodeproj"/>'
-        '</BuildableProductRunnable></ProfileAction>'
+        f'<BuildableProductRunnable runnableDebuggingMode="0">{ref}</BuildableProductRunnable></ProfileAction>'
         '<AnalyzeAction buildConfiguration="Debug"/>'
         '<ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>'
         '</Scheme>'
     )
+
+
+# Children the generator owns; everything else an owner added in Xcode is kept.
+GENERATED_CHILDREN = {'BuildActionEntries', 'Testables', 'BuildableProductRunnable', 'MacroExpansion'}
+
+
+def merge_owner_scheme(generated, path):
+    """Keep what the owner changed in Xcode (e.g. Run in Release, launch arguments,
+    environment variables) while regenerating the target references. Attributes and
+    non-generated children of each action in the existing file win."""
+    if not path.exists():
+        return generated
+    try:
+        old = ET.fromstring(path.read_text(encoding='utf-8'))
+    except ET.ParseError:
+        return generated
+    new = ET.fromstring(generated.split('\n', 1)[1])
+    for action in new:
+        previous = old.find(action.tag)
+        if previous is None:
+            continue
+        action.attrib.update(previous.attrib)
+        owned = [c for c in previous if c.tag not in GENERATED_CHILDREN]
+        if owned:
+            for child in [c for c in action if c.tag not in GENERATED_CHILDREN]:
+                action.remove(child)
+            action.extend(owned)
+    # ElementTree writes `<a />`; Xcode writes `<a/>`. Match Xcode so diffs stay empty.
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(new, encoding='unicode').replace(' />', '/>')
+
+
+def write_scheme(path, generated):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(merge_owner_scheme(generated, path), encoding='utf-8')
+
+
+def write_schemes():
+    write_scheme(scheme_path, scheme_xml(APP_TARGET_ID, 'DiskUnbloat.app', 'DiskUnbloat', [
+        (TESTS_TARGET_ID, 'DiskUnbloatTests.xctest', 'DiskUnbloatTests'),
+        (UITESTS_TARGET_ID, 'DiskUnbloatUITests.xctest', 'DiskUnbloatUITests'),
+    ]))
+    if TESTING_ENABLED:
+        write_scheme(testing_scheme_path, scheme_xml(
+            TESTING_TARGET_ID, 'DiskUnbloatTesting.app', 'DiskUnbloatTesting', [],
+            launch_arguments=('--enable-agentdevkit', '--allow-agentdevkit-mutations')))
 
 
 def main():
@@ -348,7 +446,7 @@ def main():
     xcproj_path.write_text(json.dumps(project, indent=2, ensure_ascii=False) + '\n',
                            encoding='utf-8')
     canonicalize()
-    write_scheme()
+    write_schemes()
 
 
 if __name__ == '__main__':

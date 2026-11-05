@@ -13,7 +13,13 @@ struct SettingsView: View {
             Section("Privacy") {
                 Label("Your file index stays on this Mac.", systemImage: "lock.shield")
                 Text("No accounts, analytics, uploads, or background monitoring. Temporary indexes are discarded when a scan session closes.").font(.callout).foregroundStyle(.secondary)
+                Toggle("Keep scan history to show growth", isOn: $model.keepScanHistory).accessibilityIdentifier("keepScanHistory")
+                Text("Stores the sizes and paths of the largest items from each finished scan (never file contents), the last 10 per location.").font(.callout).foregroundStyle(.secondary)
+                HStack {
+                    Button("Clear scan history", role: .destructive, action: model.clearHistory).accessibilityIdentifier("clearScanHistory")
+                    if model.historyCleared { Text("Cleared").font(.callout).foregroundStyle(.secondary) }
+                }
             }
-        }.formStyle(.grouped).frame(width: 500, height: 350).padding()
+        }.formStyle(.grouped).frame(width: 500, height: 470).padding()
     }
 }

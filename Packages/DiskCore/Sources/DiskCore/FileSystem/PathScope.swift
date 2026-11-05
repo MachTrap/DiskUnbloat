@@ -3,6 +3,12 @@ import Foundation
 /// Path-relationship helpers shared by scanning, cleanup, and authorization. All comparisons
 /// operate on canonical absolute paths and treat `/` as an ancestor of every absolute path.
 extension String {
+    /// The immediate parent of an already canonical absolute path.
+    var canonicalParentPath: String? {
+        guard self != "/", let separator = lastIndex(of: "/") else { return nil }
+        return separator == startIndex ? "/" : String(self[..<separator])
+    }
+
     /// Whether this path is `other` or a descendant of it (whole-segment match, so
     /// `/Users/a` does not match `/Users/ab`). `/` matches every absolute path.
     public func isWithin(_ other: String) -> Bool {

@@ -5,7 +5,13 @@ import DiskCore
 struct TreemapView: View {
     let scene: MapScene
     let selection: Set<Int64>
-    let highlighted: FileCategory?
+    let style: MapTileStyle
+    var labelDetail: MapLabelDetail = .compact
+    /// Breakdown for the unreached-space tile's hover card.
+    var unreached: UnreachedSpace?
+    var growthNote: (MapEntry) -> String? = { _ in nil }
+    /// Receives each committed layout (keyboard navigation works on tile geometry).
+    var onLayout: ([SceneTile]) -> Void = { _ in }
     let fitRevision: Int
     let select: (MapEntry, Bool) -> Void
     let open: (FileNode) -> Void
@@ -47,21 +53,21 @@ struct TreemapView: View {
             ZStack(alignment: .topTrailing) {
                 ZStack {
                     if let morph {
-                        MorphingMapDrawing(morph: morph, start: morphStart, highlighted: highlighted)
+                        MorphingMapDrawing(morph: morph, start: morphStart, style: style, labelDetail: labelDetail)
                     } else {
                         // Legend highlighting crossfades instead of snapping; geometry is unaffected.
-                        MapDrawing(tiles: tiles, highlighted: highlighted).equatable().id(highlighted)
+                        MapDrawing(tiles: tiles, style: style, labelDetail: labelDetail).equatable().id(style.crossfadeKey)
                             .transition(.opacity)
                     }
                 }
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: highlighted)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: style.crossfadeKey)
                 Canvas { context, _ in
                     for tile in tiles where selection.contains(tile.id) {
                         let path = Path(roundedRect: tile.rect, cornerRadius: tile.isContainer ? 7 : 5)
                         context.stroke(path, with: .color(.primary), lineWidth: 2.5)
                     }
                 }.allowsHitTesting(false)
-                motionOverlay
+                MapMotionOverlay(hovered: morph == nil ? hovered : nil, ping: ping, pingToken: pingToken)
                 if let snapshot {
                     Color.clear.overlay(alignment: .topLeading) {
                         Image(decorative: snapshot, scale: displayScale).resizable()
@@ -108,6 +114,7 @@ struct TreemapView: View {
                 guard !reduceMotion, added.count == 1, let id = added.first, let tile = tiles.first(where: { $0.id == id }) else { return }
                 ping = tile.rect; pingToken += 1
             }
+            .onChange(of: labelDetail) { snapshot = nil }
             .background(MapNavigationAdapter(back: { history(true) }, forward: { history(false) }))
             .simultaneousGesture(MagnifyGesture().onEnded { value in
                 if value.magnification <= 0.85 { parent() }
@@ -128,7 +135,7 @@ struct TreemapView: View {
                         Button("Copy path", systemImage: "doc.on.doc") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(node.path, forType: .string) }
                         Divider()
                         cleanupMenu(for: node)
-                    } else { Button("Browse these items") { aggregate(entry) } }
+                    } else if entry.kind == .aggregate { Button("Browse these items") { aggregate(entry) } }
                 }
             }
             .task(id: LayoutKey(scene: scene, size: geometry.size, revision: fitRevision)) {
@@ -147,36 +154,6 @@ struct TreemapView: View {
         }
     }
 
-    /// Hover highlight that glides between tiles, plus the selection ping.
-    @ViewBuilder private var motionOverlay: some View {
-        Color.clear.overlay(alignment: .topLeading) {
-            if let hovered, morph == nil {
-                let shape = RoundedRectangle(cornerRadius: hovered.isContainer ? 7 : 5)
-                shape.fill(.primary.opacity(hovered.isContainer ? 0.03 : 0.07))
-                    .overlay(shape.strokeBorder(.primary.opacity(0.55), lineWidth: 1.5))
-                    .frame(width: hovered.rect.width, height: hovered.rect.height)
-                    .offset(x: hovered.rect.minX, y: hovered.rect.minY)
-                    .transition(.opacity)
-            }
-        }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: hovered?.id)
-        .allowsHitTesting(false)
-        Color.clear.overlay(alignment: .topLeading) {
-            if let ping {
-                RoundedRectangle(cornerRadius: 7).strokeBorder(Color.teal, lineWidth: 3)
-                    .frame(width: ping.width, height: ping.height)
-                    .keyframeAnimator(initialValue: PingValue(), trigger: pingToken) { content, value in
-                        content.scaleEffect(value.scale).opacity(value.opacity)
-                    } keyframes: { _ in
-                        KeyframeTrack(\.scale) { CubicKeyframe(1, duration: 0.01); CubicKeyframe(1.06, duration: 0.45) }
-                        KeyframeTrack(\.opacity) { LinearKeyframe(0.9, duration: 0.06); LinearKeyframe(0, duration: 0.4) }
-                    }
-                    .offset(x: ping.minX, y: ping.minY)
-            }
-        }
-        .allowsHitTesting(false)
-    }
-    private struct PingValue { var scale = 1.0; var opacity = 0.0 }
 
     /// Installs a new layout, choosing the motion that explains the change: a zoom for
     /// focus navigation, a glide for same-folder geometry changes, an assembling sweep
@@ -198,7 +175,7 @@ struct TreemapView: View {
             } else {
                 target = bounds.insetBy(dx: -size.width * 0.04, dy: -size.height * 0.04); growIn = true
             }
-            let renderer = ImageRenderer(content: MapDrawing(tiles: oldTiles, highlighted: highlighted, asynchronous: false)
+            let renderer = ImageRenderer(content: MapDrawing(tiles: oldTiles, style: style, labelDetail: labelDetail, asynchronous: false)
                 .environment(\.colorScheme, scheme).frame(width: size.width, height: size.height))
             renderer.scale = displayScale
             snapshot = renderer.cgImage; snapshotFrame = bounds; snapshotOpacity = 1
@@ -207,6 +184,7 @@ struct TreemapView: View {
             : growIn ? MapMorph.intro(newTiles, in: size, sweep: first ? 0.3 : 0.14)
             : rootChanged ? nil : MapMorph.relayout(from: oldTiles, to: newTiles)
         tiles = newTiles; previousRoot = scene.rootID; previousSize = size; hovered = nil
+        onLayout(newTiles)
         morph = nextMorph; morphStart = Date()
         if let target, snapshot != nil {
             withAnimation(.smooth(duration: 0.34)) { snapshotFrame = target; snapshotOpacity = 0 }
@@ -238,74 +216,31 @@ struct TreemapView: View {
             Text(tile.entry.localizedTitle).font(.callout.weight(.semibold)).lineLimit(1)
             Text(scene.summary.knownBytes > 0 ? L10n.format("%@ · %lld%% of view", sizeText(tile.entry.bytes), Int(Double(tile.entry.bytes) / Double(scene.summary.knownBytes) * 100)) : sizeText(tile.entry.bytes))
                 .font(.caption).foregroundStyle(.secondary)
+            if tile.entry.unknownCount > 0 {
+                Text("Partial size").font(.caption2).foregroundStyle(.orange)
+            }
             if let path = tile.entry.node?.path { Text(path).font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }
             if let node = tile.entry.node, let explanation = description(node) {
                 Text(explanation).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
+            if let note = growthNote(tile.entry) { Text(note).font(.caption.weight(.medium)).monospacedDigit() }
+            if let tileClass = style.tileClass(of: tile) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label { Text(tileClass.title).font(.caption.weight(.medium)) } icon: { Circle().fill(tileClass.color).frame(width: 7, height: 7) }
+                    if !tileClass.explanation.isEmpty {
+                        Text(tileClass.explanation).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }.padding(.top, 2)
+            }
             if tile.entry.kind == .aggregate { Text("Click to browse all items in this folder").font(.caption2).foregroundStyle(.secondary) }
+            if tile.entry.kind == .unreached, let unreached {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read.")
+                    if let purgeable = unreached.purgeable { Text(L10n.format("macOS can free about %@ of purgeable space on its own.", sizeText(purgeable))) }
+                    if let snapshots = unreached.localSnapshots, snapshots > 0 { Text(L10n.count("%lld local snapshots (sizes not reported)", snapshots)) }
+                    if unreached.unreadableLocations > 0 { Text(L10n.count("%lld locations couldn’t be read", unreached.unreadableLocations)) }
+                }.font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         }.padding(12).frame(maxWidth: 340, alignment: .leading).background(.regularMaterial, in: .rect(cornerRadius: 12)).padding(12)
-    }
-}
-
-private struct MapDrawing: View, Equatable {
-    let tiles: [SceneTile]
-    let highlighted: FileCategory?
-    var asynchronous = true
-    @Environment(\.colorScheme) private var scheme
-    nonisolated static func == (a: Self, b: Self) -> Bool { a.tiles == b.tiles && a.highlighted == b.highlighted && a.asynchronous == b.asynchronous }
-    var body: some View {
-        Canvas(opaque: false, rendersAsynchronously: asynchronous) { context, _ in
-            for tile in tiles { MapPainter.draw(tile, in: tile.rect, opacity: 1, highlighted: highlighted, scheme: scheme, context: context) }
-        }
-    }
-}
-
-/// Frame-by-frame drawing of a `MapMorph`; shown only while the motion runs.
-private struct MorphingMapDrawing: View {
-    let morph: MapMorph
-    let start: Date
-    let highlighted: FileCategory?
-    @Environment(\.colorScheme) private var scheme
-    var body: some View {
-        TimelineView(.animation) { timeline in
-            let elapsed = timeline.date.timeIntervalSince(start)
-            Canvas(opaque: false) { context, _ in
-                for item in morph.items {
-                    let state = morph.state(of: item, elapsed: elapsed)
-                    guard state.opacity > 0.01 else { continue }
-                    MapPainter.draw(item.tile, in: state.rect, opacity: state.opacity, highlighted: highlighted, scheme: scheme, context: context)
-                }
-            }
-        }
-    }
-}
-
-private enum MapPainter {
-    static func draw(_ tile: SceneTile, in rect: CGRect, opacity: Double, highlighted: FileCategory?, scheme: ColorScheme, context base: GraphicsContext) {
-        guard rect.width > 1, rect.height > 1 else { return }
-        var context = base
-        context.opacity = opacity
-        let entry = tile.entry
-        let dimmed = highlighted != nil && !tile.isContainer && entry.kind == .file && entry.category != highlighted
-        let color: Color = entry.kind == .folder ? .teal : entry.kind == .aggregate ? .gray : entry.category.color
-        let path = Path(roundedRect: rect, cornerRadius: tile.isContainer ? 7 : 5)
-        if tile.isContainer {
-            context.fill(path, with: .color(.primary.opacity(scheme == .dark ? 0.055 : 0.035)))
-            context.stroke(path, with: .color(.primary.opacity(0.1)), lineWidth: 1)
-        } else {
-            let fill = dimmed ? 0.10 : scheme == .dark ? 0.68 : 0.27
-            context.fill(path, with: .linearGradient(Gradient(colors: [color.opacity(fill), color.opacity(fill * 0.7)]), startPoint: rect.origin, endPoint: CGPoint(x: rect.maxX, y: rect.maxY)))
-            context.stroke(path, with: .color(color.opacity(dimmed ? 0.08 : 0.22)), lineWidth: 0.5)
-        }
-        guard rect.width > 62 && rect.height > 23 else { return }
-        let foreground: Color = dimmed ? .secondary.opacity(0.4) : .primary
-        let label = Text(entry.localizedTitle).font(.system(size: tile.isContainer ? 11 : 12, weight: .medium)).foregroundStyle(foreground)
-        context.draw(label, in: CGRect(x: rect.minX + 9, y: rect.minY + 5, width: rect.width - 18, height: 16))
-        if !tile.isContainer && rect.height > 54 && rect.width > 85 {
-            context.draw(Text(sizeText(entry.bytes)).font(.system(size: 11)).foregroundStyle(foreground.opacity(0.65)), at: CGPoint(x: rect.minX + 9, y: rect.minY + 27), anchor: .topLeading)
-            if entry.unknownCount > 0 && rect.height > 78 {
-                context.draw(Text("Partial size").font(.system(size: 10)).foregroundStyle(.orange), at: CGPoint(x: rect.minX + 9, y: rect.minY + 46), anchor: .topLeading)
-            }
-        }
     }
 }

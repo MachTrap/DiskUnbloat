@@ -38,8 +38,17 @@ struct CleanupQueueView: View {
     /// The last chosen quick-select level, remembered per viewer.
     @AppStorage("quickSelectLevel") private var levelValue = AutoSelectionLevel.junk.rawValue
     private var level: AutoSelectionLevel { AutoSelectionLevel(rawValue: levelValue) ?? .junk }
+    /// Duplicates are a separate choice in the same menu, outside the nested levels.
+    @AppStorage("quickSelectDuplicates") private var duplicatesChosen = false
+    /// Menu tag: a level's raw value, or 0 for duplicates.
+    private var choice: Binding<Int> {
+        Binding(get: { duplicatesChosen ? 0 : levelValue },
+                set: { value in duplicatesChosen = value == 0; if value != 0 { levelValue = value } })
+    }
 
     private var cleanup: CleanupViewModel { model.cleanup }
+    var duplicates: DuplicatesViewModel?
+    var developerTools: DeveloperToolsViewModel?
 
     private struct RefreshKey: Equatable { let revision: Int; let currentID: Int64? }
 
@@ -136,9 +145,13 @@ struct CleanupQueueView: View {
     /// every broader level first shows a warning with its honest estimate.
     private var quickSelect: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker(L10n.text("Quick select"), selection: $levelValue) {
+            Picker(L10n.text("Quick select"), selection: choice) {
                 ForEach(AutoSelectionLevel.allCases) { level in
                     Text(Self.title(level)).tag(level.rawValue)
+                }
+                if duplicates != nil {
+                    Divider()
+                    Text(L10n.text("Duplicate files")).tag(0)
                 }
             }
             // A menu picker has no width floor: four segmented labels (longer still in
@@ -147,6 +160,9 @@ struct CleanupQueueView: View {
             .labelsHidden()
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier("selectionLevel")
+            if duplicatesChosen, let duplicates {
+                DuplicatesSection(model: duplicates, canClean: canClean && !cleanup.cleaning && !selecting)
+            } else {
             Text(Self.subtitle(level))
                 .font(.caption2).foregroundStyle(.secondary)
                 .lineLimit(3, reservesSpace: true)
@@ -173,7 +189,19 @@ struct CleanupQueueView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let developerTools {
+                Button { Task { await developerTools.open() } } label: {
+                    Label(L10n.text("Developer tools…"), systemImage: "hammer")
+                }
+                .buttonStyle(.borderless).font(.caption)
+                .accessibilityIdentifier("openDeveloperTools")
+                .sheet(isPresented: Binding(get: { developerTools.showSheet }, set: { developerTools.showSheet = $0 })) {
+                    DeveloperToolsSheet(model: developerTools)
+                }
+            }
         }.padding(.horizontal, 16).padding(.vertical, 10)
+
     }
 
     private func choose(_ level: AutoSelectionLevel) {
@@ -447,5 +475,82 @@ struct CleanupQueueView: View {
         case .partial: L10n.text("Partly selected")
         case .unchecked: L10n.text("Not selected")
         }
+    }
+}
+
+/// Duplicate discovery stays in the queue panel. A finished search opens the review.
+private struct DuplicatesSection: View {
+    let model: DuplicatesViewModel
+    let canClean: Bool
+    @FocusState private var reviewFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders.")
+                .font(.caption2).foregroundStyle(.secondary)
+                .lineLimit(3, reservesSpace: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            switch model.state {
+            case .idle, .failed:
+                findButton
+                if case .failed(let reason) = model.state {
+                    Text(reason).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+                }
+            case .searching(let progress):
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        if let total = progress.total, total > 0 {
+                            ProgressView(value: Double(progress.completed), total: Double(total))
+                        } else {
+                            ProgressView().controlSize(.small)
+                        }
+                        Button("Cancel", action: model.cancel)
+                            .buttonStyle(.borderless)
+                            .accessibilityIdentifier("cancelDuplicates")
+                    }
+                    Text(progress.stage == .verifyingFolders ? L10n.text("Verifying matching folders…") : L10n.text("Comparing files…"))
+                        .font(.caption).foregroundStyle(.secondary)
+                    if let total = progress.total, total > 0, progress.stage == .comparingFiles {
+                        Text(L10n.format("%@ of %@ files", progress.completed.formatted(), total.formatted()))
+                            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                }
+            case .found:
+                HStack(spacing: 8) {
+                    Button("Review duplicates", action: model.reopenReview)
+                        .buttonStyle(.borderedProminent).tint(.teal).disabled(!canClean)
+                        .focused($reviewFocused)
+                        .accessibilityIdentifier("selectDuplicates")
+                    Spacer(minLength: 0)
+                    findButton
+                }
+                if model.groups.isEmpty {
+                    Text("No duplicates found.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("duplicatesEstimate")
+                } else {
+                    Text(L10n.count("%lld matches", model.groups.count))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("duplicatesEstimate")
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("duplicatesSection")
+        .onChange(of: model.presentation?.id) { previous, current in
+            if previous != nil, current == nil { reviewFocused = true }
+        }
+    }
+
+    private var findButton: some View {
+        Button(action: model.find) {
+            if model.search == nil {
+                Text("Find duplicates")
+            } else {
+                Label("Find again", systemImage: "arrow.clockwise").labelStyle(.iconOnly)
+            }
+        }
+        .disabled(!canClean)
+        .accessibilityIdentifier("findDuplicates")
     }
 }

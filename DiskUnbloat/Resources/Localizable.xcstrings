@@ -10807,6 +10807,150 @@
           }
         }
       }
+    },
+    "Keep scan history to show growth" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep scan history to show growth"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранить историю сканирований, чтобы показывать рост"
+          }
+        }
+      }
+    },
+    "Stores the sizes and paths of the largest items from each finished scan (never file contents), the last 10 per location." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stores the sizes and paths of the largest items from each finished scan (never file contents), the last 10 per location."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраняет размеры и пути крупнейших объектов каждого завершённого сканирования (никогда не содержимое файлов), последние 10 для каждого места."
+          }
+        }
+      }
+    },
+    "Clear scan history" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear scan history"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить историю сканирований"
+          }
+        }
+      }
+    },
+    "Cleared" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleared"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищено"
+          }
+        }
+      }
+    },
+    "No earlier scan of this location yet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No earlier scan of this location yet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это место ещё не сканировалось раньше"
+          }
+        }
+      }
+    },
+    "Compare with" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare with"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнить с"
+          }
+        }
+      }
+    },
+    "New since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New since %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое с %@"
+          }
+        }
+      }
+    },
+    "Unchanged since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unchanged since %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без изменений с %@"
+          }
+        }
+      }
+    },
+    "%@ since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ since %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ с %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

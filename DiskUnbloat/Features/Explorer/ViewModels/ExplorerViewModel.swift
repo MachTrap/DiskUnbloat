@@ -46,6 +46,33 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     @ObservationIgnored private var searchHighlight: SearchHighlight?
     @ObservationIgnored private var matchCursor = -1
     static let matchLimit = 5000
+    /// Earlier scans of this scope (newest first) and the one Growth compares with.
+    private(set) var historyDates: [Date] = []
+    var compareDate: Date? { didSet { if compareDate != oldValue { loadBaseline() } } }
+    @ObservationIgnored private var historyLoader: (Date) -> ScanHistorySnapshot? = { _ in nil }
+    @ObservationIgnored private(set) var growthBaseline: ScanHistorySnapshot?
+
+    func setHistory(dates: [Date], loader: @escaping (Date) -> ScanHistorySnapshot?) {
+        historyLoader = loader; historyDates = dates
+        compareDate = dates.first
+        loadBaseline()
+    }
+
+    private func loadBaseline() {
+        growthBaseline = compareDate.flatMap(historyLoader)
+        recolor()
+    }
+
+    /// Hover text for Growth: the change against the compared scan.
+    func growthNote(for entry: MapEntry) -> String? {
+        guard colorMode == .growth, let baseline = growthBaseline, let node = entry.node else { return nil }
+        let date = baseline.date.formatted(date: .abbreviated, time: .omitted)
+        guard let previous = baseline.previousBytes(of: node.path, current: entry.bytes) else { return L10n.format("New since %@", date) }
+        let delta = entry.bytes - previous
+        if delta == 0 { return L10n.format("Unchanged since %@", date) }
+        return L10n.format("%@ since %@", (delta > 0 ? "+" : "−") + sizeText(abs(delta)), date)
+    }
+
     /// Space a volume scan could not reach; shown as its own tile at the scan root.
     private(set) var unreached: UnreachedSpace?
     var showUnreached = true {
@@ -102,6 +129,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         sceneCache = [:]; sceneCacheOrder = []
         scene = MapScene(); current = nil; selectionIDs = []
         safety = .empty; roots = []; tileStyle = MapTileStyle(); classShares = [:]; unreached = nil
+        historyDates = []; growthBaseline = nil; historyLoader = { _ in nil }
         breadcrumbs = []; back = []; forward = []; suggestion = nil; highlightedClass = nil
         search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current
         hiddenPaths = []; hiddenSubtrees = []; queuedPaths = []; hiddenGeneration += 1
@@ -163,7 +191,8 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     }
 
     private func recolor() {
-        let coloring = MapColoring(mode: colorMode, safety: safety, roots: roots, exemptCacheRoots: exemptCacheRoots)
+        var coloring = MapColoring(mode: colorMode, safety: safety, roots: roots, exemptCacheRoots: exemptCacheRoots)
+        if let baseline = growthBaseline { coloring.growth = { path, bytes in baseline.previousBytes(of: path, current: bytes) } }
         let result = coloring.classify(scene)
         tileStyle = MapTileStyle(classes: result.classes, highlighted: highlightedClass, searchLit: searchLit(), mode: colorMode)
         classShares = result.shares

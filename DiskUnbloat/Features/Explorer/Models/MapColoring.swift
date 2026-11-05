@@ -101,8 +101,9 @@ struct MapColoring {
     var roots: [URL]
     var exemptCacheRoots: [String]
     var now = Date()
-    /// Growth deltas by path (Phase: scan history); `nil` when no earlier scan exists.
-    var growth: ((String) -> Int64?)?
+    /// Earlier size for (path, current bytes): `nil` result means new. The closure is
+    /// `nil` when there is no earlier scan to compare with.
+    var growth: ((String, Int64) -> Int64?)?
 
     func tileClass(_ entry: MapEntry) -> TileClass? {
         guard let node = entry.node else { return nil }
@@ -120,8 +121,8 @@ struct MapColoring {
             return days < 31 ? .month : days < 183 ? .halfYear : days < 366 ? .year : days < 731 ? .twoYears : .older
         case .growth:
             guard let growth else { return .noHistory }
-            guard let previous = growth(node.path) else { return .added }
             let bytes = entry.bytes
+            guard let previous = growth(node.path, bytes) else { return .added }
             let threshold = max(Int64(1 << 20), previous / 20)
             return bytes - previous > threshold ? .grew : previous - bytes > threshold ? .shrank : .unchanged
         }

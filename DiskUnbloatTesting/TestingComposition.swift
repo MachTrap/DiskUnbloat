@@ -47,7 +47,9 @@ import DiskCore
 
     func makeWorkspace() -> WorkspaceViewModel {
         WorkspaceViewModel(
-            coordinator: scanner, cleanupService: cleanup, fullDiskAccess: fullDiskAccess,
+            coordinator: scanner, cleanupService: cleanup,
+            settings: SettingsViewModel(history: ScanHistoryStore(base: profileDirectory.appendingPathComponent("History", isDirectory: true))),
+            fullDiskAccess: fullDiskAccess,
             catalog: LocationCatalog(home: home),
             storage: ScanSessionStore(base: profileDirectory.appendingPathComponent("Scans", isDirectory: true)))
     }

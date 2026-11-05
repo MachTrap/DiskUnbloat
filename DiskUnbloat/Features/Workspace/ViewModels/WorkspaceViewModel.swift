@@ -341,12 +341,26 @@ enum WorkspacePhase: Equatable {
                 queue.attach(IndexCleanupQueueProvider(index: db, inspectPackages: request.options.inspectPackages))
                 cleanup.showQueue = true
                 phase = .exploring
+                recordHistory(index: db, roots: request.roots)
                 // Volume scans also account for the space they could not reach.
                 if request.extraRoots.isEmpty, scan.snapshot?.cancelled != true {
                     let known = await db.node(1)?.knownSize(for: .allocated) ?? 0
                     explorer.setUnreached(await VolumeSpaceService.unreached(root: request.root, knownBytes: known, unreadableLocations: scan.issues.count))
                 }
             } catch { phase = .failed(L10n.format("Couldn’t start the scan. %@", error.diagnosticDescription)) }
+        }
+    }
+
+    /// Growth compares against the newest earlier scan of the same scope; then this scan
+    /// joins the history (unless the user turned it off). Cancelled scans are never kept.
+    private func recordHistory(index: ScanIndex, roots: [URL]) {
+        let key = ScanHistorySnapshot.rootKey(roots)
+        let store = settings.history
+        explorer.setHistory(dates: store.dates(rootKey: key)) { store.load(rootKey: key, date: $0) }
+        guard settings.keepScanHistory, scan.snapshot?.cancelled != true else { return }
+        let partial = scan.snapshot?.complete == false
+        Task.detached(priority: .utility) {
+            if let snapshot = await index.historySnapshot(roots: roots, partial: partial) { try? store.save(snapshot) }
         }
     }
 

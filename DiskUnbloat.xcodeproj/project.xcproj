@@ -459,6 +459,18 @@
               ],
             }, {
               "kind": "group",
+              "path": "ScanHistory",
+              "children": [
+                {
+                  "path": "ScanHistoryStore.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
+              ],
+            }, {
+              "kind": "group",
               "path": "ScanStorage",
               "children": [
                 {
@@ -567,6 +579,7 @@
         { "path": "PresentationTestSupport.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PresentationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "QueuePerformanceBench.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "ScanHistoryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "SearchModeTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "UnreachedSpaceTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "WorkspaceRecoveryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

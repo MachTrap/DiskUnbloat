@@ -8,6 +8,7 @@ struct TreemapView: View {
     let style: MapTileStyle
     /// Breakdown for the unreached-space tile's hover card.
     var unreached: UnreachedSpace?
+    var growthNote: (MapEntry) -> String? = { _ in nil }
     let fitRevision: Int
     let select: (MapEntry, Bool) -> Void
     let open: (FileNode) -> Void
@@ -214,6 +215,7 @@ struct TreemapView: View {
             if let node = tile.entry.node, let explanation = description(node) {
                 Text(explanation).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
+            if let note = growthNote(tile.entry) { Text(note).font(.caption.weight(.medium)).monospacedDigit() }
             if let tileClass = style.tileClass(of: tile) {
                 VStack(alignment: .leading, spacing: 2) {
                     Label { Text(tileClass.title).font(.caption.weight(.medium)) } icon: { Circle().fill(tileClass.color).frame(width: 7, height: 7) }

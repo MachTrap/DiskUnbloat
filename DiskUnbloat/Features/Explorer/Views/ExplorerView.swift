@@ -46,7 +46,7 @@ struct ExplorerView: View {
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, unreached: model.unreached, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, unreached: model.unreached, growthNote: model.growthNote, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
                 .overlay {
                     if model.isLoading {
@@ -253,6 +253,15 @@ struct ExplorerView: View {
                 Picker("Colour by", selection: $model.colorMode) {
                     ForEach(MapColorMode.allCases) { Text($0.title).tag($0) }
                 }.pickerStyle(.inline)
+                if model.colorMode == .growth {
+                    if model.historyDates.isEmpty {
+                        Text("No earlier scan of this location yet")
+                    } else {
+                        Picker("Compare with", selection: $model.compareDate) {
+                            ForEach(model.historyDates, id: \.self) { Text($0.formatted(date: .abbreviated, time: .shortened)).tag(Optional($0)) }
+                        }.accessibilityIdentifier("compareWith")
+                    }
+                }
             } label: {
                 Label(model.colorMode.title, systemImage: "paintpalette")
             }

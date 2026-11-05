@@ -36,6 +36,17 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     /// Legend highlight: dims every other class. Independent of layout and filters.
     var highlightedClass: TileClass? { didSet { tileStyle.highlighted = highlightedClass } }
     private(set) var tileStyle = MapTileStyle()
+    /// Filter (classic) or highlight search; persisted.
+    var searchMode: SearchMode = .filter {
+        didSet { defaults.set(searchMode.rawValue, forKey: "searchMode"); if searchMode != oldValue, !search.isEmpty { scheduleRefresh() } }
+    }
+    /// Highlight-search matches in scope (largest first), capped at `matchLimit`.
+    private(set) var searchMatches: [FileNode] = []
+    private(set) var matchesTruncated = false
+    @ObservationIgnored private var searchHighlight: SearchHighlight?
+    @ObservationIgnored private var matchCursor = -1
+    static let matchLimit = 5000
+    var highlightSearchActive: Bool { searchMode == .highlight && !search.isEmpty }
     /// Leaf-tile bytes per class in the current scene, for the legend.
     private(set) var classShares: [TileClass: Int64] = [:]
     var legendClasses: [TileClass] { colorMode.classes.filter { (classShares[$0] ?? 0) > 0 } }
@@ -72,10 +83,11 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     /// Raw queue paths as handed in, before hidden-range pruning and collapse.
     @ObservationIgnored private var queuedPaths: [String] = []
     @ObservationIgnored private var hiddenGeneration = 0
-    var hasFilters: Bool { !search.isEmpty || suggestion != nil || minimumGB > 0 || olderDays > 0 || !extensionFilter.isEmpty }
+    var hasFilters: Bool { (searchMode == .filter && !search.isEmpty) || suggestion != nil || minimumGB > 0 || olderDays > 0 || !extensionFilter.isEmpty }
     init(settings: SettingsViewModel, userCacheRoot: URL? = nil, activity: any ApplicationActivityProviding = ApplicationActivityService(), defaults: UserDefaults = .standard) {
         self.settings = settings; self.activity = activity; self.defaults = defaults; cacheRootPath = userCacheRoot?.path
         colorMode = defaults.string(forKey: "mapColorMode").flatMap(MapColorMode.init(rawValue:)) ?? .safety
+        searchMode = defaults.string(forKey: "searchMode").flatMap(SearchMode.init(rawValue:)) ?? .filter
         homePath = userCacheRoot?.deletingLastPathComponent().deletingLastPathComponent().path
     }
 
@@ -147,7 +159,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     private func recolor() {
         let coloring = MapColoring(mode: colorMode, safety: safety, roots: roots, exemptCacheRoots: exemptCacheRoots)
         let result = coloring.classify(scene)
-        tileStyle = MapTileStyle(classes: result.classes, highlighted: highlightedClass, mode: colorMode)
+        tileStyle = MapTileStyle(classes: result.classes, highlighted: highlightedClass, searchLit: searchLit(), mode: colorMode)
         classShares = result.shares
     }
 
@@ -195,11 +207,48 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             current: current, metric: metric, options: options, scope: scope,
             suggestion: suggestion, hiddenPaths: hiddenPaths, hiddenSubtrees: hiddenSubtrees,
             activityExclusions: suggestion != nil ? (homePath.map { activity.blockedCachePaths(home: $0) } ?? []) : [],
-            search: search, minimumGB: minimumGB,
+            search: searchMode == .filter ? search : "", minimumGB: minimumGB,
             olderDays: olderDays, extensionFilter: extensionFilter,
             cacheRootPath: cacheRootPath, homePath: homePath, cacheAgeDays: settings.cacheAgeDays,
             ageDays: settings.ageDays, largeGB: settings.largeGB, groupScan: groupScan
         )
+    }
+
+    private func searchLit() -> Set<Int64>? {
+        guard let searchHighlight else { return nil }
+        return Set(scene.entries.compactMap { entry in entry.node.flatMap { searchHighlight.lights($0.path) ? entry.id : nil } })
+    }
+
+    /// Highlight search: matching names anywhere in scope (folders included), without
+    /// filtering the scene. Capped, and the cap is reported, never hidden.
+    private func loadSearchMatches(index: ScanIndex, queries: ExplorerQueries) async {
+        guard highlightSearchActive else {
+            searchMatches = []; matchesTruncated = false; searchHighlight = nil; matchCursor = -1; return
+        }
+        var q = FileQuery()
+        q.search = search; q.inspectPackages = options.inspectPackages; q.metric = metric
+        q.subtreePath = queries.subtreeScope(); q.hiddenPaths = hiddenPaths; q.hiddenSubtrees = hiddenSubtrees
+        q.limit = Self.matchLimit + 1
+        let found = await index.query(q)
+        guard self.index === index else { return }
+        matchesTruncated = found.count > Self.matchLimit
+        searchMatches = Array(found.prefix(Self.matchLimit))
+        searchHighlight = SearchHighlight(paths: searchMatches.map(\.path))
+        matchCursor = -1
+    }
+
+    /// Return in the search field: open the next match's folder and select it.
+    func stepToNextMatch() {
+        guard highlightSearchActive, !searchMatches.isEmpty, let index else { return }
+        matchCursor = (matchCursor + 1) % searchMatches.count
+        let match = searchMatches[matchCursor]
+        let cursor = matchCursor
+        Task {
+            guard let parentID = match.parentID, let parent = await index.node(parentID), self.index === index, cursor == matchCursor else { return }
+            if parent.id != current?.id { navigate(parent) }
+            nodesByID[match.id] = match
+            selectionIDs = [match.id]
+        }
     }
 
     func loadResults() async {
@@ -231,6 +280,8 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         }
         let retainedSelection = selectedNodes
         scene = resolvedScene
+        await loadSearchMatches(index: index, queries: queries)
+        guard generation == queryGeneration else { return }
         recolor()
         nodesByID = Dictionary(resolvedScene.entries.compactMap(\.node).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for n in retainedSelection { nodesByID[n.id] = n }

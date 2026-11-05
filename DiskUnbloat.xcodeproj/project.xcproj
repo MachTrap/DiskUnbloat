@@ -548,6 +548,7 @@
         { "path": "PresentationTestSupport.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PresentationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "QueuePerformanceBench.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "SearchModeTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "WorkspaceRecoveryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
       ],
     }, {

@@ -75,6 +75,7 @@ import DiskCore
         #expect(model.explorer.selectionBytes == 4096)
         let geometryBefore = model.explorer.scene
         model.explorer.highlightedClass = .junk; model.explorer.colorMode = .age
+        defer { model.explorer.colorMode = .safety } // restore the persisted default
         #expect(model.explorer.scene == geometryBefore)
         await model.shutdown()
     }

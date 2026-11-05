@@ -142,13 +142,46 @@ struct MapColoring {
 }
 
 /// What the painter needs to colour tiles; equatable so the canvas redraws only on change.
+/// How the search field acts on the map.
+enum SearchMode: String, CaseIterable, Identifiable {
+    /// Classic: the map shows only matching items (a filtered scene).
+    case filter
+    /// The map keeps its layout; matches and the folders containing them stay lit.
+    case highlight
+    var id: Self { self }
+    var title: String { self == .filter ? L10n.text("Filter the map") : L10n.text("Highlight on the map") }
+    var symbol: String { self == .filter ? "line.3.horizontal.decrease" : "highlighter" }
+    static func matchCount(_ count: Int) -> String { count.formatted() }
+}
+
+/// Sorted match paths for highlight search: a tile is lit when it is a match or
+/// contains one.
+struct SearchHighlight: Equatable {
+    private(set) var paths: [String] = []
+    init(paths: [String] = []) { self.paths = paths.sorted() }
+    func lights(_ path: String) -> Bool {
+        let exact = lowerBound(path)
+        if exact < paths.count, paths[exact] == path { return true }
+        // Descendants sort from `path + "/"` on (siblings like "path-1" sort before it).
+        let prefix = path + "/", below = lowerBound(prefix)
+        return below < paths.count && paths[below].hasPrefix(prefix)
+    }
+    private func lowerBound(_ key: String) -> Int {
+        var low = 0, high = paths.count
+        while low < high { let mid = (low + high) / 2; if paths[mid] < key { low = mid + 1 } else { high = mid } }
+        return low
+    }
+}
+
 struct MapTileStyle: Equatable {
     var classes: [Int64: TileClass] = [:]
     var highlighted: TileClass?
+    /// Tiles lit by a highlight search; `nil` when no highlight search is active.
+    var searchLit: Set<Int64>?
     var mode: MapColorMode = .safety
     /// Changes when the user restyles (mode or highlight), so the canvas crossfades;
     /// scene reloads keep it, so navigation is not slowed by a fade.
-    var crossfadeKey: String { mode.rawValue + "/" + (highlighted?.rawValue ?? "") }
+    var crossfadeKey: String { mode.rawValue + "/" + (highlighted?.rawValue ?? "") + (searchLit == nil ? "" : "/search") }
     func tileClass(of tile: SceneTile) -> TileClass? { classes[tile.id] }
     func color(of tile: SceneTile) -> Color {
         switch tile.entry.kind {
@@ -157,7 +190,9 @@ struct MapTileStyle: Equatable {
         }
     }
     func dimmed(_ tile: SceneTile) -> Bool {
-        guard let highlighted, !tile.isContainer else { return false }
+        guard !tile.isContainer else { return false }
+        if let searchLit, !searchLit.contains(tile.id) { return true }
+        guard let highlighted else { return false }
         return classes[tile.id] != highlighted
     }
 }

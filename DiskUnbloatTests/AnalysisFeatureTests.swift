@@ -87,6 +87,7 @@ import DiskCore
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let scene = model.explorer.scene
         model.explorer.highlightedClass = .junk; model.explorer.colorMode = .age
+        defer { model.explorer.colorMode = .safety } // restore the persisted default
         // Colour modes and class highlighting only restyle the map; geometry never depends on them.
         #expect(model.explorer.scene == scene)
         // Descriptions exist only for curated locations, and never for other paths.

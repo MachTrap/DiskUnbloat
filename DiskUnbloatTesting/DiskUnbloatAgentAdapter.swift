@@ -59,6 +59,10 @@ import DiskCore
             "legend": .array(explorer.legendClasses.map { .string($0.rawValue + "=" + String(explorer.classShares[$0] ?? 0)) }),
         ]
         if let highlighted = explorer.highlightedClass { fields["highlightedClass"] = .string(highlighted.rawValue) }
+        fields["searchMode"] = .string(explorer.searchMode.rawValue)
+        fields["search"] = .string(ScreenSnapshot.preview(explorer.search, maxBytes: 128))
+        fields["matchCount"] = .integer(Int64(explorer.searchMatches.count))
+        fields["litTiles"] = .integer(Int64(explorer.tileStyle.searchLit?.count ?? -1))
         if let path = scan.awaitingPermission { fields["awaitingPermission"] = .string(relative(path)) }
         if let current = explorer.current { fields["currentFolder"] = .string(relative(current.path)) }
         if let message = workspace.message { fields["message"] = .string(ScreenSnapshot.preview(message)) }
@@ -125,6 +129,7 @@ import DiskCore
     private struct Visible: Decodable { let visible: Bool }
     private struct Path: Decodable { let path: String }
     private struct Mode: Decodable { let mode: String; let highlight: String? }
+    private struct Search: Decodable { let text: String; let mode: String? }
 
     private var actions: [AgentAction] {
         let workspace = workspace, composition = composition
@@ -157,6 +162,14 @@ import DiskCore
                         as: Mode.self, enabled: { workspace.phase == .exploring }) { input, _ in
                 workspace.explorer.colorMode = MapColorMode(rawValue: input.mode) ?? .safety
                 workspace.explorer.highlightedClass = input.highlight.flatMap(TileClass.init(rawValue:))
+                return .completed
+            },
+            AgentAction("explorer.search", scope: "current-screen",
+                        input: ObjectSchema(["text": .string(maxLength: 128), "mode": .string(maxLength: 16, oneOf: SearchMode.allCases.map(\.rawValue))], required: ["text"]),
+                        as: Search.self, enabled: { workspace.phase == .exploring }) { input, _ in
+                if let mode = input.mode.flatMap(SearchMode.init(rawValue:)) { workspace.explorer.searchMode = mode }
+                workspace.explorer.search = input.text
+                await workspace.explorer.loadResults()
                 return .completed
             },
             AgentAction("quickSelect.apply", scope: "current-screen",

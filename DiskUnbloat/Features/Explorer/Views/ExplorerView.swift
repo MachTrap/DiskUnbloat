@@ -38,6 +38,7 @@ struct ExplorerView: View {
         VStack(spacing: 0) {
             pathBar
             if model.hasFilters { filterChips }
+            if model.highlightSearchActive { matchBar }
             if scan.snapshot?.complete == false {
                 HStack {
                     Label(scan.snapshot?.cancelled == true ? "Cancelled scan · partial results · cleanup disabled" : "Some locations couldn’t be read. Map sizes are partial.", systemImage: "exclamationmark.triangle")
@@ -124,7 +125,10 @@ struct ExplorerView: View {
     /// typing does not commit a query (and chip) per keystroke. Return commits immediately.
     private struct SearchField: View {
         @Binding var text: String
+        @Binding var mode: SearchMode
         var focused: FocusState<Bool>.Binding
+        /// Return on an already committed highlight search steps to the next match.
+        var stepToNextMatch: () -> Void = {}
         @State private var draft = ""
         @State private var commitTask: Task<Void, Never>?
         private static let debounce: Duration = .milliseconds(350)
@@ -135,7 +139,9 @@ struct ExplorerView: View {
                 TextField("Search", text: $draft)
                     .textFieldStyle(.plain)
                     .focused(focused)
-                    .onSubmit { commit(immediately: true) }
+                    .onSubmit {
+                        if mode == .highlight, draft == text, !text.isEmpty { stepToNextMatch() } else { commit(immediately: true) }
+                    }
                     .accessibilityIdentifier("searchFiles")
                 if !draft.isEmpty {
                     Button { draft = ""; commit(immediately: true) } label: {
@@ -143,9 +149,19 @@ struct ExplorerView: View {
                     }
                     .buttonStyle(.plain).help("Clear").accessibilityLabel("Clear")
                 }
+                Divider().frame(height: 14)
+                // Old (filter) and new (highlight) search, switchable at any time.
+                Button { mode = mode == .filter ? .highlight : .filter } label: {
+                    Image(systemName: mode.symbol).foregroundStyle(mode == .highlight ? Color.accentColor : .secondary)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.plain)
+                .help(mode == .filter ? L10n.text("Search filters the map. Click to highlight matches instead.") : L10n.text("Search highlights matches on the map. Click to filter instead."))
+                .accessibilityLabel(mode.title)
+                .accessibilityIdentifier("searchMode")
             }
             .padding(.horizontal, 8).padding(.vertical, 4)
-            .frame(width: 200)
+            .frame(width: 232)
             .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7))
             .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(focused.wrappedValue ? Color.accentColor.opacity(0.6) : .clear, lineWidth: 1.5))
             .onAppear { draft = text }
@@ -188,7 +204,7 @@ struct ExplorerView: View {
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                if !model.search.isEmpty { chip("“\(model.search)”") { model.search = "" } }
+                if model.searchMode == .filter, !model.search.isEmpty { chip("“\(model.search)”") { model.search = "" } }
                 if let suggestion = model.suggestion { chip(L10n.text(suggestion.rawValue)) { model.suggestion = nil } }
                 if model.minimumGB > 0 { chip(L10n.format("%@ GB+", model.minimumGB.formatted())) { model.minimumGB = 0 } }
                 if model.olderDays > 0 { chip(L10n.count("Older than %lld days", model.olderDays)) { model.olderDays = 0 } }
@@ -197,6 +213,20 @@ struct ExplorerView: View {
                 Button("Clear", action: model.clearFilters).buttonStyle(.plain).foregroundStyle(.teal)
             }.font(.caption).padding(.horizontal, 20).padding(.bottom, 8)
         }
+    }
+    /// Highlight search readout: the map is unfiltered, so the count lives here.
+    private var matchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "highlighter").foregroundStyle(Color.accentColor)
+            Text(model.searchMatches.isEmpty ? L10n.format("No matches for “%@”", model.search)
+                 : model.matchesTruncated ? L10n.format("%@+ matches for “%@”", SearchMode.matchCount(ExplorerViewModel.matchLimit), model.search)
+                 : L10n.format("%@ matches for “%@”", SearchMode.matchCount(model.searchMatches.count), model.search))
+            if !model.searchMatches.isEmpty { Text("Return shows the next one").foregroundStyle(.secondary) }
+            Spacer()
+            Button("Clear") { model.search = "" }.buttonStyle(.plain).foregroundStyle(.teal)
+        }
+        .font(.caption).padding(.horizontal, 20).padding(.bottom, 8)
+        .accessibilityElement(children: .contain).accessibilityIdentifier("searchMatches")
     }
     private func chip(_ title: String, remove: @escaping () -> Void) -> some View {
         Button(action: remove) { HStack(spacing: 5) { Text(title); Image(systemName: "xmark").font(.system(size: 8, weight: .bold)) }.padding(.horizontal, 9).padding(.vertical, 5).background(.teal.opacity(0.09), in: Capsule()) }.buttonStyle(.plain)
@@ -272,7 +302,7 @@ struct ExplorerView: View {
             Button(action: model.up) { Label("Up", systemImage: "arrow.up") }.disabled(model.breadcrumbs.count < 2).keyboardShortcut(.upArrow, modifiers: .command)
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            SearchField(text: $model.search, focused: $searchFocused)
+            SearchField(text: $model.search, mode: $model.searchMode, focused: $searchFocused, stepToNextMatch: model.stepToNextMatch)
             Menu {
                 Picker("Search scope", selection: $model.scope) { ForEach(ExplorerScope.allCases) { Text(L10n.text($0.rawValue)).tag($0) } }
                 Picker("Minimum size", selection: $model.minimumGB) { Text("Any size").tag(0.0); Text("100 MB+").tag(0.1); Text("1 GB+").tag(1.0); Text("10 GB+").tag(10.0) }

@@ -90,8 +90,22 @@ struct WorkspaceView: View {
                 .font(.callout).foregroundStyle(.secondary)
             }
             Text("These locations weren’t fully read. Their complete sizes are unknown; the map still includes known bytes. Showing up to 500 issues.").font(.caption).foregroundStyle(.secondary)
-            List(scan.issues, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
-                .frame(minHeight: 180)
+            List(scan.issueGroups) { group in
+                // Small groups open; big protection groups stay folded to a count.
+                DisclosureGroup {
+                    ForEach(group.paths, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: group.isProtection ? "lock.shield" : "exclamationmark.triangle")
+                            .foregroundStyle(group.isProtection ? Color.secondary : Color.orange)
+                        Text(group.message).font(.callout).lineLimit(2)
+                        Spacer(minLength: 6)
+                        Text(L10n.count("%lld locations", group.paths.count)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                }
+                .accessibilityIdentifier("issueGroup")
+            }
+            .frame(minHeight: 180)
             HStack {
                 if scan.protectedFoldersRefused {
                     Button("Open Full Disk Access settings") { FullDiskAccessSettings.open() }

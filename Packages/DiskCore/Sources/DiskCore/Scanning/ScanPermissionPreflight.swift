@@ -17,6 +17,10 @@ public enum ScanPermissionPreflight: Sendable {
         /// Opens the directory, up to a few immediate child directories, and any media library
         /// bundles (`.photoslibrary`, `.musiclibrary`, `.tvlibrary`) inside it.
         case childrenAndBundles
+        /// Opens up to four immediate child directories that belong to third-party apps
+        /// (not `com.apple.*`): Apple's own app data is guarded by per-service consents
+        /// (Photos, Music, …) that the minimal policy must never raise.
+        case thirdPartyChildren
     }
 
     public struct Target: Sendable, Equatable {
@@ -76,8 +80,8 @@ public enum ScanPermissionPreflight: Sendable {
     /// app containers (and Application Support children) raises that one dialog; once it
     /// is answered, later probes of the same service do not prompt again.
     public static let minimalConsentTargets: [(path: String, depth: ProbeDepth)] = [
-        ("Library/Containers", .childrenAndBundles),
-        ("Library/Application Support", .childrenAndBundles),
+        ("Library/Containers", .thirdPartyChildren),
+        ("Library/Application Support", .thirdPartyChildren),
     ]
 
     /// Personal-data stores each guarded by their own consent service. Under the minimal
@@ -103,12 +107,64 @@ public enum ScanPermissionPreflight: Sendable {
         "Library/Group Containers/group.com.apple.reminders",
         "Library/Group Containers/group.com.apple.notes",
         "Library/Group Containers/group.com.apple.music",
+        // Apple app containers whose data sits behind its own consent service.
+        "Library/Containers/com.apple.Music",
+        "Library/Containers/com.apple.AMPLibraryAgent",
+        "Library/Containers/com.apple.TV",
+        "Library/Containers/com.apple.podcasts",
+        "Library/Containers/com.apple.Photos",
+        "Library/Containers/com.apple.photolibraryd",
+        "Library/Containers/com.apple.CloudPhotosConfiguration",
+        "Library/Containers/com.apple.mail",
+        "Library/Containers/com.apple.MobileSMS",
+        "Library/Containers/com.apple.Safari",
+        "Library/Containers/com.apple.AddressBook",
+        "Library/Containers/com.apple.iCal",
+        "Library/Containers/com.apple.reminders",
+        "Library/Containers/com.apple.Notes",
+        "Library/Containers/com.apple.Home",
+        "Library/Application Support/Music",
+        "Library/Application Support/com.apple.TV",
     ]
 
+    /// Folders whose Apple-owned children the minimal policy skips unopened: Apple app
+    /// containers and group containers. Without Full Disk Access macOS refuses other
+    /// apps' containers anyway, and many Apple ones (Music, TV, Podcasts, Photos agents
+    /// and extensions) raise their own media consent when touched.
+    public static let minimalAppleChildParents = ["Library/Containers", "Library/Group Containers"]
+
+    /// Whether a child named `name` of a minimal Apple-child parent belongs to Apple.
+    public static func isAppleOwned(_ name: String) -> Bool {
+        name.hasPrefix("com.apple.") || name.hasPrefix("group.com.apple.") || name.contains(".com.apple.") || name.contains(".groups.com.apple.")
+    }
+
+    /// In-scope parents whose Apple-owned children the minimal policy skips.
+    public static func appleChildParents(for request: ScanRequest, homes: [URL]? = nil) -> [String] {
+        guard request.options.consentPolicy == .minimal else { return [] }
+        return lexicalHomePaths(request, homes: homes, relative: minimalAppleChildParents)
+    }
+
     /// In-scope personal-data stores the minimal policy skips (empty for full access).
+    /// Purely lexical: the protected stores are never `stat`ed (touching a media folder's
+    /// metadata alone can raise its consent dialog); a path that doesn't exist is harmless.
     public static func skippedPaths(for request: ScanRequest, homes: [URL]? = nil) -> [String] {
         guard request.options.consentPolicy == .minimal else { return [] }
-        return scoped(request, homes: homes, relative: minimalSkippedRelativePaths.map { ($0, .directoryOnly) }, includeVolumes: false).map(\.url.path)
+        return lexicalHomePaths(request, homes: homes, relative: minimalSkippedRelativePaths)
+    }
+
+    private static func lexicalHomePaths(_ request: ScanRequest, homes: [URL]?, relative: [String]) -> [String] {
+        let roots = request.roots.map { canonicalURL($0).path }
+        let explicit = homes ?? request.options.homePaths.map { $0.map { URL(fileURLWithPath: $0) } }
+        let candidateHomes = resolvedHomes(explicit: explicit, rootPaths: roots)
+        return candidateHomes.flatMap { home in relative.map { home + "/" + $0 } }
+            .filter { path in roots.contains { path.isWithin($0) } }
+    }
+
+    /// Media-library bundles (Photos, Photo Booth, Music, TV, iMovie Theater) are guarded
+    /// by media consents wherever they live; the minimal policy never opens them.
+    public static func isMediaLibraryBundle(_ name: String) -> Bool {
+        let lower = name.lowercased()
+        return mediaBundleSuffixes.contains { lower.hasSuffix($0) }
     }
 
     private static let mediaBundleSuffixes: [String] = [
@@ -117,6 +173,10 @@ public enum ScanPermissionPreflight: Sendable {
         ".musiclibrary",
         ".tvlibrary",
         ".theater",
+        // Video and photo editing libraries behind the same media consents.
+        ".imovielibrary",
+        ".fcpbundle",
+        ".aplibrary",
     ]
 
     /// Computes the ordered list of TCC-protected directories that will be traversed by `request`.
@@ -201,6 +261,19 @@ public enum ScanPermissionPreflight: Sendable {
         case .directoryOnly:
             _ = readdir(dir)
             return .readable
+        case .thirdPartyChildren:
+            var children: [String] = []
+            while children.count < 4, let entry = readdir(dir) {
+                let name = withUnsafePointer(to: entry.pointee.d_name) { ptr in
+                    ptr.withMemoryRebound(to: CChar.self, capacity: Int(entry.pointee.d_namlen) + 1) { String(cString: $0) }
+                }
+                guard !name.hasPrefix("."), !name.hasPrefix("com.apple."), !name.hasPrefix("group.com.apple.") else { continue }
+                let childPath = path + "/" + name
+                if excludedPaths.contains(where: { childPath.isWithin($0) }) { continue }
+                guard let identity = try? FileIdentity.read(URL(fileURLWithPath: childPath)), identity.directory, !identity.link else { continue }
+                children.append(childPath)
+            }
+            return deniedChild(among: children, excludedPaths: excludedPaths, openDataContainers: true) ? .containsDeniedChildren : .readable
         case .childrenAndBundles:
             var denied = false
             var childDirectories: [String] = []

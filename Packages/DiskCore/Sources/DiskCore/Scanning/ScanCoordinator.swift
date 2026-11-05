@@ -25,7 +25,9 @@ public actor ScanCoordinator: ScanServing {
     public func cancel() { runningTask?.cancel(); pendingProbe?.abandon() }
     public func skipPermissionPreflight() { skipRequested = true; pendingProbe?.abandon() }
     public func scan(_ request: ScanRequest, into index: ScanIndex) -> AsyncStream<ScanEvent> {
-        AsyncStream(bufferingPolicy: .bufferingNewest(2)) { continuation in
+        // Unbounded: progress is throttled to 5 Hz, and one-off events (consent waits, the
+        // protected-folders signal, stages) must never be dropped behind a burst.
+        AsyncStream(bufferingPolicy: .unbounded) { continuation in
             let task = Task {
                 let worker = ParallelEnumeration(request)
                 // Workers block on their backlog until drained; every exit path stops them.
@@ -56,7 +58,6 @@ public actor ScanCoordinator: ScanServing {
                     if outcome == .containsDeniedChildren { protectedUnreadable = true }
                 }
                 continuation.yield(.awaitingPermission(nil))
-                if !worker.protectedSkips.isEmpty { protectedUnreadable = true }
                 if protectedUnreadable { continuation.yield(.protectedFoldersRefused) }
                 if Task.isCancelled {
                     continuation.yield(.finished(ScanSnapshot(items: 0, bytes: 0, elapsed: Date().timeIntervalSince(start), errors: 0, cancelled: true, complete: false)))
@@ -73,12 +74,15 @@ public actor ScanCoordinator: ScanServing {
                         bytes += batch.bytes
                         errors += batch.issues.count
                         for issue in batch.issues { await index.issue(path: issue.0, message: issue.1) }
+                        for slow in batch.slowReads { continuation.yield(.slowRead(slow.0, slow.1)) }
                         if Date().timeIntervalSince(lastUpdate) >= 0.2 {
                             continuation.yield(.progress(ScanSnapshot(items: count, bytes: bytes, elapsed: Date().timeIntervalSince(start), errors: errors, cancelled: false, complete: false, folders: folders, currentFolder: currentFolder)))
                             lastUpdate = Date()
                         }
                         if batch.done { break }
                     }
+                    // Skipped protected stores are explained once, like preflight refusals.
+                    if worker.protectedSkipCount > 0 { continuation.yield(.protectedFoldersRefused) }
                     continuation.yield(.stage(.aggregating))
                     try await index.aggregate()
                     continuation.yield(.finished(ScanSnapshot(items: count, bytes: bytes, elapsed: Date().timeIntervalSince(start), errors: errors, cancelled: Task.isCancelled, complete: !Task.isCancelled && errors == 0, folders: folders, currentFolder: currentFolder)))

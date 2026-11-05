@@ -38,6 +38,7 @@ import DiskCore
         model.scan.pendingRoot = home.appendingPathComponent("Documents")
         model.startScan(); await model.waitForFullDiskAccessOffer()
         model.continueWithoutFullDiskAccess()
+        await model.waitForScan()
         #expect(panels.withLock { $0 } == [canonicalURL(home).path])
         #expect(!model.scan.scanning && model.phase == .choosing)
         #expect(await scanner.policies.isEmpty)
@@ -53,6 +54,32 @@ import DiskCore
         await model.waitForScan()
         #expect(panels.withLock { $0 }.count == 2)
         #expect(await scanner.policies == [.minimal, .minimal])
+        await model.shutdown()
+    }
+
+    /// A later session with the remembered home pick restores it silently: the picker
+    /// (whose sidebar can raise a media consent) appears once, not on every scan.
+    @Test func rememberedFolderGrantSkipsThePickerInALaterSession() async throws {
+        let created = FileManager.default.temporaryDirectory.appendingPathComponent("minimal-restore-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: created.appendingPathComponent("Documents"), withIntermediateDirectories: true)
+        // Real homes are canonical paths; match that (the temp folder lives under /var → /private/var).
+        let home = canonicalURL(created)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let defaults = isolatedDefaults()
+        let first = AuthorizationStore(defaults: defaults)
+        _ = try first.acceptSelection(home)
+        for _ in 0..<100 where first.locations.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
+        let scanner = RecordingScanner()
+        let model = WorkspaceViewModel(authorization: AuthorizationStore(defaults: defaults), coordinator: scanner,
+                                       fullDiskAccess: MutableFullDiskAccess(granted: false), catalog: LocationCatalog(home: home), defaults: isolatedDefaults())
+        let panels = Mutex(0)
+        model.authorization.panelProvider = { _, _ in panels.withLock { $0 += 1 }; return nil }
+        model.scan.pendingRoot = home.appendingPathComponent("Documents")
+        model.startScan(); await model.waitForFullDiskAccessOffer()
+        model.continueWithoutFullDiskAccess()
+        await model.waitForScan()
+        #expect(panels.withLock { $0 } == 0)
+        #expect(await scanner.policies == [.minimal])
         await model.shutdown()
     }
 

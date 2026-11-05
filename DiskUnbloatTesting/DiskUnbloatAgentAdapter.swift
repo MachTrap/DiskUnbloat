@@ -73,6 +73,8 @@ import DiskCore
             fields["duplicateSets"] = .integer(Int64(search.sets.count))
             fields["duplicateCopies"] = .integer(Int64(search.copyCount))
         }
+        fields["diagnostics"] = .array(workspace.diagnostics.entries.suffix(12).map { .string(ScreenSnapshot.preview("[\($0.category)] \($0.message)", maxBytes: 200)) })
+        fields["issueGroups"] = .array(workspace.scan.issueGroups.prefix(8).map { .string(ScreenSnapshot.preview($0.message, maxBytes: 80) + " ×\($0.paths.count)") })
         fields["tools"] = .array(workspace.developerTools.rows.map { .string($0.id) })
         fields["queuedSurvivors"] = .integer(Int64(cleanup.basket.filter { $0.survivor != nil }.count))
         fields["unreachedTile"] = .bool(explorer.scene.entries.contains { $0.kind == .unreached })
@@ -160,6 +162,30 @@ import DiskCore
                         enabled: { !workspace.isBusy }) { _, _ in
                 workspace.scan.pendingRoot = composition.home; workspace.startScan(); return .completed
             },
+            // Bisection aid: scan one folder inside the home with the normal flow.
+            AgentAction("scan.path", scope: "current-screen", input: ObjectSchema(["path": .string(maxLength: 1024)], required: ["path"]),
+                        as: Path.self, enabled: { !workspace.isBusy }) { input, _ in
+                let relative = String(input.path.drop(while: { $0 == "~" || $0 == "/" }))
+                workspace.scan.pendingRoot = relative.isEmpty ? composition.home : composition.home.appendingPathComponent(relative)
+                workspace.startScan(); return .completed
+            },
+            // TCC experiment probes, run inside this app so macOS attributes them to it.
+            AgentAction("probe.list", scope: "current-screen", input: ObjectSchema(["path": .string(maxLength: 1024)], required: ["path"]),
+                        as: Path.self) { input, _ in
+                let path = composition.home.appendingPathComponent(String(input.path.drop(while: { $0 == "~" || $0 == "/" }))).path
+                var names = 0
+                if let dir = opendir(path) { while readdir(dir) != nil { names += 1 }; closedir(dir) }
+                workspace.diagnostics.record("probe", "listed \(names) names in \(path)")
+                return .completed
+            },
+            AgentAction("probe.stat", scope: "current-screen", input: ObjectSchema(["path": .string(maxLength: 1024)], required: ["path"]),
+                        as: Path.self) { input, _ in
+                let path = composition.home.appendingPathComponent(String(input.path.drop(while: { $0 == "~" || $0 == "/" }))).path
+                var info = stat()
+                let result = lstat(path, &info)
+                workspace.diagnostics.record("probe", "lstat \(result) on \(path)")
+                return .completed
+            },
             AgentAction("scan.cancel", scope: "current-screen", input: .empty, as: Empty.self,
                         enabled: { workspace.scan.scanning }) { _, _ in workspace.cancel(); return .completed },
             AgentAction("permission.release", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
@@ -223,6 +249,9 @@ import DiskCore
             },
             AgentAction("tools.open", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
                 await workspace.developerTools.open(); return .completed
+            },
+            AgentAction("issues.show", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
+                workspace.scan.showIssues = true; return .completed
             },
             AgentAction("message.dismiss", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
                 workspace.message = nil; return .completed

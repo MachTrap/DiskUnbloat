@@ -33,6 +33,9 @@ public enum ScanEvent: Sendable {
     /// until the user answers any consent dialog it raised. `nil` once the preflight is
     /// over. Lets the scan screen say it is waiting on macOS instead of looking frozen.
     case awaitingPermission(String?)
+    /// A directory read blocked for this many seconds (likely a consent dialog or a
+    /// stuck File Provider). Diagnostics only.
+    case slowRead(String, Double)
 }
 
 public struct ScanIssue: Sendable {

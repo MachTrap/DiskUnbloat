@@ -11319,6 +11319,22 @@
           }
         }
       }
+    },
+    "Apple app containers here are protected by macOS. Allow Full Disk Access to measure them." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple app containers here are protected by macOS. Allow Full Disk Access to measure them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контейнеры приложений Apple здесь защищены macOS. Разрешите полный доступ к диску, чтобы измерить их."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -60,6 +60,34 @@ struct PendingGroup: Sendable {
     private(set) var scanning = false
     private(set) var snapshot: ScanSnapshot?
     private(set) var issues: [String] = []
+    /// The same issues grouped by reason, largest group first: hundreds of identical
+    /// macOS refusals read as one line with a count instead of a wall of paths.
+    private(set) var issueGroups: [IssueGroup] = []
+    struct IssueGroup: Identifiable, Equatable {
+        let message: String
+        let paths: [String]
+        /// Refusals by macOS privacy protection (Full Disk Access is the remedy), decided on
+        /// the untranslated message so it holds in every language.
+        let isProtection: Bool
+        var id: String { message }
+
+        static func isProtection(raw: String) -> Bool {
+            raw.localizedCaseInsensitiveContains("not permitted") || raw.hasPrefix("Protected by macOS")
+                || raw.hasPrefix("Apple app containers here are protected")
+        }
+    }
+
+    private func setIssues(_ records: [ScanIssue]) {
+        issues = records.map { $0.path + ": " + L10n.text($0.message) }
+        var grouped: [String: [String]] = [:]; var order: [String] = []; var protection: [String: Bool] = [:]
+        for record in records {
+            let message = L10n.text(record.message)
+            if grouped[message] == nil { order.append(message); protection[message] = IssueGroup.isProtection(raw: record.message) }
+            grouped[message, default: []].append(record.path)
+        }
+        issueGroups = order.map { IssueGroup(message: $0, paths: grouped[$0] ?? [], isProtection: protection[$0] ?? false) }
+            .sorted { $0.paths.count > $1.paths.count }
+    }
     /// Used space on the scanned volume; the honest denominator for overall progress.
     private(set) var volumeUsedBytes: Int64?
 
@@ -121,7 +149,7 @@ struct PendingGroup: Sendable {
         refreshNode = nil; previousSnapshot = nil
         root = roots[0]; pendingRoot = nil
         groupTitle = title; groupRoots = title == nil ? [] : roots
-        showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []
+        showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []; issueGroups = []
         protectedFoldersRefused = false; awaitingPermission = nil
         volumeUsedBytes = volume.flatMap(Self.volumeUsedBytes(for:))
         options.consentPolicy = consentPolicy
@@ -166,12 +194,13 @@ struct PendingGroup: Sendable {
                 diagnostics?.record("scan", "Stage: \(stage.rawValue)" + (startedAt.map { String(format: " at %.1f s", Date().timeIntervalSince($0)) } ?? ""))
             case .protectedFoldersRefused: protectedFoldersRefused = true
             case .awaitingPermission(let path): awaitingPermission = path
+            case .slowRead(let path, let seconds): diagnostics?.record("scan", String(format: "Read blocked %.1f s: %@", seconds, path))
             case .progress(let progress):
                 snapshot = progress; awaitingPermission = nil
                 // Unreachable locations are listable while the scan is still running.
                 if progress.errors > 0, Date().timeIntervalSince(lastIssuesRefresh) >= 1 {
                     lastIssuesRefresh = Date()
-                    issues = await db.issues().map { $0.path + ": " + L10n.text($0.message) }
+                    setIssues(await db.issues())
                 }
             case .finished(let result): snapshot = result; logOutcome("Finished")
             case .failed(let error):
@@ -182,7 +211,7 @@ struct PendingGroup: Sendable {
         if cancellationRequested, let result = snapshot {
             snapshot = ScanSnapshot(items: result.items,bytes: result.bytes,elapsed: result.elapsed,errors: result.errors,cancelled: true,complete: false,folders: result.folders,currentFolder: result.currentFolder)
         }
-        issues = await db.issues().map { $0.path + ": " + L10n.text($0.message) }
+        setIssues(await db.issues())
     }
 
     private(set) var refreshNode: FileNode?
@@ -220,6 +249,7 @@ struct PendingGroup: Sendable {
                 case .failed(let error): throw ScanFailure(message: error)
                 case .protectedFoldersRefused: protectedFoldersRefused = true
                 case .awaitingPermission(let path): awaitingPermission = path
+                case .slowRead(let path, let seconds): diagnostics?.record("scan", String(format: "Read blocked %.1f s: %@", seconds, path))
                 }
             }
             if cancellationRequested || snapshot?.cancelled == true { await storage.discard(staging); return false }
@@ -228,7 +258,7 @@ struct PendingGroup: Sendable {
             await staging.close()
             _ = try await index.replaceBranch(BranchRefreshRequest(nodeID: node.id, identity: node.identity), stagingURL: staging.url)
             await storage.discard(staging)
-            issues = await index.issues().map { $0.path + ": " + L10n.text($0.message) }
+            setIssues(await index.issues())
             if let result = snapshot {
                 let remainsCancelled = previousSnapshot?.cancelled == true && node.parentID != nil
                 snapshot = ScanSnapshot(items: result.items, bytes: result.bytes, elapsed: result.elapsed, errors: issues.count, cancelled: remainsCancelled, complete: issues.isEmpty && !remainsCancelled, folders: result.folders, currentFolder: result.currentFolder)

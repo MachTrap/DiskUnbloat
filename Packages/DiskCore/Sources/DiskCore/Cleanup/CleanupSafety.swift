@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 public enum CleanupSafety {
     public static func blockedReason(_ node: FileNode, root: URL, exemptingCacheRoots: [String] = []) -> String? { blockedReasonCode(node, roots: [root], exemptingCacheRoots: exemptingCacheRoots)?.message }
@@ -44,7 +45,10 @@ public enum CleanupSafety {
         if protected.contains(where: { path.isWithin($0) }) {
             guard isRemovableThirdPartyApp(path: path, isPackage: isPackage, insidePackage: packageAncestor) else { return .systemManaged }
         }
-        if let values = try? url.resourceValues(forKeys: [.isVolumeKey]), values.isVolume == true { return .volumeRoot }
+        // Mount table lookup, never a per-path resource query: asking Foundation about a
+        // protected media folder (e.g. ~/Movies/TV) raises its consent dialog, and this
+        // check runs for every map tile.
+        if MountPoints.contains(path) { return .volumeRoot } // index paths are canonical already
         return nil
     }
     /// A direct `.app` package child of `/Applications` is a regular user application.
@@ -82,5 +86,31 @@ public enum CleanupReason: String, Sendable {
         case .systemManaged: "This is a protected system-managed location."
         case .volumeRoot: "Volume roots cannot be removed."
         }
+    }
+}
+
+
+/// Mounted volume roots from `getmntinfo`, cached briefly (the mount table rarely changes).
+enum MountPoints {
+    private static let cache = Mutex<(paths: Set<String>, read: Date)>((paths: [], read: .distantPast))
+
+    static func contains(_ path: String) -> Bool {
+        cache.withLock { state in
+            if Date().timeIntervalSince(state.read) > 5 { state = (current(), Date()) }
+            return state.paths.contains(path)
+        }
+    }
+
+    static func current() -> Set<String> {
+        var mounts: UnsafeMutablePointer<statfs>?
+        let count = getmntinfo(&mounts, MNT_NOWAIT)
+        guard count > 0, let mounts else { return ["/"] }
+        var paths: Set<String> = []
+        for index in 0..<Int(count) {
+            var entry = mounts[index]
+            let path = withUnsafeBytes(of: &entry.f_mntonname) { String(decoding: $0.prefix(while: { $0 != 0 }), as: UTF8.self) }
+            paths.insert(path)
+        }
+        return paths
     }
 }

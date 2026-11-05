@@ -175,18 +175,27 @@ enum WorkspacePhase: Equatable {
         let preserving = offerPreservingCleanupReport
         offerPreservingCleanupReport = false
         scan.consentPolicy = .minimal
-        guard ensureMinimalFolderGrant() else { return }
-        launchScan(preservingCleanupReport: preserving)
+        startPipeline = Task {
+            guard await ensureMinimalFolderGrant() else { return }
+            launchScan(preservingCleanupReport: preserving)
+        }
     }
 
     /// Without Full Disk Access, the user's own folder choice is the consent for its
     /// contents (macOS shows no dialog for a folder picked in the open panel). When the
     /// planned roots touch the home folder and no live grant covers them, ask once for
     /// their common parent. Returns false when the user declines or picks too little.
-    private func ensureMinimalFolderGrant() -> Bool {
+    private func ensureMinimalFolderGrant() async -> Bool {
         let roots = scan.plannedRoots
         guard let target = Self.folderGrantTarget(roots: roots, home: location.catalog.home),
               !roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) else { return true }
+        // A remembered pick that covers the scope restores silently: the picker (and the
+        // media consent its sidebar can raise) appears once, not on every scan.
+        if let covering = authorization.coveringLocation(for: roots), (try? await authorization.restore(covering)) != nil,
+           roots.allSatisfy({ authorization.authorizedURL(for: $0) != nil }) {
+            diagnostics.record("consent", "Restored the remembered folder grant")
+            return true
+        }
         diagnostics.record("consent", "Asked for a folder grant on \(target.lastPathComponent)")
         do {
             guard try authorization.choose(suggestedLocation: target, message: L10n.text(

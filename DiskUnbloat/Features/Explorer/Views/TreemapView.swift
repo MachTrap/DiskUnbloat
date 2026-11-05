@@ -6,6 +6,7 @@ struct TreemapView: View {
     let scene: MapScene
     let selection: Set<Int64>
     let style: MapTileStyle
+    var labelDetail: MapLabelDetail = .compact
     /// Breakdown for the unreached-space tile's hover card.
     var unreached: UnreachedSpace?
     var growthNote: (MapEntry) -> String? = { _ in nil }
@@ -52,10 +53,10 @@ struct TreemapView: View {
             ZStack(alignment: .topTrailing) {
                 ZStack {
                     if let morph {
-                        MorphingMapDrawing(morph: morph, start: morphStart, style: style)
+                        MorphingMapDrawing(morph: morph, start: morphStart, style: style, labelDetail: labelDetail)
                     } else {
                         // Legend highlighting crossfades instead of snapping; geometry is unaffected.
-                        MapDrawing(tiles: tiles, style: style).equatable().id(style.crossfadeKey)
+                        MapDrawing(tiles: tiles, style: style, labelDetail: labelDetail).equatable().id(style.crossfadeKey)
                             .transition(.opacity)
                     }
                 }
@@ -113,6 +114,7 @@ struct TreemapView: View {
                 guard !reduceMotion, added.count == 1, let id = added.first, let tile = tiles.first(where: { $0.id == id }) else { return }
                 ping = tile.rect; pingToken += 1
             }
+            .onChange(of: labelDetail) { snapshot = nil }
             .background(MapNavigationAdapter(back: { history(true) }, forward: { history(false) }))
             .simultaneousGesture(MagnifyGesture().onEnded { value in
                 if value.magnification <= 0.85 { parent() }
@@ -173,7 +175,7 @@ struct TreemapView: View {
             } else {
                 target = bounds.insetBy(dx: -size.width * 0.04, dy: -size.height * 0.04); growIn = true
             }
-            let renderer = ImageRenderer(content: MapDrawing(tiles: oldTiles, style: style, asynchronous: false)
+            let renderer = ImageRenderer(content: MapDrawing(tiles: oldTiles, style: style, labelDetail: labelDetail, asynchronous: false)
                 .environment(\.colorScheme, scheme).frame(width: size.width, height: size.height))
             renderer.scale = displayScale
             snapshot = renderer.cgImage; snapshotFrame = bounds; snapshotOpacity = 1
@@ -214,6 +216,9 @@ struct TreemapView: View {
             Text(tile.entry.localizedTitle).font(.callout.weight(.semibold)).lineLimit(1)
             Text(scene.summary.knownBytes > 0 ? L10n.format("%@ · %lld%% of view", sizeText(tile.entry.bytes), Int(Double(tile.entry.bytes) / Double(scene.summary.knownBytes) * 100)) : sizeText(tile.entry.bytes))
                 .font(.caption).foregroundStyle(.secondary)
+            if tile.entry.unknownCount > 0 {
+                Text("Partial size").font(.caption2).foregroundStyle(.orange)
+            }
             if let path = tile.entry.node?.path { Text(path).font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }
             if let node = tile.entry.node, let explanation = description(node) {
                 Text(explanation).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

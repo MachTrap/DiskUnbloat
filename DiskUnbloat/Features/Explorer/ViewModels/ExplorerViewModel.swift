@@ -33,6 +33,14 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var colorMode: MapColorMode = .safety {
         didSet { defaults.set(colorMode.rawValue, forKey: "mapColorMode"); if colorMode != oldValue { highlightedClass = nil; recolor() } }
     }
+    private(set) var labelDetail: MapLabelDetail
+
+    func setLabelDetail(_ detail: MapLabelDetail) {
+        guard detail != labelDetail else { return }
+        labelDetail = detail
+        defaults.set(detail.rawValue, forKey: "mapLabelDetail")
+    }
+
     /// Legend highlight: dims every other class. Independent of layout and filters.
     var highlightedClass: TileClass? { didSet { tileStyle.highlighted = highlightedClass } }
     private(set) var tileStyle = MapTileStyle()
@@ -121,6 +129,11 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     var isLoading = false
     /// Paths queued for deletion; they disappear from the map until removed.
     private(set) var hiddenPaths: [String] = []
+    /// Bumped whenever the hidden ranges change. Part of the scene cache key, and a load
+    /// whose hidden state changed while it ran never commits: otherwise a load started
+    /// before an uncheck stored its stale scene in the freshly cleared cache, and the
+    /// reload after the uncheck was served that scene with the item still hidden.
+    @ObservationIgnored private var hiddenRevision = 0
     /// Fully queued containers: their descendants hide while the folder itself stays.
     private(set) var hiddenSubtrees: [String] = []
     /// Raw queue paths as handed in, before hidden-range pruning and collapse.
@@ -130,6 +143,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     init(settings: SettingsViewModel, userCacheRoot: URL? = nil, activity: any ApplicationActivityProviding = ApplicationActivityService(), defaults: UserDefaults = .standard) {
         self.settings = settings; self.activity = activity; self.defaults = defaults; cacheRootPath = userCacheRoot?.path
         colorMode = defaults.string(forKey: "mapColorMode").flatMap(MapColorMode.init(rawValue:)) ?? .safety
+        labelDetail = defaults.string(forKey: "mapLabelDetail").flatMap(MapLabelDetail.init(rawValue:)) ?? .compact
         searchMode = defaults.string(forKey: "searchMode").flatMap(SearchMode.init(rawValue:)) ?? .filter
         showUnreached = defaults.object(forKey: "showUnreached") as? Bool ?? true
         homePath = userCacheRoot?.deletingLastPathComponent().deletingLastPathComponent().path
@@ -177,6 +191,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         guard ranges.paths != hiddenPaths || ranges.subtrees != hiddenSubtrees else { return }
         hiddenPaths = ranges.paths
         hiddenSubtrees = ranges.subtrees
+        hiddenRevision += 1
         sceneCache = [:]; sceneCacheOrder = []
     }
 
@@ -319,9 +334,10 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         queryGeneration += 1; let generation = queryGeneration
         isLoading = true
         let revision = await index.revision
+        let hidden = hiddenRevision
         let queries = makeQueries()
         let filtered = queries.hasFilters
-        let sceneKey = "\(revision):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
+        let sceneKey = "\(revision):\(hidden):\(current.id):\(metric.rawValue):\(options.inspectPackages)"
         let resolvedScene: MapScene
         if let cachedScene = filtered ? nil : sceneCache[sceneKey] {
             resolvedScene = cachedScene
@@ -334,7 +350,9 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             // query generation owns fresher state, and an equal generation with the same
             // index means the result is exactly what was asked for — commit it, or a
             // cancelled-but-current load silently leaves the previous map in place.
-            guard snap.revision == revision, generation == queryGeneration, self.index === index else { return }
+            // A hidden-state change while the query ran supersedes it: the update that
+            // changed it issues its own load.
+            guard snap.revision == revision, generation == queryGeneration, hidden == hiddenRevision, self.index === index else { return }
             resolvedScene = snap.scene
             if !filtered {
                 sceneCache[sceneKey] = snap.scene; sceneCacheOrder.removeAll { $0 == sceneKey }; sceneCacheOrder.append(sceneKey)

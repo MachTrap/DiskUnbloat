@@ -63,6 +63,12 @@
                         "DiskUnbloat/compile-sources",
                         "DiskUnbloatTesting/compile-sources",
                       ],
+                    }, {
+                      "path": "DuplicateReviewModels.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
                     },
                   ],
                 }, {
@@ -117,6 +123,12 @@
                         "DiskUnbloat/compile-sources",
                         "DiskUnbloatTesting/compile-sources",
                       ],
+                    }, {
+                      "path": "DuplicateReviewView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
                     },
                   ],
                 },
@@ -137,6 +149,12 @@
                       ],
                     }, {
                       "path": "MapKeyboardNavigator.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "MapLabelDetail.swift",
                       "target-membership": [
                         "DiskUnbloat/compile-sources",
                         "DiskUnbloatTesting/compile-sources",
@@ -167,6 +185,12 @@
                   "children": [
                     {
                       "path": "ExplorerView.swift",
+                      "target-membership": [
+                        "DiskUnbloat/compile-sources",
+                        "DiskUnbloatTesting/compile-sources",
+                      ],
+                    }, {
+                      "path": "MapLabelLayout.swift",
                       "target-membership": [
                         "DiskUnbloat/compile-sources",
                         "DiskUnbloatTesting/compile-sources",
@@ -583,6 +607,7 @@
       "path": "DiskUnbloatUITests",
       "children": [
         { "path": "DiskUnbloatUITests.swift", "target-membership": [ "DiskUnbloatUITests/compile-sources" ] },
+        { "path": "MapDisplayUITests.swift", "target-membership": [ "DiskUnbloatUITests/compile-sources" ] },
       ],
     }, {
       "kind": "group",
@@ -594,6 +619,7 @@
         { "path": "CleanupDiagnosticsTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "CleanupQueueTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "DiagnosticsTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "DuplicateCommitTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "DuplicatesFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "GroupedScanTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "LocalizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
@@ -602,6 +628,7 @@
         { "path": "MapFirstFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapInputTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapKeyboardNavigatorTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "MapLabelLayoutTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapMotionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MinimalPermissionFlowTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "NativeOpenTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
@@ -613,6 +640,7 @@
         { "path": "ScanHistoryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "SearchModeTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "ToolsAndTrashTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "UncheckRestoresMapTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "UnreachedSpaceTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "WorkspaceRecoveryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
       ],

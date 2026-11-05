@@ -11,6 +11,7 @@ import DiskCore
     let workspace: WorkspaceViewModel
     let composition: TestingComposition
     let runtime: AgentRuntime
+    private var duplicateReviewSpan: UUID?
 
     init(workspace: WorkspaceViewModel, composition: TestingComposition, runtime: AgentRuntime) {
         self.workspace = workspace; self.composition = composition; self.runtime = runtime
@@ -56,6 +57,7 @@ import DiskCore
             "queueBytes": .integer(cleanup.estimatedBytes),
             "realHome": .bool(composition.usesRealHome),
             "colorMode": .string(explorer.colorMode.rawValue),
+            "labelDetail": .string(explorer.labelDetail.rawValue),
             "legend": .array(explorer.legendClasses.map { .string($0.rawValue + "=" + String(explorer.classShares[$0] ?? 0)) }),
         ]
         if let highlighted = explorer.highlightedClass { fields["highlightedClass"] = .string(highlighted.rawValue) }
@@ -72,9 +74,30 @@ import DiskCore
             fields["duplicates"] = "found"
             fields["duplicateSets"] = .integer(Int64(search.sets.count))
             fields["duplicateCopies"] = .integer(Int64(search.copyCount))
+            fields["duplicateFolderSets"] = .integer(Int64(search.folderSets.count))
+        }
+        let duplicates = workspace.duplicates
+        fields["duplicateReviewVisible"] = .bool(duplicates.visiblePresentationID != nil)
+        fields["duplicateReviewFilter"] = .string(duplicates.filter.rawValue)
+        fields["duplicateReviewVisibleGroups"] = .integer(Int64(duplicates.visibleGroups.count))
+        fields["duplicateReviewSelected"] = .integer(Int64(duplicates.selectedCount))
+        fields["duplicateReviewHiddenSelected"] = .integer(Int64(duplicates.hiddenSelectedCount))
+        fields["duplicateReviewRefusals"] = .integer(Int64(duplicates.refusals.count))
+        fields["duplicateReviewGroupIDs"] = .array(duplicates.visibleGroups.prefix(24).map { .integer($0.id) })
+        if let group = duplicates.focusedGroup, duplicates.presentation != nil {
+            fields["duplicateReviewGroup"] = .integer(group.id)
+            fields["duplicateReviewKeeper"] = .integer(duplicates.keeper(in: group).id)
+            fields["duplicateReviewCopyIDs"] = .array(group.copies.prefix(24).map { .integer($0.id) })
         }
         fields["diagnostics"] = .array(workspace.diagnostics.entries.suffix(12).map { .string(ScreenSnapshot.preview("[\($0.category)] \($0.message)", maxBytes: 200)) })
         fields["issueGroups"] = .array(workspace.scan.issueGroups.prefix(8).map { .string(ScreenSnapshot.preview($0.message, maxBytes: 80) + " ×\($0.paths.count)") })
+        // Map vs queue consistency: every queued path must be absent from the scene, and
+        // every scene path must not be queued.
+        let queued = Set(cleanup.basket.map(\.node.path))
+        let scenePaths = explorer.scene.entries.compactMap { $0.node?.path }
+        fields["queuedVisibleOnMap"] = .array(scenePaths.filter { path in queued.contains { path.isWithin($0) } }.prefix(10).map { .string(relative($0)) })
+        fields["hiddenPaths"] = .array(explorer.hiddenPaths.prefix(10).map { .string(relative($0)) })
+        fields["sceneNames"] = .array(explorer.scene.entries.filter { $0.parentID == explorer.scene.rootID }.compactMap { $0.node?.name }.prefix(40).map { .string($0) })
         fields["tools"] = .array(workspace.developerTools.rows.map { .string($0.id) })
         fields["queuedSurvivors"] = .integer(Int64(cleanup.basket.filter { $0.survivor != nil }.count))
         fields["unreachedTile"] = .bool(explorer.scene.entries.contains { $0.kind == .unreached })
@@ -93,6 +116,14 @@ import DiskCore
 
     /// Re-records on every observed model change so `wait` conditions re-evaluate.
     func observeChanges() {
+        let visibleReview = workspace.duplicates.visiblePresentationID
+        if duplicateReviewSpan != visibleReview {
+            if let previous = duplicateReviewSpan { runtime.end(id: previous, outcome: .completed) }
+            if let visibleReview {
+                runtime.begin(.screen, name: "duplicate-review", scope: "current-screen", id: visibleReview)
+            }
+            duplicateReviewSpan = visibleReview
+        }
         withObservationTracking { _ = fields() } onChange: { [weak self] in
             Task { @MainActor in
                 self?.runtime.record("workspace.changed", scope: "current-screen")
@@ -120,6 +151,8 @@ import DiskCore
         guard FixtureTrees.all.contains(id) else { throw Failure(.fixtureNotFound, "Fixture is not registered.") }
         guard !composition.usesRealHome else { throw Failure(.notReady, "Fixtures need the generated home; relaunch without \(TestingComposition.realHomeFlag).") }
         if workspace.scan.scanning { workspace.cancel(); await workspace.waitForScan() }
+        workspace.duplicates.cancel()
+        await workspace.duplicates.waitForWork()
         do { try FixtureTrees.build(id, at: composition.home) }
         catch { throw Failure(.internalError, "The fixture tree could not be generated.") }
         if id == "permission-wait" { await composition.scanner.useBlockingPreflight(target: composition.home.appendingPathComponent("Desktop")) }
@@ -140,7 +173,11 @@ import DiskCore
             scopes: ["current-screen"],
             fixtures: FixtureTrees.all,
             actions: actions,
-            lifecycle: [.init(kind: .work, name: "scan")],
+            lifecycle: [
+                .init(kind: .work, name: "scan"),
+                .init(kind: .work, name: "duplicate-search"),
+                .init(kind: .screen, name: "duplicate-review"),
+            ],
             ui: .all
         )
     }
@@ -149,15 +186,21 @@ import DiskCore
     private struct Level: Decodable { let level: String }
     private struct Visible: Decodable { let visible: Bool }
     private struct Path: Decodable { let path: String }
+    private struct Paths: Decodable { let paths: [String] }
     private struct PickProbe: Decodable { let path: String; let pick: Bool? }
     private struct Mode: Decodable { let mode: String; let highlight: String? }
+    private struct LabelDetail: Decodable { let detail: MapLabelDetail }
     private struct Search: Decodable { let text: String; let mode: String? }
     private struct Unreached: Decodable { let megabytes: Int; let visible: Bool? }
     private struct Strategy: Decodable { let strategy: String? }
     private struct Panel: Decodable { let duplicates: Bool }
+    private struct DuplicateFilter: Decodable { let kind: String?; let query: String?; let hideSupport: Bool? }
+    private struct DuplicateGroup: Decodable { let group: Int64 }
+    private struct DuplicateCopy: Decodable { let group: Int64; let copy: Int64; let checked: Bool? }
 
     private var actions: [AgentAction] {
-        let workspace = workspace, composition = composition
+        let workspace = workspace, composition = composition, runtime = runtime
+        let duplicates = workspace.duplicates
         return [
             AgentAction("scan.home", scope: "current-screen", input: .empty, as: Empty.self,
                         enabled: { !workspace.isBusy }) { _, _ in
@@ -244,6 +287,12 @@ import DiskCore
                 workspace.explorer.highlightedClass = input.highlight.flatMap(TileClass.init(rawValue:))
                 return .completed
             },
+            AgentAction("explorer.labelDetail", scope: "current-screen",
+                        input: ObjectSchema(["detail": .string(maxLength: 16, oneOf: MapLabelDetail.allCases.map(\.rawValue))], required: ["detail"]),
+                        as: LabelDetail.self, enabled: { workspace.phase == .exploring }) { input, _ in
+                workspace.explorer.setLabelDetail(input.detail)
+                return .completed
+            },
             AgentAction("explorer.search", scope: "current-screen",
                         input: ObjectSchema(["text": .string(maxLength: 128), "mode": .string(maxLength: 16, oneOf: SearchMode.allCases.map(\.rawValue))], required: ["text"]),
                         as: Search.self, enabled: { workspace.phase == .exploring }) { input, _ in
@@ -264,15 +313,76 @@ import DiskCore
             },
             AgentAction("duplicates.find", scope: "current-screen",
                         input: ObjectSchema(["strategy": .string(maxLength: 16, oneOf: DuplicateKeepStrategy.allCases.map(\.rawValue))]),
-                        as: Strategy.self, enabled: { workspace.phase == .exploring }) { input, _ in
-                if let strategy = input.strategy.flatMap(DuplicateKeepStrategy.init(rawValue:)) { workspace.duplicates.strategy = strategy }
-                workspace.duplicates.find()
-                for _ in 0..<400 where workspace.duplicates.searching { try? await Task.sleep(for: .milliseconds(25)) }
+                        as: Strategy.self, enabled: { workspace.canClean && !duplicates.searching && duplicates.presentation == nil }) { input, command in
+                if let strategy = input.strategy.flatMap(DuplicateKeepStrategy.init(rawValue:)) { duplicates.strategy = strategy }
+                duplicates.find()
+                guard duplicates.searching else { throw Failure(.notReady, "Duplicate search is unavailable.") }
+                let id = UUID()
+                runtime.begin(.work, name: "duplicate-search", scope: "current-screen", id: id, correlationId: command.requestId)
+                Task {
+                    await duplicates.waitForWork()
+                    let outcome: LifecycleEvent.Outcome
+                    switch duplicates.state {
+                    case .found: outcome = .completed
+                    case .failed: outcome = .failed
+                    default: outcome = .cancelled
+                    }
+                    runtime.end(id: id, outcome: outcome)
+                }
+                return .accepted(operationId: id)
+            },
+            AgentAction("duplicates.review.filter", scope: "current-screen", input: ObjectSchema([
+                "kind": .string(maxLength: 12, oneOf: DuplicateReviewFilter.allCases.map(\.rawValue)),
+                "query": .string(maxLength: 256), "hideSupport": .boolean,
+            ]), as: DuplicateFilter.self, enabled: { duplicates.presentation != nil && !duplicates.confirming }) { input, _ in
+                if let filter = input.kind.flatMap(DuplicateReviewFilter.init(rawValue:)) { duplicates.filter = filter }
+                if let query = input.query { duplicates.query = query }
+                if let hideSupport = input.hideSupport { duplicates.hideSupport = hideSupport }
                 return .completed
             },
-            AgentAction("duplicates.select", scope: "current-screen", input: .empty, as: Empty.self,
-                        enabled: { workspace.duplicates.search != nil }) { _, _ in
-                workspace.duplicates.select(); return .completed
+            AgentAction("duplicates.review.focus", scope: "current-screen",
+                        input: ObjectSchema(["group": .integer(minimum: 1)], required: ["group"]),
+                        as: DuplicateGroup.self, enabled: { duplicates.presentation != nil && !duplicates.confirming }) { input, _ in
+                guard let group = duplicates.groups.first(where: { $0.id == input.group }) else {
+                    throw Failure(.notReady, "Duplicate group is unavailable.")
+                }
+                duplicates.focus(group)
+                return .completed
+            },
+            AgentAction("duplicates.review.check", scope: "current-screen",
+                        input: ObjectSchema(["group": .integer(minimum: 1), "copy": .integer(minimum: 1), "checked": .boolean],
+                                            required: ["group", "copy", "checked"]),
+                        as: DuplicateCopy.self, enabled: { duplicates.presentation != nil && !duplicates.confirming }) { input, _ in
+                guard let group = duplicates.visibleGroups.first(where: { $0.id == input.group }),
+                      let copy = group.copies.first(where: { $0.id == input.copy }), let checked = input.checked else {
+                    throw Failure(.notReady, "Duplicate copy is unavailable.")
+                }
+                duplicates.setChecked(checked, node: copy, in: group)
+                return .completed
+            },
+            AgentAction("duplicates.review.keeper", scope: "current-screen",
+                        input: ObjectSchema(["group": .integer(minimum: 1), "copy": .integer(minimum: 1)], required: ["group", "copy"]),
+                        as: DuplicateCopy.self, enabled: { duplicates.presentation != nil && !duplicates.confirming }) { input, _ in
+                guard let group = duplicates.visibleGroups.first(where: { $0.id == input.group }),
+                      let copy = group.copies.first(where: { $0.id == input.copy }) else {
+                    throw Failure(.notReady, "Duplicate copy is unavailable.")
+                }
+                duplicates.chooseKeeper(copy, in: group)
+                return .completed
+            },
+            AgentAction("duplicates.review.selectVisible", scope: "current-screen", input: .empty, as: Empty.self,
+                        enabled: { duplicates.presentation != nil && !duplicates.confirming }) { _, _ in
+                duplicates.selectVisible(); return .completed
+            },
+            AgentAction("duplicates.review.confirm", scope: "current-screen", input: .empty, as: Empty.self,
+                        enabled: { duplicates.canConfirm }) { _, _ in
+                duplicates.confirm()
+                await duplicates.waitForWork()
+                return .completed
+            },
+            AgentAction("duplicates.review.cancel", scope: "current-screen", input: .empty, as: Empty.self,
+                        enabled: { duplicates.presentation != nil && !duplicates.confirming }) { _, _ in
+                duplicates.dismissReview(); return .completed
             },
             // The panel's choice is the same stored preference its menu writes.
             AgentAction("quickSelect.panel", scope: "current-screen", input: ObjectSchema(["duplicates": .boolean], required: ["duplicates"]),
@@ -287,6 +397,20 @@ import DiskCore
             },
             AgentAction("message.dismiss", scope: "current-screen", input: .empty, as: Empty.self) { _, _ in
                 workspace.message = nil; return .completed
+            },
+            // The panel checkbox's own intents (checked → deselect, otherwise select).
+            AgentAction("queue.toggle", scope: "current-screen", input: ObjectSchema(["paths": .array(.string(maxLength: 1024), maxItems: 16)], required: ["paths"]),
+                        as: Paths.self, enabled: { workspace.phase == .exploring }) { input, _ in
+                for raw in input.paths {
+                    let path = raw == "~" ? composition.home.path : composition.home.appendingPathComponent(String(raw.drop(while: { $0 == "~" || $0 == "/" }))).path
+                    guard let node = await workspace.scan.index?.node(path: path) else { continue }
+                    if workspace.cleanup.membership(node) == .selected || workspace.cleanup.membership(node) == .insideSelection {
+                        workspace.deselect(node)
+                    } else {
+                        workspace.addToBasket(node)
+                    }
+                }
+                return .completed
             },
             AgentAction("quickSelect.apply", scope: "current-screen",
                         input: ObjectSchema(["level": .string(maxLength: 16, oneOf: AutoSelectionLevel.allCases.map(\.agentName))], required: ["level"]),

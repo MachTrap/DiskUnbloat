@@ -84,8 +84,12 @@ public actor ScanIndex {
         defer { sqlite3_finalize(s) }
         for (i, value) in strings.enumerated() { bind(value, to: Int32(i + 1), s) }
         var result: [FileNode] = []
-        while sqlite3_step(s) == SQLITE_ROW {
-            result.append(FileNode(id: sqlite3_column_int64(s, 0), parentID: sqlite3_column_type(s, 1) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 1), path: string(s, 2), name: string(s, 3), isDirectory: sqlite3_column_int(s, 4) != 0, isPackage: sqlite3_column_int(s, 5) != 0, isSymbolicLink: sqlite3_column_int(s, 6) != 0, logicalSize: sqlite3_column_type(s, 7) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 7), allocatedSize: sqlite3_column_type(s, 8) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 8), modified: sqlite3_column_type(s, 9) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 9)), identity: string(s, 10), fingerprint: sqlite3_column_type(s, 11) == SQLITE_NULL ? nil : string(s, 11), packageAncestor: sqlite3_column_int(s, 12) != 0, knownLogicalSize: sqlite3_column_int64(s, 13), knownAllocatedSize: sqlite3_column_int64(s, 14), unknownLogicalCount: Int(sqlite3_column_int64(s, 15)), unknownAllocatedCount: Int(sqlite3_column_int64(s, 16)), latestContentModification: sqlite3_column_type(s, 17) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 17)), unknownModificationCount: Int(sqlite3_column_int64(s, 18)), isSummarized: sqlite3_column_int(s, 19) != 0))
-        }; return result
+        while sqlite3_step(s) == SQLITE_ROW { result.append(decodeRow(s)) }
+        return result
+    }
+
+    /// Decodes a statement beginning with `rowColumns` and optional query-specific columns.
+    func decodeRow(_ s: OpaquePointer?) -> FileNode {
+        FileNode(id: sqlite3_column_int64(s, 0), parentID: sqlite3_column_type(s, 1) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 1), path: string(s, 2), name: string(s, 3), isDirectory: sqlite3_column_int(s, 4) != 0, isPackage: sqlite3_column_int(s, 5) != 0, isSymbolicLink: sqlite3_column_int(s, 6) != 0, logicalSize: sqlite3_column_type(s, 7) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 7), allocatedSize: sqlite3_column_type(s, 8) == SQLITE_NULL ? nil : sqlite3_column_int64(s, 8), modified: sqlite3_column_type(s, 9) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 9)), identity: string(s, 10), fingerprint: sqlite3_column_type(s, 11) == SQLITE_NULL ? nil : string(s, 11), packageAncestor: sqlite3_column_int(s, 12) != 0, knownLogicalSize: sqlite3_column_int64(s, 13), knownAllocatedSize: sqlite3_column_int64(s, 14), unknownLogicalCount: Int(sqlite3_column_int64(s, 15)), unknownAllocatedCount: Int(sqlite3_column_int64(s, 16)), latestContentModification: sqlite3_column_type(s, 17) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 17)), unknownModificationCount: Int(sqlite3_column_int64(s, 18)), isSummarized: sqlite3_column_int(s, 19) != 0)
     }
 }

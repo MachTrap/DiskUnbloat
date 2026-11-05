@@ -19,6 +19,11 @@ struct WorkspaceView: View {
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: model.phase)
         .sheet(isPresented: $cleanup.showReport) { CleanupReportView(results: cleanup.results, mode: cleanup.lastRunMode, bytes: cleanup.lastRunBytes, openTrash: model.openTrash) { cleanup.showReport = false } }
         .sheet(isPresented: $scan.showIssues) { issuesSheet }
+        .sheet(item: duplicateReview) { presentation in
+            DuplicateReviewView(model: model.duplicates, reveal: model.reveal)
+                .onAppear { model.duplicates.reviewDidAppear(presentation.id) }
+                .onDisappear { model.duplicates.reviewDidDisappear(presentation.id) }
+        }
         .safeAreaInset(edge: .bottom) {
             if let warning = model.authorization.bookmarkWarning {
                 Label(warning, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
@@ -47,6 +52,10 @@ struct WorkspaceView: View {
             updateWindow(for: model.phase, initial: true)
         }
     }
+    private var duplicateReview: Binding<DuplicatesViewModel.Presentation?> {
+        Binding(get: { model.duplicates.presentation }, set: { if $0 == nil { model.duplicates.dismissReview() } })
+    }
+
     @ViewBuilder private var phaseContent: some View {
             switch model.phase {
             case .choosing:

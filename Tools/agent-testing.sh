@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds and launches the agent Testing app (DiskUnbloatTesting) and the AgentDevKit
 # CLI, then prints the session. Usage:
-#   Tools/agent-testing.sh [--fixture sample-home] [--real-home] [--no-build]
+#   Tools/agent-testing.sh [--fixture sample-home|dense-map|permission-wait|duplicate-review] [--real-home] [--no-build]
 # Afterwards drive it with: "$ADK" --session com.diskunbloat.app.testing <command> --json
 set -euo pipefail
 
@@ -22,6 +22,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $build -eq 1 ]]; then
+  mkdir -p "$derived"
   swift build --package-path "$adk_dir" --product agentdevctl >/dev/null
   xcodebuild -project "$repo/DiskUnbloat.xcodeproj" -scheme DiskUnbloatTesting -configuration Debug \
     -destination 'platform=macOS' -derivedDataPath "$derived" build >"$derived.log" 2>&1 \

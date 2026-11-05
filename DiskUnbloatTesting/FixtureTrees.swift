@@ -3,7 +3,7 @@ import Foundation
 /// Deterministic on-disk trees the real scanner reads. Every file is generated here,
 /// inside the Testing profile, so destructive flows can never reach user data.
 enum FixtureTrees {
-    static let all = ["sample-home", "dense-map", "permission-wait"]
+    static let all = ["sample-home", "dense-map", "permission-wait", "duplicate-review"]
 
     /// Rebuilds `home` for `id`. File contents are seeded so equal seeds produce
     /// identical bytes (duplicate sets) and everything else differs.
@@ -14,6 +14,7 @@ enum FixtureTrees {
         switch id {
         case "sample-home", "permission-wait": try sampleHome(home)
         case "dense-map": try denseMap(home)
+        case "duplicate-review": try duplicateReview(home)
         default: throw CocoaError(.fileNoSuchFile)
         }
     }
@@ -50,6 +51,22 @@ enum FixtureTrees {
                                ("Desktop/Old stuff", 200), ("Documents/Archive", 2000)] {
             try age(home, folder, days: days)
         }
+    }
+
+    private static func duplicateReview(_ home: URL) throws {
+        try sampleHome(home)
+        let mb = 1 << 20
+        let folders = ["Documents/Client Archive", "Backups/Client Archive Copy", "Downloads/Client Archive Draft"]
+        for (index, folder) in folders.enumerated() {
+            try file(home, folder + "/Presentation.pdf", 3 * mb, seed: 51)
+            try file(home, folder + "/Supporting files/Signed notes.txt", 32_768, seed: index == 2 ? 53 : 52)
+            try FileManager.default.createDirectory(at: home.appendingPathComponent(folder + "/Empty"), withIntermediateDirectories: true)
+        }
+        try file(home, "Desktop/Client presentation outside the archives.pdf", 3 * mb, seed: 51)
+        try file(home, "go/pkg/mod/cache/download/Release.bin", 2 * mb, seed: 55)
+        try file(home, "Documents/Release copy.bin", 2 * mb, seed: 55)
+        try file(home, "Documents/target/Untyped folder.bin", 2 * mb, seed: 56)
+        try file(home, "Downloads/Untyped folder copy.bin", 2 * mb, seed: 56)
     }
 
     private static func denseMap(_ home: URL) throws {

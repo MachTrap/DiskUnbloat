@@ -9,6 +9,15 @@ public actor CleanupService: CleanupServing {
         let queue = DispatchQueue(label: "DiskUnbloat.cleanup", qos: .userInitiated)
         var results: [CleanupResult] = []
         func emit(_ event: CleanupEvent) { plan.diagnostics?(event) }
+        if !plan.duplicateRefusals.isEmpty {
+            return plan.items.map { entry in
+                let path = entry.node.path
+                let reason = plan.duplicateRefusals[path] ?? .conflictingSelection
+                emit(.itemQueued(path: path, operation: String(describing: entry.operation)))
+                emit(.itemFailed(path: path, message: reason.message))
+                return CleanupResult(id: entry.id, path: path, succeeded: false, message: reason.message)
+            }
+        }
         for entry in plan.items {
             emit(.itemQueued(path: entry.node.path, operation: String(describing: entry.operation)))
             if let reason = await plan.preflight?(entry.node.path) {
@@ -37,35 +46,95 @@ public actor CleanupService: CleanupServing {
         return results
     }
 
+    /// Read-only commit check. Execution repeats the filesystem checks before mutation.
+    public nonisolated static func validateReviewedDuplicates(
+        _ entries: [CleanupEntry], roots: [URL], index: ScanIndex
+    ) async -> [String: DuplicateCleanupRefusal] {
+        let evidence = await index.cleanupEvidence(for: entries)
+        let rootPaths = roots.map { canonicalURL($0).path }
+        let queue = DispatchQueue(label: "DiskUnbloat.duplicate-review", qos: .userInitiated)
+        return await withCheckedContinuation { continuation in
+            queue.async {
+                var refusals: [String: DuplicateCleanupRefusal] = [:]
+                for entry in entries {
+                    let path = entry.node.path
+                    guard let keeper = entry.survivor,
+                          let copy = evidence.nodes[path], copy.id == entry.id,
+                          copy.identity == entry.node.identity, copy.fingerprint == entry.node.fingerprint,
+                          let kept = evidence.nodes[keeper.path], kept.identity == keeper.identity,
+                          kept.fingerprint == keeper.fingerprint else {
+                        refusals[path] = .invalidPair
+                        continue
+                    }
+                    refusals[path] = validatePair(copy, keeper: keeper, scope: rootPaths, ancestors: evidence.ancestors)
+                }
+                continuation.resume(returning: refusals)
+            }
+        }
+    }
+
+    private nonisolated static func validatePair(
+        _ node: FileNode, keeper: CleanupEntry.Survivor, scope: [String], ancestors: [String: String]
+    ) -> DuplicateCleanupRefusal? {
+        guard scope.contains(where: { keeper.path.isWithin($0) }),
+              keeper.identity != node.identity, keeper.path != node.path else { return .invalidPair }
+        let keptURL = URL(fileURLWithPath: keeper.path)
+        do {
+            try validateAncestry(node.url, identities: ancestors)
+            try validateAncestry(keptURL, identities: ancestors)
+        } catch { return .ancestryChanged }
+        guard let copy = try? FileIdentity.read(node.url), copy.regular, !copy.dataless,
+              copy.identity == node.identity, copy.fingerprint == node.fingerprint else { return .copyChanged }
+        guard let kept = try? FileIdentity.read(keptURL), kept.regular, !kept.dataless,
+              kept.identity == keeper.identity, kept.fingerprint == keeper.fingerprint else { return .keeperChanged }
+        let parent = node.url.deletingLastPathComponent()
+        return FileManager.default.isWritableFile(atPath: parent.path) ? nil : .writeUnavailable
+    }
+
+    private nonisolated static func validateAncestry(_ url: URL, identities: [String: String]) throws {
+        let parent = url.deletingLastPathComponent()
+        guard canonicalURL(parent).path == parent.path else {
+            throw CleanupError.refused("An ancestor changed or is a symbolic link. Scan again.")
+        }
+        var path = url.path.canonicalParentPath
+        while let candidate = path {
+            if let expected = identities[candidate] {
+                let current = try FileIdentity.read(URL(fileURLWithPath: candidate))
+                guard current.identity == expected, current.directory, !current.link else {
+                    throw CleanupError.refused("An ancestor changed since scanning. Scan again.")
+                }
+            }
+            path = candidate.canonicalParentPath
+        }
+    }
+
     private nonisolated static func remove(_ node: FileNode, survivor: CleanupEntry.Survivor? = nil, plan: CleanupPlan) -> CleanupResult {
-                    do {
-                        if let survivor {
-                            // A duplicate goes only while its kept copy is still there, unchanged.
-                            guard let kept = try? FileIdentity.read(URL(fileURLWithPath: survivor.path)), !kept.link, !kept.directory,
-                                  kept.identity == survivor.identity, survivor.fingerprint.map({ $0 == kept.fingerprint }) ?? true,
-                                  kept.identity != node.identity
-                            else { throw CleanupError.refused("The copy being kept is missing or changed. Find duplicates again.") }
-                            // Queued for removal itself (or inside a queued folder): keep this copy.
-                            if plan.items.contains(where: { survivor.path == $0.node.path || survivor.path.isWithin($0.node.path) }) {
-                                throw CleanupError.refused("The copy being kept is also selected for deletion, so this duplicate stays.")
-                            }
-                        }
-                        if let reason = CleanupSafety.blockedReason(node, roots: plan.roots, exemptingCacheRoots: plan.knownCacheRoots) { throw CleanupError.refused(reason) }
-                        let parent = node.url.deletingLastPathComponent()
-                        // Resolving parent ancestry detects replaced directory components, without following the leaf link.
-                        guard canonicalURL(parent).path == parent.path else { throw CleanupError.refused("An ancestor changed or is a symbolic link. Scan again.") }
-                        for (path, expected) in plan.ancestorIdentities where node.path.hasPrefix(path + "/") {
-                            guard try FileIdentity.read(URL(fileURLWithPath: path)).identity == expected else { throw CleanupError.refused("An ancestor changed since scanning. Scan again.") }
-                        }
-                        let current = try FileIdentity.read(node.url)
-                        guard current.identity == node.identity, (node.fingerprint.map { $0 == current.fingerprint } ?? (current.modified == node.modified)), current.link == node.isSymbolicLink, current.directory == node.isDirectory else { throw CleanupError.refused("This item changed since scanning. Scan again before removing it.") }
-                        guard FileManager.default.isWritableFile(atPath: parent.path) else { throw CleanupError.refused("Write authorization is unavailable.") }
-                        switch plan.mode {
-                        case .trash: try FileManager.default.trashItem(at: node.url, resultingItemURL: nil)
-                        case .permanent: try FileManager.default.removeItem(at: node.url)
-                        }
-                        return CleanupResult(id: node.id, path: node.path, succeeded: true, message: plan.mode == .trash ? "Moved to Trash" : "Permanently deleted")
-                    } catch { return CleanupResult(id: node.id, path: node.path, succeeded: false, message: error.localizedDescription) }
+        do {
+            if let reason = CleanupSafety.blockedReason(node, roots: plan.roots, exemptingCacheRoots: plan.knownCacheRoots) {
+                throw CleanupError.refused(reason)
+            }
+            if let survivor {
+                if let refusal = validatePair(node, keeper: survivor, scope: plan.roots.map(\.path), ancestors: plan.ancestorIdentities) {
+                    throw CleanupError.refused(refusal.message)
+                }
+            } else {
+                try validateAncestry(node.url, identities: plan.ancestorIdentities)
+                let current = try FileIdentity.read(node.url)
+                guard current.identity == node.identity,
+                      (node.fingerprint.map { $0 == current.fingerprint } ?? (current.modified == node.modified)),
+                      current.link == node.isSymbolicLink, current.directory == node.isDirectory else {
+                    throw CleanupError.refused("This item changed since scanning. Scan again before removing it.")
+                }
+                guard FileManager.default.isWritableFile(atPath: node.url.deletingLastPathComponent().path) else {
+                    throw CleanupError.refused("Write authorization is unavailable.")
+                }
+            }
+            switch plan.mode {
+            case .trash: try FileManager.default.trashItem(at: node.url, resultingItemURL: nil)
+            case .permanent: try FileManager.default.removeItem(at: node.url)
+            }
+            return CleanupResult(id: node.id, path: node.path, succeeded: true, message: plan.mode == .trash ? "Moved to Trash" : "Permanently deleted")
+        } catch { return CleanupResult(id: node.id, path: node.path, succeeded: false, message: error.localizedDescription) }
     }
 
     /// Empties a scan-root folder in place: validates the folder itself, then removes each of
@@ -105,9 +174,7 @@ public actor CleanupService: CleanupServing {
     private nonisolated static func prepareEmptying(_ node: FileNode, plan: CleanupPlan) -> Result<(children: [URL], blockedVolumes: Int), CleanupError> {
         do {
             if let reason = CleanupSafety.emptyContentsBlockedReasonCode(node, roots: plan.roots, exemptingCacheRoots: plan.knownCacheRoots) { throw CleanupError.refused(reason.message) }
-            for (path, expected) in plan.ancestorIdentities where node.path.hasPrefix(path + "/") {
-                guard try FileIdentity.read(URL(fileURLWithPath: path)).identity == expected else { throw CleanupError.refused("An ancestor changed since scanning. Scan again.") }
-            }
+            try validateAncestry(node.url, identities: plan.ancestorIdentities)
             let current = try FileIdentity.read(node.url)
             guard current.identity == node.identity, (node.fingerprint.map { $0 == current.fingerprint } ?? (current.modified == node.modified)), current.directory, !current.link else { throw CleanupError.refused("This item changed since scanning. Scan again before removing it.") }
             guard FileManager.default.isWritableFile(atPath: node.path) else { throw CleanupError.refused("Write authorization is unavailable.") }

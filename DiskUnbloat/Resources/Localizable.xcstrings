@@ -69,6 +69,86 @@
         }
       }
     },
+    "%@ in its cache" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in its cache"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ в его кэше"
+          }
+        }
+      }
+    },
+    "%@ matches for “%@”" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ matches for “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найдено: %@ — «%@»"
+          }
+        }
+      }
+    },
+    "%@ of %@ files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ of %@ files"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ из %@ файлов"
+          }
+        }
+      }
+    },
+    "%@ since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ since %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ с %@"
+          }
+        }
+      }
+    },
+    "%@+ matches for “%@”" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@+ matches for “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найдено: %@+ — «%@»"
+          }
+        }
+      }
+    },
     "%lld" : {
       "localizations" : {
         "en" : {
@@ -81,6 +161,162 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld copies" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copy"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld copies"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копии"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копий"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копия"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld копии"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld files could not be compared because they were unreadable or changed." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld file could not be compared because it was unreadable or changed."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld files could not be compared because they were unreadable or changed."
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не удалось сравнить %lld файла: они недоступны или изменились."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не удалось сравнить %lld файлов: они недоступны или изменились."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не удалось сравнить %lld файл: он недоступен или изменился."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не удалось сравнить %lld файла: они недоступны или изменились."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld files selected" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld file selected"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld files selected"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Выбрано %lld файла"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Выбрано %lld файлов"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Выбран %lld файл"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Выбрано %lld файла"
+                }
+              }
+            }
           }
         }
       }
@@ -314,6 +550,58 @@
         }
       }
     },
+    "%lld local snapshots (sizes not reported)" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld local snapshot (size not reported)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld local snapshots (sizes not reported)"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локальных снимка (размер не сообщается)"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локальных снимков (размер не сообщается)"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локальный снимок (размер не сообщается)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локального снимка (размер не сообщается)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld locations" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -360,6 +648,58 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld расположений"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld locations couldn’t be read" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld location couldn’t be read"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld locations couldn’t be read"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld места не удалось прочитать"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld мест не удалось прочитать"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld место не удалось прочитать"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld места не удалось прочитать"
                 }
               }
             }
@@ -420,6 +760,58 @@
         }
       }
     },
+    "%lld matches" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld match"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld matches"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld совпадения"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld совпадений"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld совпадение"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld совпадения"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld more items" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -469,6 +861,142 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%lld selected files are hidden by filters." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld selected file is hidden by filters."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld selected files are hidden by filters."
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld выбранных файла скрыты фильтрами."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld выбранных файлов скрыто фильтрами."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld выбранный файл скрыт фильтрами."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld выбранных файла скрыты фильтрами."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld verified files" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld verified file"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld verified files"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld проверенных файла"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld проверенных файлов"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld проверенный файл"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld проверенных файла"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "≈ %@ deleted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ deleted"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ удалено"
+          }
+        }
+      }
+    },
+    "≈ %@ moved to Trash" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ moved to Trash"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ перемещено в Корзину"
           }
         }
       }
@@ -567,6 +1095,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Библиотека Final Cut Pro, чьи рендер-файлы, миниатюры и пиковые данные могут вырастать до сотен гигабайт. Чтобы безопасно освободить место, используйте «Файл → Удалить сгенерированные файлы библиотеки» в Final Cut Pro; DiskUnbloat не трогает содержимое бандла."
+          }
+        }
+      }
+    },
+    "A reviewed duplicate conflicts with another queued selection. Remove the conflicting selection and review again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A reviewed duplicate conflicts with another queued selection. Remove the conflicting selection and review again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверенный дубликат конфликтует с другим объектом в очереди. Уберите конфликтующий объект и повторите проверку."
           }
         }
       }
@@ -686,6 +1231,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Рабочий каталог runner Actions"
+          }
+        }
+      }
+    },
+    "Add selected copies to cleanup queue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add selected copies to cleanup queue"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить выбранные копии в очередь очистки"
           }
         }
       }
@@ -877,6 +1438,38 @@
         }
       }
     },
+    "All matches" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All matches"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все совпадения"
+          }
+        }
+      }
+    },
+    "Also removes every stopped container. Docker must be running." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also removes every stopped container. Docker must be running."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Также удаляет все остановленные контейнеры. Docker должен быть запущен."
+          }
+        }
+      }
+    },
     "An ancestor changed or is a symbolic link. Scan again." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -907,6 +1500,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Родительская папка изменилась после сканирования. Повторите его."
+          }
+        }
+      }
+    },
+    "An ancestor of the duplicate or kept copy changed. Scan again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An ancestor of the duplicate or kept copy changed. Scan again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Родительская папка дубликата или оставляемой копии изменилась. Повторите сканирование."
           }
         }
       }
@@ -1030,6 +1640,22 @@
         }
       }
     },
+    "Answer the system permission dialog to continue. It can be hidden behind this window or on another desktop." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answer the system permission dialog to continue. It can be hidden behind this window or on another desktop."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответьте на системный запрос разрешения, чтобы продолжить. Он может быть скрыт за этим окном или на другом рабочем столе."
+          }
+        }
+      }
+    },
     "Any size" : {
       "localizations" : {
         "en" : {
@@ -1058,6 +1684,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Любая дата"
+          }
+        }
+      }
+    },
+    "Apple app containers here are protected by macOS. Allow Full Disk Access to measure them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple app containers here are protected by macOS. Allow Full Disk Access to measure them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контейнеры приложений Apple здесь защищены macOS. Разрешите полный доступ к диску, чтобы измерить их."
           }
         }
       }
@@ -1091,6 +1734,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Приблизительная доля использованного места тома, прочитанного к этому моменту"
+          }
+        }
+      }
+    },
+    "Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приблизительно: занятое место тома минус прочитанное сканированием. Сюда входят системные данные, другие пользователи, локальные снимки и места, которые не удалось прочитать."
           }
         }
       }
@@ -1226,6 +1885,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Назад"
+          }
+        }
+      }
+    },
+    "Balanced" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balanced"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбалансированно"
           }
         }
       }
@@ -2120,6 +2795,22 @@
         }
       }
     },
+    "Cleanup safety" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleanup safety"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Безопасность очистки"
+          }
+        }
+      }
+    },
     "Cleanup suggestions" : {
       "localizations" : {
         "en" : {
@@ -2168,6 +2859,22 @@
         }
       }
     },
+    "Clear scan history" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear scan history"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить историю сканирований"
+          }
+        }
+      }
+    },
     "Clear selection" : {
       "localizations" : {
         "en" : {
@@ -2180,6 +2887,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Снять выделение"
+          }
+        }
+      }
+    },
+    "Clear visible" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear visible"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снять видимый выбор"
+          }
+        }
+      }
+    },
+    "Cleared" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleared"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищено"
           }
         }
       }
@@ -2353,6 +3092,22 @@
         }
       }
     },
+    "Colour by" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colour by"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цвет по"
+          }
+        }
+      }
+    },
     "Comfy Desktop compiled cache" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2489,6 +3244,103 @@
         }
       }
     },
+    "Compact" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компактно"
+          }
+        }
+      }
+    },
+    "Compare matching folders for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare matching folders for %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнить совпадающие папки для %@"
+          }
+        }
+      }
+    },
+    "Compare verified file paths" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare verified file paths"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнить пути проверенных файлов"
+          }
+        }
+      }
+    },
+    "Compare with" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare with"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнить с"
+          }
+        }
+      }
+    },
+    "Comparing files…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparing files…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнение файлов…"
+          }
+        }
+      }
+    },
+    "Comparing…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparing…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнение…"
+          }
+        }
+      }
+    },
     "Compiled build artifacts of Go toolchains. Builds recompile everything from source." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2608,6 +3460,38 @@
         }
       }
     },
+    "Contains both tagged and untagged files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contains both tagged and untagged files"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Содержит как отмеченные, так и неотмеченные файлы"
+          }
+        }
+      }
+    },
+    "Contains reclaimable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contains reclaimable"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Содержит удаляемое"
+          }
+        }
+      }
+    },
     "Contents of these folders can usually be rebuilt or downloaded again by their tools." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2659,6 +3543,22 @@
         }
       }
     },
+    "Copy Diagnostics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Diagnostics"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать диагностику"
+          }
+        }
+      }
+    },
     "Copy path" : {
       "localizations" : {
         "en" : {
@@ -2688,6 +3588,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не удалось получить доступ к выбранной папке. %@"
+          }
+        }
+      }
+    },
+    "Couldn’t find duplicates. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t find duplicates. %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось найти дубликаты. %@"
           }
         }
       }
@@ -3060,6 +3976,22 @@
         }
       }
     },
+    "Deletes simulators whose runtime is no longer installed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deletes simulators whose runtime is no longer installed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет симуляторы, среда которых больше не установлена."
+          }
+        }
+      }
+    },
     "Deleting application caches can disrupt applications. Close the related app first." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3161,6 +4093,22 @@
         }
       }
     },
+    "Detailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detailed"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подробно"
+          }
+        }
+      }
+    },
     "Details" : {
       "localizations" : {
         "en" : {
@@ -3194,6 +4142,38 @@
         }
       }
     },
+    "Developer tools" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Developer tools"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты разработчика"
+          }
+        }
+      }
+    },
+    "Developer tools…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Developer tools…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты разработчика…"
+          }
+        }
+      }
+    },
     "Development" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3207,6 +4187,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разработка"
+          }
+        }
+      }
+    },
+    "Diagnostics copied to the clipboard." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics copied to the clipboard."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диагностика скопирована в буфер обмена."
           }
         }
       }
@@ -3633,6 +4629,22 @@
         }
       }
     },
+    "Duplicate files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate files"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дубликаты файлов"
+          }
+        }
+      }
+    },
     "Each ComfyUI installation the desktop app created, including its Python environment and custom nodes. Deletable from inside the app; custom nodes need reinstalling." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3697,6 +4709,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Очищено. Содержимое удалено безвозвратно."
+          }
+        }
+      }
+    },
+    "Empties npm's download cache; packages download again when needed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empties npm's download cache; packages download again when needed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищает кэш загрузок npm; пакеты скачаются снова при необходимости."
+          }
+        }
+      }
+    },
+    "Empties Yarn's package cache." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empties Yarn's package cache."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищает кэш пакетов Yarn."
           }
         }
       }
@@ -3868,6 +4912,22 @@
         }
       }
     },
+    "Failed (exit %lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed (exit %lld)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ошибка (код %lld)"
+          }
+        }
+      }
+    },
     "Figma compiled cache" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3919,6 +4979,22 @@
         }
       }
     },
+    "File search starts at 1 MiB. Matching folders can include smaller files." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File search starts at 1 MiB. Matching folders can include smaller files."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск отдельных файлов начинается с 1 МиБ. В совпадающих папках могут быть файлы меньшего размера."
+          }
+        }
+      }
+    },
     "Files" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3932,6 +5008,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Файлы"
+          }
+        }
+      }
+    },
+    "Files moved to Trash occupy space until you empty it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files moved to Trash occupy space until you empty it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файлы в Корзине занимают место до её очистки."
           }
         }
       }
@@ -3952,6 +5044,22 @@
         }
       }
     },
+    "Filter the map" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter the map"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фильтровать карту"
+          }
+        }
+      }
+    },
     "Final Cut Pro library" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3965,6 +5073,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Библиотека Final Cut Pro"
+          }
+        }
+      }
+    },
+    "Find again" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find again"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найти снова"
+          }
+        }
+      }
+    },
+    "Find duplicates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find duplicates"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найти дубликаты"
+          }
+        }
+      }
+    },
+    "Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Находит файлы с одинаковым содержимым, читая их. Только ваши файлы: ничего из Library, пакетов приложений и защищённых папок."
+          }
+        }
+      }
+    },
+    "Finished" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finished"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
           }
         }
       }
@@ -4355,6 +5527,38 @@
         }
       }
     },
+    "Grew" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grew"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выросло"
+          }
+        }
+      }
+    },
+    "Growth" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Growth"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рост"
+          }
+        }
+      }
+    },
     "Heavy developer artifacts: simulators, device support, Gradle distributions, automation-browser builds, Android SDK, container runtimes, package stores, local AI models, and virtual machines." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4368,6 +5572,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Тяжёлые артефакты разработки: симуляторы, поддержка устройств, дистрибутивы Gradle, сборки браузеров для автоматизации, Android SDK, контейнерные рантаймы, хранилища пакетов, локальные модели ИИ и виртуальные машины."
+          }
+        }
+      }
+    },
+    "Hide generated and support items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide generated and support items"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть сгенерированные и вспомогательные файлы"
+          }
+        }
+      }
+    },
+    "Highlight on the map" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlight on the map"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подсвечивать на карте"
           }
         }
       }
@@ -4436,6 +5672,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сам Homebrew"
+          }
+        }
+      }
+    },
+    "Homebrew, Xcode simulators, npm, pnpm, Yarn and Docker are detected in their standard install locations." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew, Xcode simulators, npm, pnpm, Yarn and Docker are detected in their standard install locations."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew, симуляторы Xcode, npm, pnpm, Yarn и Docker ищутся в стандартных местах установки."
           }
         }
       }
@@ -4659,6 +5911,185 @@
         }
       }
     },
+    "Keep" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставить"
+          }
+        }
+      }
+    },
+    "Keep %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить %@"
+          }
+        }
+      }
+    },
+    "Keep copy at %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep copy at %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить копию по пути %@"
+          }
+        }
+      }
+    },
+    "Keep scan history to show growth" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep scan history to show growth"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранить историю сканирований, чтобы показывать рост"
+          }
+        }
+      }
+    },
+    "keep the copy with the shortest path" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keep the copy with the shortest path"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "оставить копию с самым коротким путём"
+          }
+        }
+      }
+    },
+    "Keep the copy with the shortest path" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the copy with the shortest path"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить копию с самым коротким путём"
+          }
+        }
+      }
+    },
+    "keep the newest copy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keep the newest copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "оставить самую новую копию"
+          }
+        }
+      }
+    },
+    "Keep the newest copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the newest copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить самую новую копию"
+          }
+        }
+      }
+    },
+    "keep the oldest copy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keep the oldest copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "оставить самую старую копию"
+          }
+        }
+      }
+    },
+    "Keep the oldest copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the oldest copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить самую старую копию"
+          }
+        }
+      }
+    },
+    "Keep this copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep this copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить эту копию"
+          }
+        }
+      }
+    },
     "Keeps folder" : {
       "localizations" : {
         "en" : {
@@ -4671,6 +6102,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Папка остаётся"
+          }
+        }
+      }
+    },
+    "Kept copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраняемая копия"
           }
         }
       }
@@ -4808,6 +6255,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Крупные файлы"
+          }
+        }
+      }
+    },
+    "Last modified" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last modified"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последнее изменение"
           }
         }
       }
@@ -5030,6 +6493,22 @@
         }
       }
     },
+    "macOS can free about %@ of purgeable space on its own." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS can free about %@ of purgeable space on its own."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS может сама освободить около %@ очищаемого места."
+          }
+        }
+      }
+    },
     "macOS system assets" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5059,6 +6538,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Освободите место для нового."
+          }
+        }
+      }
+    },
+    "Map detail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map detail"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Детализация карты"
+          }
+        }
+      }
+    },
+    "Matching folders" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching folders"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Совпадающие папки"
           }
         }
       }
@@ -5197,6 +6708,22 @@
         }
       }
     },
+    "Modification date unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modification date unknown"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата изменения неизвестна"
+          }
+        }
+      }
+    },
     "Modified" : {
       "localizations" : {
         "en" : {
@@ -5279,6 +6806,22 @@
         }
       }
     },
+    "New" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое"
+          }
+        }
+      }
+    },
     "New scan" : {
       "localizations" : {
         "en" : {
@@ -5295,6 +6838,38 @@
         }
       }
     },
+    "New since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New since %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое с %@"
+          }
+        }
+      }
+    },
+    "Newest content change inside. Age alone never makes something safe to delete." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest content change inside. Age alone never makes something safe to delete."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Самое свежее изменение содержимого. Возраст сам по себе не делает удаление безопасным."
+          }
+        }
+      }
+    },
     "No accounts, analytics, uploads, or background monitoring. Temporary indexes are discarded when a scan session closes." : {
       "localizations" : {
         "en" : {
@@ -5307,6 +6882,134 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Без аккаунтов, аналитики, отправки данных и фонового мониторинга. Временные индексы удаляются при закрытии сеанса."
+          }
+        }
+      }
+    },
+    "No copies selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No copies selected"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Копии не выбраны"
+          }
+        }
+      }
+    },
+    "No duplicates found." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No duplicates found."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дубликаты не найдены."
+          }
+        }
+      }
+    },
+    "No earlier data" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No earlier data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет прежних данных"
+          }
+        }
+      }
+    },
+    "No earlier scan of this location yet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No earlier scan of this location yet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это место ещё не сканировалось раньше"
+          }
+        }
+      }
+    },
+    "No matches for “%@”" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matches for “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет совпадений для «%@»"
+          }
+        }
+      }
+    },
+    "No matches for these filters" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matches for these filters"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет совпадений для этих фильтров"
+          }
+        }
+      }
+    },
+    "No output." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No output."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет вывода."
+          }
+        }
+      }
+    },
+    "No quick-select level touches this. Review it yourself." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No quick-select level touches this. Review it yourself."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ни один уровень быстрого выбора это не трогает. Проверьте сами."
           }
         }
       }
@@ -5339,6 +7042,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Нет объектов с известным размером"
+          }
+        }
+      }
+    },
+    "No supported tools found" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No supported tools found"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддерживаемые инструменты не найдены"
           }
         }
       }
@@ -5426,6 +7145,22 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Not reached by the scan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not reached by the scan"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вне сканирования"
           }
         }
       }
@@ -5751,6 +7486,22 @@
         }
       }
     },
+    "Older" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Older"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Старше"
+          }
+        }
+      }
+    },
     "Older archives and installers may be replaceable. Verify you have another copy." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5887,6 +7638,22 @@
         }
       }
     },
+    "Only verified files will be added to the queue. The folder structure stays." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only verified files will be added to the queue. The folder structure stays."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В очередь попадут только проверенные файлы. Структура папок сохранится."
+          }
+        }
+      }
+    },
     "Open Full Disk Access settings" : {
       "extractionState" : "translated",
       "localizations" : {
@@ -5900,6 +7667,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Открыть настройки полного доступа к диску"
+          }
+        }
+      }
+    },
+    "Open Trash" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Trash"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть Корзину"
           }
         }
       }
@@ -6132,6 +7915,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выбрано частично"
+          }
+        }
+      }
+    },
+    "Path actions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path actions"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Действия с путём"
           }
         }
       }
@@ -6492,6 +8291,55 @@
         }
       }
     },
+    "Protected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защищено"
+          }
+        }
+      }
+    },
+    "Protected by macOS. Allow Full Disk Access to measure it." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected by macOS. Allow Full Disk Access to measure it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защищено macOS. Разрешите полный доступ к диску, чтобы измерить."
+          }
+        }
+      }
+    },
+    "Protected: DiskUnbloat never removes this." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected: DiskUnbloat never removes this."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защищено: DiskUnbloat никогда это не удаляет."
+          }
+        }
+      }
+    },
     "PyTorch cache" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6522,6 +8370,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Чекпоинты PyTorch Hub и кэши скомпилированных ядер. Загружаются или пересобираются по мере необходимости."
+          }
+        }
+      }
+    },
+    "Queue %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queue %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить в очередь %@"
+          }
+        }
+      }
+    },
+    "Queue copy at %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queue copy at %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить в очередь копию по пути %@"
           }
         }
       }
@@ -6742,6 +8622,54 @@
         }
       }
     },
+    "Removes old versions of installed formulae and outdated downloads." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removes old versions of installed formulae and outdated downloads."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет старые версии установленных формул и устаревшие загрузки."
+          }
+        }
+      }
+    },
+    "Removes packages from pnpm's store that no project references." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removes packages from pnpm's store that no project references."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет из хранилища pnpm пакеты, на которые не ссылается ни один проект."
+          }
+        }
+      }
+    },
+    "Removes unused images, build cache and networks inside Docker." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removes unused images, build cache and networks inside Docker."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет неиспользуемые образы, кэш сборки и сети внутри Docker."
+          }
+        }
+      }
+    },
     "Rescan folder" : {
       "localizations" : {
         "en" : {
@@ -6807,6 +8735,22 @@
         }
       }
     },
+    "Return shows the next one" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return shows the next one"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return — к следующему"
+          }
+        }
+      }
+    },
     "Return to map" : {
       "localizations" : {
         "en" : {
@@ -6835,6 +8779,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показать в Finder"
+          }
+        }
+      }
+    },
+    "Review duplicates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review duplicates"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверка дубликатов"
+          }
+        }
+      }
+    },
+    "Review the copies that could not be added." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review the copies that could not be added."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверьте копии, которые не удалось добавить."
           }
         }
       }
@@ -6958,6 +8934,54 @@
         }
       }
     },
+    "Run" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выполнить"
+          }
+        }
+      }
+    },
+    "Run “%@”?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run “%@”?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выполнить «%@»?"
+          }
+        }
+      }
+    },
+    "Run…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выполнить…"
+          }
+        }
+      }
+    },
     "Rust toolchains" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6988,6 +9012,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Наборы инструментов Rust, установленные менеджером версий rustup: компилятор, стандартные библиотеки и документация, по папке на канал. После удаления rustc не будет работать — rustup заново скачает цепочки по запросу."
+          }
+        }
+      }
+    },
+    "Save Diagnostics…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Diagnostics…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить диагностику…"
           }
         }
       }
@@ -7206,6 +9246,54 @@
         }
       }
     },
+    "Search filters the map. Click to highlight matches instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search filters the map. Click to highlight matches instead."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск фильтрует карту. Нажмите, чтобы подсвечивать совпадения."
+          }
+        }
+      }
+    },
+    "Search highlights matches on the map. Click to filter instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search highlights matches on the map. Click to filter instead."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск подсвечивает совпадения на карте. Нажмите, чтобы фильтровать."
+          }
+        }
+      }
+    },
+    "Search names or paths" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search names or paths"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск по именам или путям"
+          }
+        }
+      }
+    },
     "Search scope" : {
       "localizations" : {
         "en" : {
@@ -7305,6 +9393,23 @@
         }
       }
     },
+    "Select duplicate copies?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select duplicate copies?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать копии-дубликаты?"
+          }
+        }
+      }
+    },
     "Select everything rebuildable?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7389,6 +9494,88 @@
         }
       }
     },
+    "Select visible copies" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select visible copies"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать видимые копии"
+          }
+        }
+      }
+    },
+    "Selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранные"
+          }
+        }
+      }
+    },
+    "Selected %lld duplicate copies." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected %lld duplicate copies."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрано копий-дубликатов: %lld."
+          }
+        }
+      }
+    },
+    "Selected %lld duplicate copies. %lld were skipped by safety checks." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected %lld duplicate copies. %lld were skipped by safety checks."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрано копий-дубликатов: %lld. Пропущено проверками безопасности: %lld."
+          }
+        }
+      }
+    },
+    "Selected by the Junk level: old versions, build data and known caches." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected by the Junk level: old versions, build data and known caches."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается уровнем «Мусор»: старые версии, данные сборок и известные кэши."
+          }
+        }
+      }
+    },
     "Selected disk" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7418,6 +9605,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выбрано для удаления"
+          }
+        }
+      }
+    },
+    "Selected from the Caches level: apps rebuild these, sometimes signing you out." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected from the Caches level: apps rebuild these, sometimes signing you out."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается начиная с уровня «Кэши»: приложения создадут их заново, иногда с повторным входом."
+          }
+        }
+      }
+    },
+    "Selected from the Rebuildable level: tools can download or rebuild it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected from the Rebuildable level: tools can download or rebuild it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается начиная с уровня «Восстановимое»: инструменты могут скачать или собрать это заново."
+          }
+        }
+      }
+    },
+    "Selected only by Deep clean: older app settings and long-unused installers." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected only by Deep clean: older app settings and long-unused installers."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирается только глубокой очисткой: настройки старых версий приложений и давно неиспользуемые установщики."
           }
         }
       }
@@ -7473,6 +9708,22 @@
         }
       }
     },
+    "Show" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать"
+          }
+        }
+      }
+    },
     "Show all" : {
       "localizations" : {
         "en" : {
@@ -7505,6 +9756,22 @@
         }
       }
     },
+    "Show space the scan couldn't reach" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show space the scan couldn't reach"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать место вне сканирования"
+          }
+        }
+      }
+    },
     "Show unselected items in this folder" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7518,6 +9785,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показать невыбранные объекты в этой папке"
+          }
+        }
+      }
+    },
+    "Shrank" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrank"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уменьшилось"
           }
         }
       }
@@ -7623,6 +9906,38 @@
         }
       }
     },
+    "Skip permission checks" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip permission checks"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пропустить проверку разрешений"
+          }
+        }
+      }
+    },
+    "Some items inside are selected by a quick-select level." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some items inside are selected by a quick-select level."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Часть содержимого выбирается одним из уровней быстрого выбора."
+          }
+        }
+      }
+    },
     "Some items inside could not be read; the size shown is a lower bound." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7640,6 +9955,22 @@
         }
       }
     },
+    "Some large folders exceeded the comparison limit. Their file matches are listed separately." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some large folders exceeded the comparison limit. Their file matches are listed separately."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Некоторые большие папки превысили предел сравнения. Совпадающие файлы из них показаны отдельно."
+          }
+        }
+      }
+    },
     "Some locations couldn’t be read. Map sizes are partial." : {
       "localizations" : {
         "en" : {
@@ -7652,6 +9983,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Некоторые расположения недоступны. Размеры на карте неполные."
+          }
+        }
+      }
+    },
+    "Some modification dates inside are unknown." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some modification dates inside are unknown."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Некоторые даты изменения внутри неизвестны."
           }
         }
       }
@@ -7890,6 +10237,22 @@
         }
       }
     },
+    "Stores the sizes and paths of the largest items from each finished scan (never file contents), the last 10 per location." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stores the sizes and paths of the largest items from each finished scan (never file contents), the last 10 per location."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраняет размеры и пути крупнейших объектов каждого завершённого сканирования (никогда не содержимое файлов), последние 10 для каждого места."
+          }
+        }
+      }
+    },
     "Suggestions are based on metadata. They do not establish that a file is unused or safe to remove." : {
       "localizations" : {
         "en" : {
@@ -7970,6 +10333,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Системное содержимое, которое macOS скачивает сама, по папкам на каждый ресурс: модели ИИ на устройстве (Apple Intelligence), данные Siri и речи, словари, шрифты и рантаймы эмуляторов. Полностью управляется системой — она сама решает, что скачивать и когда чистить; удаление здесь запрещено."
+          }
+        }
+      }
+    },
+    "Tagged by a cleanup recommendation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tagged by a cleanup recommendation"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмечено рекомендацией по очистке"
           }
         }
       }
@@ -8178,6 +10557,22 @@
         }
       }
     },
+    "The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранная папка не охватывает всё, что нужно для этого сканирования. Выберите предложенную папку, чтобы продолжить."
+          }
+        }
+      }
+    },
     "The code of the `brew` command Homebrew runs from. Removing it breaks Homebrew until Homebrew is installed again; your packages live in Cellar." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8229,6 +10624,56 @@
         }
       }
     },
+    "The copy being kept is also selected for deletion, so this duplicate stays." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy being kept is also selected for deletion, so this duplicate stays."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставляемая копия тоже выбрана для удаления, поэтому этот дубликат остаётся."
+          }
+        }
+      }
+    },
+    "The copy being kept is missing or changed. Find duplicates again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy being kept is missing or changed. Find duplicates again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставляемая копия отсутствует или изменилась. Найдите дубликаты снова."
+          }
+        }
+      }
+    },
+    "The current scan locations were compared." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The current scan locations were compared."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сравнение выполнено в расположениях текущего сканирования."
+          }
+        }
+      }
+    },
     "The editor's Chromium web cache. Removed entries are rebuilt as needed." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8242,6 +10687,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Веб-кэш Chromium редактора. Удалённые записи при необходимости отстраиваются заново."
+          }
+        }
+      }
+    },
+    "The estimate includes known sizes only." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The estimate includes known sizes only."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оценка учитывает только известные размеры."
           }
         }
       }
@@ -8416,6 +10877,38 @@
         }
       }
     },
+    "The scan changed. Find duplicates again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The scan changed. Find duplicates again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Результаты сканирования изменились. Найдите дубликаты заново."
+          }
+        }
+      }
+    },
+    "The scan or cleanup queue changed during review. Review the current selection and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The scan or cleanup queue changed during review. Review the current selection and try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Во время проверки результаты сканирования или очередь очистки изменились. Проверьте текущий выбор и повторите попытку."
+          }
+        }
+      }
+    },
     "The scan stopped with partial results. You can explore what was read, but cleanup will stay disabled." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8446,6 +10939,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Пользовательская папка инструментов Android SDK: метаданные устройств эмулятора, ключи доступа `adb` и состояние эмулятора. Образы эмуляторов лежат в `avd` — у них свой пункт; удаление убирает ключи доступа и состояние устройств."
+          }
+        }
+      }
+    },
+    "The selected duplicate and kept copy could not be verified. Find duplicates again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected duplicate and kept copy could not be verified. Find duplicates again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось проверить выбранный дубликат и оставляемую копию. Найдите дубликаты снова."
+          }
+        }
+      }
+    },
+    "The selected duplicate is missing or changed. Find duplicates again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected duplicate is missing or changed. Find duplicates again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранный дубликат отсутствует или изменился. Найдите дубликаты снова."
           }
         }
       }
@@ -8497,6 +11024,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Общие папки моделей, входных и выходных файлов ComfyUI Desktop: содержит сгенерированные изображения и файлы моделей — проверяйте вручную, никогда не выбирается автоматически."
+          }
+        }
+      }
+    },
+    "The space returns when you empty the Trash. DiskUnbloat never empties it for you." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The space returns when you empty the Trash. DiskUnbloat never empties it for you."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Место освободится, когда вы очистите Корзину. DiskUnbloat никогда не очищает её за вас."
           }
         }
       }
@@ -8580,6 +11123,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Эти расположения прочитаны не полностью. Их полные размеры неизвестны; известные байты учтены на карте. Показано до 500 проблем."
+          }
+        }
+      }
+    },
+    "These tools clean their own caches. Running the tool is safer than deleting its files." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These tools clean their own caches. Running the tool is safer than deleting its files."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эти инструменты сами очищают свои кэши. Запустить инструмент безопаснее, чем удалять его файлы."
           }
         }
       }
@@ -8685,6 +11244,22 @@
         }
       }
     },
+    "This month" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This month"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом месяце"
+          }
+        }
+      }
+    },
     "This scan couldn’t finish." : {
       "localizations" : {
         "en" : {
@@ -8714,6 +11289,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выбор включает кэш запущенного приложения или защищённой службы. Закройте приложение и повторите проверку."
+          }
+        }
+      }
+    },
+    "This selects %lld copies (%@) and keeps one copy of each of %lld sets: %@. The kept copy is checked again right before anything is removed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This selects %lld copies (%@) and keeps one copy of each of %lld sets: %@. The kept copy is checked again right before anything is removed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будет выбрано копий: %lld (%@). Из каждого из %lld наборов остаётся одна копия: %@. Оставляемая копия проверяется ещё раз прямо перед удалением."
           }
         }
       }
@@ -8769,6 +11361,22 @@
         }
       }
     },
+    "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы сканировать без полного доступа к диску, разрешите DiskUnbloat читать эту папку. Нажмите «Открыть», чтобы продолжить."
+          }
+        }
+      }
+    },
     "Triton cache" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8815,6 +11423,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Недоступные расположения"
+          }
+        }
+      }
+    },
+    "Unchanged" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unchanged"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без изменений"
+          }
+        }
+      }
+    },
+    "Unchanged since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unchanged since %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без изменений с %@"
           }
         }
       }
@@ -8870,6 +11510,22 @@
         }
       }
     },
+    "Unknown date" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown date"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата неизвестна"
+          }
+        }
+      }
+    },
     "Unpacked package archives kept by uv for faster installs. Safe to remove; uv re-downloads them." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8900,6 +11556,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Распакованные исходники зависимостей Rust для сборок. Cargo восстанавливает их из кэша или загружает заново."
+          }
+        }
+      }
+    },
+    "Unreached ≈ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unreached ≈ %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вне сканирования ≈ %@"
+          }
+        }
+      }
+    },
+    "Unreached space" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unreached space"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вне сканирования"
           }
         }
       }
@@ -9105,6 +11793,22 @@
         }
       }
     },
+    "Verifying matching folders…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifying matching folders…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверка совпадающих папок…"
+          }
+        }
+      }
+    },
     "Video" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9291,6 +11995,22 @@
         }
       }
     },
+    "Waiting for macOS to allow access to “%@”" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for macOS to allow access to “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание разрешения macOS на доступ к «%@»"
+          }
+        }
+      }
+    },
     "Web and metadata cache of the Epic Games Launcher. Rebuilt as the launcher reloads its pages." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9423,6 +12143,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Веб-кэш Windsurf"
+          }
+        }
+      }
+    },
+    "Within 2 years" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Within 2 years"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За 2 года"
+          }
+        }
+      }
+    },
+    "Within 6 months" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Within 6 months"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За 6 месяцев"
+          }
+        }
+      }
+    },
+    "Within a year" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Within a year"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За год"
           }
         }
       }
@@ -9580,262 +12348,6 @@
         }
       }
     },
-    "Your file index stays on this Mac." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your file index stays on this Mac."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Индекс файлов остаётся на этом Mac."
-          }
-        }
-      }
-    },
-    "Waiting for macOS to allow access to “%@”" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waiting for macOS to allow access to “%@”"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ожидание разрешения macOS на доступ к «%@»"
-          }
-        }
-      }
-    },
-    "Answer the system permission dialog to continue. It can be hidden behind this window or on another desktop." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Answer the system permission dialog to continue. It can be hidden behind this window or on another desktop."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ответьте на системный запрос разрешения, чтобы продолжить. Он может быть скрыт за этим окном или на другом рабочем столе."
-          }
-        }
-      }
-    },
-    "Skip permission checks" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip permission checks"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пропустить проверку разрешений"
-          }
-        }
-      }
-    },
-    "Copy Diagnostics" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy Diagnostics"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Скопировать диагностику"
-          }
-        }
-      }
-    },
-    "Save Diagnostics…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save Diagnostics…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сохранить диагностику…"
-          }
-        }
-      }
-    },
-    "Diagnostics copied to the clipboard." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diagnostics copied to the clipboard."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Диагностика скопирована в буфер обмена."
-          }
-        }
-      }
-    },
-    "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To scan without Full Disk Access, allow DiskUnbloat to read this folder. Choose Open to continue."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Чтобы сканировать без полного доступа к диску, разрешите DiskUnbloat читать эту папку. Нажмите «Открыть», чтобы продолжить."
-          }
-        }
-      }
-    },
-    "The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The chosen folder doesn’t cover everything this scan needs. Choose the suggested folder to continue."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбранная папка не охватывает всё, что нужно для этого сканирования. Выберите предложенную папку, чтобы продолжить."
-          }
-        }
-      }
-    },
-    "Protected by macOS. Allow Full Disk Access to measure it." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protected by macOS. Allow Full Disk Access to measure it."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Защищено macOS. Разрешите полный доступ к диску, чтобы измерить."
-          }
-        }
-      }
-    },
-    "Cleanup safety" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleanup safety"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Безопасность очистки"
-          }
-        }
-      }
-    },
-    "Last modified" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last modified"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Последнее изменение"
-          }
-        }
-      }
-    },
-    "Growth" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Growth"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Рост"
-          }
-        }
-      }
-    },
-    "Colour by" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Colour by"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Цвет по"
-          }
-        }
-      }
-    },
-    "Contains reclaimable" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contains reclaimable"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Содержит удаляемое"
-          }
-        }
-      }
-    },
-    "Protected" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protected"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Защищено"
-          }
-        }
-      }
-    },
     "Your data" : {
       "localizations" : {
         "en" : {
@@ -9852,1486 +12364,18 @@
         }
       }
     },
-    "This month" : {
+    "Your file index stays on this Mac." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This month"
+            "value" : "Your file index stays on this Mac."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В этом месяце"
-          }
-        }
-      }
-    },
-    "Within 6 months" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Within 6 months"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "За 6 месяцев"
-          }
-        }
-      }
-    },
-    "Within a year" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Within a year"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "За год"
-          }
-        }
-      }
-    },
-    "Within 2 years" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Within 2 years"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "За 2 года"
-          }
-        }
-      }
-    },
-    "Older" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Older"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Старше"
-          }
-        }
-      }
-    },
-    "Unknown date" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unknown date"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дата неизвестна"
-          }
-        }
-      }
-    },
-    "Grew" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grew"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выросло"
-          }
-        }
-      }
-    },
-    "Shrank" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shrank"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Уменьшилось"
-          }
-        }
-      }
-    },
-    "New" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое"
-          }
-        }
-      }
-    },
-    "Unchanged" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unchanged"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Без изменений"
-          }
-        }
-      }
-    },
-    "No earlier data" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No earlier data"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Нет прежних данных"
-          }
-        }
-      }
-    },
-    "Selected by the Junk level: old versions, build data and known caches." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected by the Junk level: old versions, build data and known caches."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбирается уровнем «Мусор»: старые версии, данные сборок и известные кэши."
-          }
-        }
-      }
-    },
-    "Selected from the Caches level: apps rebuild these, sometimes signing you out." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected from the Caches level: apps rebuild these, sometimes signing you out."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбирается начиная с уровня «Кэши»: приложения создадут их заново, иногда с повторным входом."
-          }
-        }
-      }
-    },
-    "Selected from the Rebuildable level: tools can download or rebuild it." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected from the Rebuildable level: tools can download or rebuild it."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбирается начиная с уровня «Восстановимое»: инструменты могут скачать или собрать это заново."
-          }
-        }
-      }
-    },
-    "Selected only by Deep clean: older app settings and long-unused installers." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected only by Deep clean: older app settings and long-unused installers."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбирается только глубокой очисткой: настройки старых версий приложений и давно неиспользуемые установщики."
-          }
-        }
-      }
-    },
-    "Some items inside are selected by a quick-select level." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some items inside are selected by a quick-select level."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Часть содержимого выбирается одним из уровней быстрого выбора."
-          }
-        }
-      }
-    },
-    "Protected: DiskUnbloat never removes this." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protected: DiskUnbloat never removes this."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Защищено: DiskUnbloat никогда это не удаляет."
-          }
-        }
-      }
-    },
-    "No quick-select level touches this. Review it yourself." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No quick-select level touches this. Review it yourself."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ни один уровень быстрого выбора это не трогает. Проверьте сами."
-          }
-        }
-      }
-    },
-    "Newest content change inside. Age alone never makes something safe to delete." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Newest content change inside. Age alone never makes something safe to delete."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Самое свежее изменение содержимого. Возраст сам по себе не делает удаление безопасным."
-          }
-        }
-      }
-    },
-    "Some modification dates inside are unknown." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some modification dates inside are unknown."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Некоторые даты изменения внутри неизвестны."
-          }
-        }
-      }
-    },
-    "Filter the map" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filter the map"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Фильтровать карту"
-          }
-        }
-      }
-    },
-    "Highlight on the map" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Highlight on the map"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Подсвечивать на карте"
-          }
-        }
-      }
-    },
-    "Search filters the map. Click to highlight matches instead." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search filters the map. Click to highlight matches instead."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поиск фильтрует карту. Нажмите, чтобы подсвечивать совпадения."
-          }
-        }
-      }
-    },
-    "Search highlights matches on the map. Click to filter instead." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search highlights matches on the map. Click to filter instead."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поиск подсвечивает совпадения на карте. Нажмите, чтобы фильтровать."
-          }
-        }
-      }
-    },
-    "No matches for “%@”" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No matches for “%@”"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Нет совпадений для «%@»"
-          }
-        }
-      }
-    },
-    "%@+ matches for “%@”" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@+ matches for “%@”"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Найдено: %@+ — «%@»"
-          }
-        }
-      }
-    },
-    "%@ matches for “%@”" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ matches for “%@”"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Найдено: %@ — «%@»"
-          }
-        }
-      }
-    },
-    "Return shows the next one" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Return shows the next one"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Return — к следующему"
-          }
-        }
-      }
-    },
-    "Not reached by the scan" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not reached by the scan"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вне сканирования"
-          }
-        }
-      }
-    },
-    "Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приблизительно: занятое место тома минус прочитанное сканированием. Сюда входят системные данные, другие пользователи, локальные снимки и места, которые не удалось прочитать."
-          }
-        }
-      }
-    },
-    "macOS can free about %@ of purgeable space on its own." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS can free about %@ of purgeable space on its own."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS может сама освободить около %@ очищаемого места."
-          }
-        }
-      }
-    },
-    "Show space the scan couldn't reach" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show space the scan couldn't reach"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показывать место вне сканирования"
-          }
-        }
-      }
-    },
-    "Unreached ≈ %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unreached ≈ %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вне сканирования ≈ %@"
-          }
-        }
-      }
-    },
-    "%lld local snapshots (sizes not reported)" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld local snapshot (size not reported)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld local snapshots (sizes not reported)"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld локальный снимок (размер не сообщается)"
-                }
-              },
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld локальных снимка (размер не сообщается)"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld локальных снимков (размер не сообщается)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld локального снимка (размер не сообщается)"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld locations couldn’t be read" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld location couldn’t be read"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld locations couldn’t be read"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld место не удалось прочитать"
-                }
-              },
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld места не удалось прочитать"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld мест не удалось прочитать"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld места не удалось прочитать"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Duplicate files" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Duplicate files"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дубликаты файлов"
-          }
-        }
-      }
-    },
-    "Select duplicate copies?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select duplicate copies?"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбрать копии-дубликаты?"
-          }
-        }
-      }
-    },
-    "This selects %lld copies (%@) and keeps one copy of each of %lld sets: %@. The kept copy is checked again right before anything is removed." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This selects %lld copies (%@) and keeps one copy of each of %lld sets: %@. The kept copy is checked again right before anything is removed."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Будет выбрано копий: %lld (%@). Из каждого из %lld наборов остаётся одна копия: %@. Оставляемая копия проверяется ещё раз прямо перед удалением."
-          }
-        }
-      }
-    },
-    "keep the oldest copy" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "keep the oldest copy"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "оставить самую старую копию"
-          }
-        }
-      }
-    },
-    "keep the newest copy" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "keep the newest copy"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "оставить самую новую копию"
-          }
-        }
-      }
-    },
-    "keep the copy with the shortest path" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "keep the copy with the shortest path"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "оставить копию с самым коротким путём"
-          }
-        }
-      }
-    },
-    "Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finds files with identical contents by reading them. Your own files only: nothing in Library, app bundles or protected folders."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Находит файлы с одинаковым содержимым, читая их. Только ваши файлы: ничего из Library, пакетов приложений и защищённых папок."
-          }
-        }
-      }
-    },
-    "Keep" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Оставить"
-          }
-        }
-      }
-    },
-    "Find duplicates" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Find duplicates"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Найти дубликаты"
-          }
-        }
-      }
-    },
-    "Comparing…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comparing…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сравнение…"
-          }
-        }
-      }
-    },
-    "%@ of %@ files" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ of %@ files"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ из %@ файлов"
-          }
-        }
-      }
-    },
-    "No duplicates found." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No duplicates found."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дубликаты не найдены."
-          }
-        }
-      }
-    },
-    "Find again" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Find again"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Найти снова"
-          }
-        }
-      }
-    },
-    "Selected %lld duplicate copies. %lld were skipped by safety checks." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected %lld duplicate copies. %lld were skipped by safety checks."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбрано копий-дубликатов: %lld. Пропущено проверками безопасности: %lld."
-          }
-        }
-      }
-    },
-    "Selected %lld duplicate copies." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected %lld duplicate copies."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбрано копий-дубликатов: %lld."
-          }
-        }
-      }
-    },
-    "The copy being kept is missing or changed. Find duplicates again." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The copy being kept is missing or changed. Find duplicates again."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Оставляемая копия отсутствует или изменилась. Найдите дубликаты снова."
-          }
-        }
-      }
-    },
-    "The copy being kept is also selected for deletion, so this duplicate stays." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The copy being kept is also selected for deletion, so this duplicate stays."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Оставляемая копия тоже выбрана для удаления, поэтому этот дубликат остаётся."
-          }
-        }
-      }
-    },
-    "%lld copies" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld copy"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld copies"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld копия"
-                }
-              },
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld копии"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld копий"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld копии"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Keep scan history to show growth" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep scan history to show growth"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Хранить историю сканирований, чтобы показывать рост"
-          }
-        }
-      }
-    },
-    "Stores the sizes and paths of the largest items from each finished scan (never file contents), the last 10 per location." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stores the sizes and paths of the largest items from each finished scan (never file contents), the last 10 per location."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сохраняет размеры и пути крупнейших объектов каждого завершённого сканирования (никогда не содержимое файлов), последние 10 для каждого места."
-          }
-        }
-      }
-    },
-    "Clear scan history" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear scan history"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очистить историю сканирований"
-          }
-        }
-      }
-    },
-    "Cleared" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleared"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очищено"
-          }
-        }
-      }
-    },
-    "No earlier scan of this location yet" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No earlier scan of this location yet"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Это место ещё не сканировалось раньше"
-          }
-        }
-      }
-    },
-    "Compare with" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compare with"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сравнить с"
-          }
-        }
-      }
-    },
-    "New since %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New since %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое с %@"
-          }
-        }
-      }
-    },
-    "Unchanged since %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unchanged since %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Без изменений с %@"
-          }
-        }
-      }
-    },
-    "%@ since %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ since %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ с %@"
-          }
-        }
-      }
-    },
-    "Open Trash" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Trash"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть Корзину"
-          }
-        }
-      }
-    },
-    "≈ %@ moved to Trash" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ %@ moved to Trash"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ %@ перемещено в Корзину"
-          }
-        }
-      }
-    },
-    "≈ %@ deleted" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ %@ deleted"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ %@ удалено"
-          }
-        }
-      }
-    },
-    "The space returns when you empty the Trash. DiskUnbloat never empties it for you." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The space returns when you empty the Trash. DiskUnbloat never empties it for you."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Место освободится, когда вы очистите Корзину. DiskUnbloat никогда не очищает её за вас."
-          }
-        }
-      }
-    },
-    "Developer tools" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Developer tools"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Инструменты разработчика"
-          }
-        }
-      }
-    },
-    "Developer tools…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Developer tools…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Инструменты разработчика…"
-          }
-        }
-      }
-    },
-    "These tools clean their own caches. Running the tool is safer than deleting its files." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "These tools clean their own caches. Running the tool is safer than deleting its files."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Эти инструменты сами очищают свои кэши. Запустить инструмент безопаснее, чем удалять его файлы."
-          }
-        }
-      }
-    },
-    "No supported tools found" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No supported tools found"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поддерживаемые инструменты не найдены"
-          }
-        }
-      }
-    },
-    "Homebrew, Xcode simulators, npm, pnpm, Yarn and Docker are detected in their standard install locations." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Homebrew, Xcode simulators, npm, pnpm, Yarn and Docker are detected in their standard install locations."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Homebrew, симуляторы Xcode, npm, pnpm, Yarn и Docker ищутся в стандартных местах установки."
-          }
-        }
-      }
-    },
-    "Run “%@”?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run “%@”?"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выполнить «%@»?"
-          }
-        }
-      }
-    },
-    "Run" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выполнить"
-          }
-        }
-      }
-    },
-    "Run…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выполнить…"
-          }
-        }
-      }
-    },
-    "%@ in its cache" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ in its cache"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ в его кэше"
-          }
-        }
-      }
-    },
-    "No output." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No output."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Нет вывода."
-          }
-        }
-      }
-    },
-    "Finished" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finished"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Готово"
-          }
-        }
-      }
-    },
-    "Failed (exit %lld)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed (exit %lld)"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ошибка (код %lld)"
-          }
-        }
-      }
-    },
-    "Removes old versions of installed formulae and outdated downloads." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Removes old versions of installed formulae and outdated downloads."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Удаляет старые версии установленных формул и устаревшие загрузки."
-          }
-        }
-      }
-    },
-    "Deletes simulators whose runtime is no longer installed." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deletes simulators whose runtime is no longer installed."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Удаляет симуляторы, среда которых больше не установлена."
-          }
-        }
-      }
-    },
-    "Empties npm's download cache; packages download again when needed." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Empties npm's download cache; packages download again when needed."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очищает кэш загрузок npm; пакеты скачаются снова при необходимости."
-          }
-        }
-      }
-    },
-    "Removes packages from pnpm's store that no project references." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Removes packages from pnpm's store that no project references."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Удаляет из хранилища pnpm пакеты, на которые не ссылается ни один проект."
-          }
-        }
-      }
-    },
-    "Empties Yarn's package cache." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Empties Yarn's package cache."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очищает кэш пакетов Yarn."
-          }
-        }
-      }
-    },
-    "Removes unused images, build cache and networks inside Docker." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Removes unused images, build cache and networks inside Docker."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Удаляет неиспользуемые образы, кэш сборки и сети внутри Docker."
-          }
-        }
-      }
-    },
-    "Also removes every stopped container. Docker must be running." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Also removes every stopped container. Docker must be running."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Также удаляет все остановленные контейнеры. Docker должен быть запущен."
-          }
-        }
-      }
-    },
-    "Apple app containers here are protected by macOS. Allow Full Disk Access to measure them." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple app containers here are protected by macOS. Allow Full Disk Access to measure them."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Контейнеры приложений Apple здесь защищены macOS. Разрешите полный доступ к диску, чтобы измерить их."
+            "value" : "Индекс файлов остаётся на этом Mac."
           }
         }
       }

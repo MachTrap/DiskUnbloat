@@ -10,6 +10,19 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     var skipped = 0
 }
 
+struct DuplicateCommitRefusal: Identifiable, Equatable {
+    let path: String
+    let reason: String
+    var id: String { path }
+}
+
+struct DuplicateCommitOutcome {
+    var added = 0
+    var alreadyQueued = 0
+    var refusals: [DuplicateCommitRefusal] = []
+    var succeeded: Bool { refusals.isEmpty }
+}
+
 @MainActor @Observable final class CleanupViewModel {
     @ObservationIgnored private let activity: any ApplicationActivityProviding
     private let homePath: String
@@ -21,12 +34,14 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// explorer always learns the hidden paths — the queue is normalized inside
     /// `didSet`, and no view must be relied on as a relay for that handoff.
     @ObservationIgnored var basketDidUpdate: (([CleanupEntry]) -> Void)?
+    @ObservationIgnored private var committingReviewedDuplicates = false
     private(set) var cleaning = false
     /// Canonical deletion queue: normalized, topmost entries kept, disjoint subtrees.
     var basket: [CleanupEntry] = [] {
         didSet {
             guard basket != oldValue else { return }
             queueRevision += 1
+            autoSelectedPaths.formIntersection(basket.map(\.node.path))
             recomputeBasketAttributes()
             membershipIndex = QueueMembershipIndex(entries: basket)
             basketDidUpdate?(basket)
@@ -120,22 +135,29 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// always stays an honest action. Returns a message to show: the refusal alone, or
     /// the refusal plus what happened to the nested entries; nil on success.
     func addOrClear(_ node: FileNode, roots: [URL]) -> String? {
-        if let refusal = add(node, roots: roots) {
-            let nested = basket.filter { $0.node.path.overlaps(node.path) }
-            guard !nested.isEmpty else { return refusal }
-            deselect(node)
-            return refusal + " " + L10n.text("The items already selected inside it were removed from the cleanup queue instead.")
-        }
-        return nil
+        addSelection(node, roots: roots, clearingOnRefusal: true)
     }
 
     func add(_ node: FileNode, roots: [URL]) -> String? {
-        guard !roots.isEmpty else { return L10n.text(CleanupReason.outsideScope.message) }
+        addSelection(node, roots: roots, clearingOnRefusal: false)
+    }
+
+    private func addSelection(_ node: FileNode, roots: [URL], clearingOnRefusal: Bool) -> String? {
+        guard !cleaning, !roots.isEmpty else { return L10n.text(CleanupReason.outsideScope.message) }
+        if basket.contains(where: { $0.survivor != nil }),
+           let conflict = CleanupPlan.duplicateConflicts(in: basket + [CleanupEntry(node: node, operation: .remove)])[node.path] {
+            return L10n.text(conflict.message)
+        }
         let cacheRoots = exemptRoots
         let resolved = resolvedOperation(for: node, roots: roots, cacheRoots: cacheRoots, blockedCaches: activity.blockedCachePaths(home: homePath))
         if let operation = resolved.operation {
             basket = CleanupPlan(roots: roots, entries: basket + [CleanupEntry(node: node, operation: operation)], mode: .trash, knownCacheRoots: cacheRoots).items
             return nil
+        }
+        if clearingOnRefusal, let refusal = resolved.refusal,
+           basket.contains(where: { $0.node.path.overlaps(node.path) }) {
+            deselect(node)
+            return refusal + " " + L10n.text("The items already selected inside it were removed from the cleanup queue instead.")
         }
         return resolved.refusal
     }
@@ -172,13 +194,12 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
     /// manual selection (refusals are counted, never forced), a fully covered scan root
     /// collapses to one emptied entry, and a fresh recommendation replaces the previous
     /// one while manual picks stay.
-    /// `keepsGroupLocation`: duplicate sets, where each group's location is the copy being
-    /// kept; every queued copy records it as the survivor cleanup re-verifies.
-    func applyAutoSelection(_ result: AutoSelectionResult, roots: [URL], keepsGroupLocation: Bool = false) -> AutoSelectionApplyOutcome {
+    func applyAutoSelection(_ result: AutoSelectionResult, roots: [URL]) -> AutoSelectionApplyOutcome {
         guard !cleaning, !roots.isEmpty else { return AutoSelectionApplyOutcome() }
         // The new recommendation's exemptions replace the previous one's, except where a
         // manually kept entry still lies inside an earlier exemption.
-        let manualPaths = basket.filter { !autoSelectedPaths.contains($0.node.path) }.map(\.node.path)
+        let manual = basket.filter { !autoSelectedPaths.contains($0.node.path) }
+        let manualPaths = Set(manual.map(\.node.path))
         selectionExemptions = result.exemptPaths.union(selectionExemptions.filter { exempt in manualPaths.contains { $0.isWithin(exempt) } })
         let cacheRoots = exemptRoots
         let blockedCaches = activity.blockedCachePaths(home: homePath)
@@ -192,23 +213,74 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
             for node in proposed {
                 let resolved = resolvedOperation(for: node, roots: roots, cacheRoots: cacheRoots, blockedCaches: blockedCaches)
                 if let operation = resolved.operation {
-                    entries.append(CleanupEntry(node: node, operation: operation,
-                                                survivor: keepsGroupLocation ? CleanupEntry.Survivor(group.location) : nil))
+                    entries.append(CleanupEntry(node: node, operation: operation))
                 } else {
                     outcome.skipped += 1
                 }
             }
         }
+        if manual.contains(where: { $0.survivor != nil }) {
+            let conflicts = CleanupPlan.duplicateConflicts(in: manual + entries)
+            let proposedCount = entries.count
+            entries.removeAll { conflicts[$0.node.path] != nil }
+            outcome.skipped += proposedCount - entries.count
+        }
         outcome.applied = entries.count
-        let manual = basket.filter { !autoSelectedPaths.contains($0.node.path) }
         basket = CleanupPlan(roots: roots, entries: manual + entries, mode: .trash, knownCacheRoots: cacheRoots).items
-        autoSelectedPaths = Set(entries.map { $0.node.path })
+        let proposedPaths = Set(entries.map(\.node.path))
+        autoSelectedPaths = Set(basket.map(\.node.path)).intersection(proposedPaths).subtracting(manualPaths)
+        return outcome
+    }
+
+    /// Commits the complete reviewed batch or returns the individual refusals.
+    /// Confirmation never performs a filesystem mutation.
+    func commitReviewedDuplicates(
+        _ entries: [CleanupEntry], roots: [URL], index: ScanIndex,
+        isCurrent: @MainActor () async -> Bool
+    ) async -> DuplicateCommitOutcome {
+        let stale = DuplicateCommitOutcome(refusals: [
+            .init(path: entries.first?.node.path ?? "",
+                  reason: L10n.text("The scan or cleanup queue changed during review. Review the current selection and try again."))
+        ])
+        guard !entries.isEmpty, !roots.isEmpty, !cleaning, !committingReviewedDuplicates else { return stale }
+        committingReviewedDuplicates = true
+        defer { committingReviewedDuplicates = false }
+        let revision = queueRevision
+        let evidence = await CleanupService.validateReviewedDuplicates(entries, roots: roots, index: index)
+        guard await isCurrent(), !Task.isCancelled, !cleaning, revision == queueRevision else { return stale }
+
+        // A duplicate review uses ordinary cleanup rules, without exemptions
+        // contributed by the previous recommendation.
+        let cacheRoots = CleanupRule.knownCacheRoots(home: homePath)
+        let blockedCaches = activity.blockedCachePaths(home: homePath)
+        let existingPaths = Set(basket.map(\.node.path))
+        let plan = CleanupPlan(roots: roots, entries: basket + entries, mode: .trash, knownCacheRoots: cacheRoots)
+        var outcome = DuplicateCommitOutcome()
+        var processed: Set<String> = []
+        for entry in entries where processed.insert(entry.node.path).inserted {
+            let path = entry.node.path
+            if let reason = plan.duplicateRefusals[path] ?? evidence[path] {
+                outcome.refusals.append(.init(path: path, reason: L10n.text(reason.message)))
+                continue
+            }
+            let resolved = resolvedOperation(for: entry.node, roots: roots, cacheRoots: cacheRoots, blockedCaches: blockedCaches)
+            guard entry.operation == .remove, resolved.operation == .remove, entry.survivor != nil else {
+                let reason = resolved.refusal ?? L10n.text(DuplicateCleanupRefusal.invalidPair.message)
+                outcome.refusals.append(.init(path: path, reason: reason))
+                continue
+            }
+            if existingPaths.contains(path) { outcome.alreadyQueued += 1 }
+        }
+        guard outcome.succeeded else { return outcome }
+        outcome.added = plan.items.count - basket.count
+        basket = plan.items
+        showQueue = true
         return outcome
     }
 
     func invalidate(overlapping path: String) -> Int {
         let previous = basket.count
-        basket.removeAll { $0.node.path.overlaps(path) }
+        basket.removeAll { $0.node.path.overlaps(path) || $0.survivor?.path.overlaps(path) == true }
         return previous - basket.count
     }
 
@@ -256,13 +328,15 @@ struct AutoSelectionApplyOutcome: Sendable, Equatable {
             }
             else { eligible.append(entry) }
         }
-        let ancestors = await index.ancestorIdentities(for: items.map { $0.node.id })
+        let ancestors = await index.cleanupAncestorIdentities(for: items)
         let activity = self.activity; let home = homePath
         let recorder = diagnostics
-        let plan = CleanupPlan(roots: roots, entries: eligible, mode: mode, ancestorIdentities: ancestors, preflight: { path in
+        // Activity refusals must not hide an invalid dependency in the original queue.
+        let conflictingQueue = !CleanupPlan.duplicateConflicts(in: items).isEmpty
+        let plan = CleanupPlan(roots: roots, entries: conflictingQueue ? items : eligible, mode: mode, ancestorIdentities: ancestors, preflight: { path in
             await MainActor.run { CleanupViewModel.activityMessage(path, activity: activity, home: home) }
         }, knownCacheRoots: exemptRoots, diagnostics: { recorder.event($0) })
-        results = refused + (await service.execute(plan))
+        results = (conflictingQueue ? [] : refused) + (await service.execute(plan))
         let succeeded = Set(results.filter(\.succeeded).map(\.id))
         lastRunMode = mode
         lastRunBytes = plan.items.filter { succeeded.contains($0.node.id) }.reduce(0) { $0 + $1.node.knownSize(for: .allocated) }

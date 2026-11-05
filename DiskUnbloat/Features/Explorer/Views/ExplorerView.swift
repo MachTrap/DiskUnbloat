@@ -28,7 +28,8 @@ struct ExplorerView: View {
     let levelEstimates: () async -> [AutoSelectionLevel: AutoSelectionPreview]
     /// Highlights an item on the map, e.g. when a panel row is tapped.
     let highlight: (FileNode) -> Void
-    @State private var showOptions = false
+    private enum DisplayPanel { case controls, scanOptions }
+    @State private var displayPanel: DisplayPanel?
     @FocusState private var searchFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -47,7 +48,7 @@ struct ExplorerView: View {
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, unreached: model.unreached, growthNote: model.growthNote, onLayout: { model.layoutTiles = $0 }, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, labelDetail: model.labelDetail, unreached: model.unreached, growthNote: model.growthNote, onLayout: { model.layoutTiles = $0 }, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
                 .overlay {
                     if model.isLoading {
@@ -70,7 +71,7 @@ struct ExplorerView: View {
         .onKeyPress(.space) { guard let node = model.selected else { return .ignored }; preview(node); return .handled }
         .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow]) { press in
             // ⌘↑ stays "Go to parent" (menu shortcut); plain arrows move between tiles.
-            guard press.modifiers.isEmpty else { return .ignored }
+            guard displayPanel == nil, press.modifiers.isEmpty else { return .ignored }
             let direction: MapDirection = switch press.key {
             case .upArrow: .up
             case .downArrow: .down
@@ -86,7 +87,11 @@ struct ExplorerView: View {
             addSelection()
             return .handled
         }
-        .onExitCommand { if !model.selectionIDs.isEmpty { model.selectionIDs = [] } else { model.up() } }
+        .onExitCommand {
+            if displayPanel != nil { displayPanel = nil }
+            else if !model.selectionIDs.isEmpty { model.selectionIDs = [] }
+            else { model.up() }
+        }
         .accessibilityIdentifier("explorerScreen")
     }
 
@@ -349,24 +354,81 @@ struct ExplorerView: View {
                 ForEach(Suggestion.allCases) { group in Button(L10n.text(group.rawValue)) { model.suggestion = group }.help(L10n.text(group.explanation)) }
                 Button("Clear filters", action: model.clearFilters)
             } label: { Label("Filter", systemImage: "line.3.horizontal.decrease") }
-            Menu {
-                Picker("Size", selection: $model.metric) { ForEach(SizeMetric.allCases) { Text(L10n.text($0.rawValue)).tag($0) } }
-                Divider()
-                if model.unreached != nil {
-                    Toggle("Show space the scan couldn't reach", isOn: $model.showUnreached).accessibilityIdentifier("showUnreached")
-                }
-                Button("Fit map") { model.fitRevision += 1 }
-                Button("Scan options") { showOptions = true }
-                Button("Rescan folder") { if let node = model.current { refreshFolder(node) } }.accessibilityIdentifier("rescanFolder")
-                Button("Scan again", action: rescan)
-            } label: { Label("Display", systemImage: "rectangle.3.group") }
+            displayButton
             Button(action: newScan) { Label("New scan", systemImage: "folder.badge.plus") }
             Button { showQueue.wrappedValue.toggle() } label: { queueBadge }
                 .help(L10n.format("Select items to delete · %lld items · %@ estimated", queue.selectedCount, sizeText(queue.selectedBytes)))
                 .accessibilityIdentifier("reviewCleanup")
         }
-        ToolbarItem(placement: .automatic) {
-            Color.clear.frame(width: 0,height: 0).popover(isPresented: $showOptions) { ScanOptionsView(model: scan) }
+    }
+
+    private var displayButton: some View {
+        Button { displayPanel = .controls } label: {
+            Label("Display", systemImage: "rectangle.3.group")
         }
+        .accessibilityIdentifier("mapDisplay")
+        .popover(isPresented: Binding(
+            get: { displayPanel != nil },
+            set: { if !$0 { displayPanel = nil } }
+        )) {
+            Group {
+                switch displayPanel {
+                case .controls: displayControls
+                case .scanOptions: ScanOptionsView(model: scan)
+                case nil: EmptyView()
+                }
+            }
+            .onExitCommand { displayPanel = nil }
+        }
+    }
+
+    private var displayControls: some View {
+        let levels = MapLabelDetail.allCases
+        let sliderValue = Binding<Double>(
+            get: { Double(levels.firstIndex(of: model.labelDetail) ?? 0) },
+            set: { value in
+                guard let index = Int(exactly: value.rounded()), levels.indices.contains(index) else { return }
+                model.setLabelDetail(levels[index])
+            }
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Map detail")
+                Spacer()
+                Text(verbatim: model.labelDetail.title).foregroundStyle(.secondary)
+            }
+            Slider(value: sliderValue, in: 0...Double(levels.count - 1), step: 1) {
+                Text("Map detail")
+            }
+            .labelsHidden()
+            .accessibilityValue(Text(verbatim: model.labelDetail.title))
+            .accessibilityIdentifier("mapLabelDetail")
+            Divider()
+            Picker("Size", selection: $model.metric) {
+                ForEach(SizeMetric.allCases) { Text(L10n.text($0.rawValue)).tag($0) }
+            }
+            if model.unreached != nil {
+                Toggle("Show space the scan couldn't reach", isOn: $model.showUnreached)
+                    .accessibilityIdentifier("showUnreached")
+            }
+            Divider()
+            Button("Fit map") {
+                displayPanel = nil
+                model.fitRevision += 1
+            }
+            Button("Scan options") { displayPanel = .scanOptions }
+            Button("Rescan folder") {
+                displayPanel = nil
+                if let node = model.current { refreshFolder(node) }
+            }
+            .accessibilityIdentifier("rescanFolder")
+            Button("Scan again") {
+                displayPanel = nil
+                rescan()
+            }
+        }
+        .padding()
+        .frame(minWidth: 240, idealWidth: 280)
     }
 }

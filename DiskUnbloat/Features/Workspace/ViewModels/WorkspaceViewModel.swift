@@ -79,7 +79,9 @@ enum WorkspacePhase: Equatable {
         duplicates = DuplicatesViewModel(defaults: defaults)
         duplicates.context = { [unowned self] in
             guard canClean, !shuttingDown, !scan.roots.isEmpty, let index = scan.index else { return nil }
-            return DuplicatesViewModel.Context(index: index, roots: scan.roots, home: canonicalURL(location.catalog.home).path)
+            return DuplicatesViewModel.Context(
+                index: index, roots: scan.roots, home: canonicalURL(location.catalog.home).path,
+                unusedDays: scan.options.longUnusedDays, inspectPackages: scan.options.inspectPackages)
         }
         developerTools.context = { [unowned self] in
             scan.index.map { (index: $0, home: canonicalURL(location.catalog.home).path) }
@@ -93,12 +95,8 @@ enum WorkspacePhase: Equatable {
                 }
             }
         }
-        duplicates.apply = { [unowned self] result in
-            let outcome = cleanup.applyAutoSelection(result, roots: scan.roots, keepsGroupLocation: true)
-            message = outcome.skipped > 0
-                ? L10n.format("Selected %lld duplicate copies. %lld were skipped by safety checks.", outcome.applied, outcome.skipped)
-                : L10n.format("Selected %lld duplicate copies.", outcome.applied)
-            return outcome
+        duplicates.apply = { [unowned self] entries, context, isCurrent in
+            await cleanup.commitReviewedDuplicates(entries, roots: context.roots, index: context.index, isCurrent: isCurrent)
         }
     }
 
@@ -123,6 +121,7 @@ enum WorkspacePhase: Equatable {
         locationTask?.cancel()
         selectionTask?.cancel()
         await selectionTask?.value
+        await duplicates.waitForWork()
         await cleanupTask?.value
         await scan.cancel()
         await scanTask?.value
@@ -315,12 +314,13 @@ enum WorkspacePhase: Equatable {
 
     private func launchScan(preservingCleanupReport: Bool) {
         guard let request = scan.prepare() else { return }
-        duplicates.reset()
+        duplicates.cancel()
         phase = .scanning
         explorer.reset()
         cleanup.reset(preservingReport: preservingCleanupReport)
         queue.reset()
         scanTask = Task {
+            await duplicates.waitForWork()
             // Access without consent fails with a TCC denial even while metadata stays
             // readable — a silently failed remembered-location restore makes the scan fail
             // before its first row with no dialog to answer. When a stored location covers
@@ -393,8 +393,10 @@ enum WorkspacePhase: Equatable {
         // The synthetic group root stands for the whole scan; refreshing it reruns every location.
         if node.isGroupRoot { startScan(preservingCleanupReport: true); return }
         guard let request = scan.prepareRefresh(node) else { return }
+        duplicates.cancel()
         explorer.suspendQueries(); phase = .scanning
         scanTask = Task {
+            await duplicates.waitForWork()
             do {
                 if try await scan.runRefresh(request, node: node) {
                     let count = cleanup.invalidate(overlapping: node.path)
@@ -481,6 +483,7 @@ enum WorkspacePhase: Equatable {
 
     func chooseAnotherLocation() {
         guard !isBusy else { return }
+        duplicates.cancel()
         phase = .choosing
     }
 
@@ -641,8 +644,10 @@ enum WorkspacePhase: Equatable {
 
     func performCleanup(_ mode: CleanupMode) {
         guard canClean, !scan.roots.isEmpty, let index = scan.index, let items = cleanup.begin() else { return }
+        duplicates.cancel()
         diagnostics.record("cleanup", "Started \(mode == .permanent ? "permanent deletion" : "move to Trash") of \(items.count) entries")
         cleanupTask = Task {
+            await duplicates.waitForWork()
             let succeeded = await cleanup.execute(items, roots: scan.roots, index: index, mode: mode)
             let results = cleanup.results
             diagnostics.record("cleanup", "Finished: \(results.filter(\.succeeded).count) succeeded, \(results.filter { !$0.succeeded }.count) failed or refused")

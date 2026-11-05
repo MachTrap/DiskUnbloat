@@ -9643,6 +9643,54 @@
           }
         }
       }
+    },
+    "Copy Diagnostics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Diagnostics"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать диагностику"
+          }
+        }
+      }
+    },
+    "Save Diagnostics…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Diagnostics…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить диагностику…"
+          }
+        }
+      }
+    },
+    "Diagnostics copied to the clipboard." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics copied to the clipboard."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диагностика скопирована в буфер обмена."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

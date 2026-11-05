@@ -389,6 +389,12 @@
                     "DiskUnbloat/compile-sources",
                     "DiskUnbloatTesting/compile-sources",
                   ],
+                }, {
+                  "path": "DiagnosticsLog.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
                 },
               ],
             }, {
@@ -515,6 +521,7 @@
         { "path": "AutoSelectionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "CleanupDiagnosticsTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "CleanupQueueTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "DiagnosticsTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "GroupedScanTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "LocalizationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "MapAfterSelectionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

@@ -34,10 +34,11 @@ final class CleanupDiagnosticsService: CleanupDiagnosticRecording, @unchecked Se
     let fileURL: URL
     private let formatter = ISO8601DateFormatter()
 
+    static let logURL = URL(fileURLWithPath: ("~/Library/Logs/DiskUnbloat/cleanup.log" as NSString).expandingTildeInPath)
+
     init(fileURL: URL? = nil) {
-        let directory = fileURL?.deletingLastPathComponent()
-            ?? URL(fileURLWithPath: ("~/Library/Logs/DiskUnbloat" as NSString).expandingTildeInPath)
-        self.fileURL = fileURL ?? directory.appendingPathComponent("cleanup.log")
+        let directory = (fileURL ?? Self.logURL).deletingLastPathComponent()
+        self.fileURL = fileURL ?? Self.logURL
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         queue.sync {
             try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

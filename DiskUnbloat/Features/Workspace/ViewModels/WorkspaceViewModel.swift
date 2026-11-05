@@ -11,6 +11,7 @@ enum WorkspacePhase: Equatable {
 /// Coordinates feature lifetimes; feature-specific state and behavior belong to child view models.
 @MainActor @Observable final class WorkspaceViewModel {
     let location: LocationSelectionViewModel
+    let diagnostics = DiagnosticsLog()
     private(set) var phase: WorkspacePhase = .choosing
     let authorization: AuthorizationStore
     let settings: SettingsViewModel
@@ -58,6 +59,7 @@ enum WorkspacePhase: Equatable {
         self.fullDiskAccess = fullDiskAccess
         self.openFullDiskAccessPane = openFullDiskAccessPane
         scan = ScanViewModel(coordinator: coordinator, storage: storage)
+        scan.diagnostics = diagnostics
         explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
         cleanup = CleanupViewModel(service: cleanupService, homePath: catalog.home.path, diagnostics: CleanupDiagnosticsService())
         // The queue is the one source of hidden map paths: every queue mutation (manual
@@ -126,6 +128,7 @@ enum WorkspacePhase: Equatable {
     /// The pre-scan offer's settings action: the pane opens, the pending scan waits, and
     /// returning to the app with the grant in place resumes it automatically.
     func openFullDiskAccessSettings() {
+        diagnostics.record("consent", "Full Disk Access offer: opened settings")
         showFullDiskAccessOffer = false
         awaitingFullDiskAccessGrant = true
         openFullDiskAccessPane()
@@ -135,6 +138,7 @@ enum WorkspacePhase: Equatable {
     /// The user declined Full Disk Access; the scan proceeds and the preflight raises
     /// the remaining folder/media consents one at a time before enumerating.
     func continueWithoutFullDiskAccess() {
+        diagnostics.record("consent", "Full Disk Access offer: continued without it")
         showFullDiskAccessOffer = false
         stopWaitingForFullDiskAccess()
         let preserving = offerPreservingCleanupReport
@@ -144,6 +148,7 @@ enum WorkspacePhase: Equatable {
 
     /// The user dismissed the offer without deciding; nothing starts.
     func cancelFullDiskAccessOffer() {
+        diagnostics.record("consent", "Full Disk Access offer: dismissed")
         showFullDiskAccessOffer = false
         stopWaitingForFullDiskAccess()
         offerPreservingCleanupReport = false
@@ -195,6 +200,11 @@ enum WorkspacePhase: Equatable {
             await body()
         }
     }
+
+    /// Help-menu intents: the report is built from the live trail and handed to the user.
+    func diagnosticsReport() async -> String { diagnostics.report(fullDiskAccess: await fullDiskAccess.isGranted()) }
+    func copyDiagnostics() { Task { DiagnosticsExport.copy(await diagnosticsReport()); message = L10n.text("Diagnostics copied to the clipboard.") } }
+    func saveDiagnostics() { Task { DiagnosticsExport.save(await diagnosticsReport()) } }
 
     private func startScan(preservingCleanupReport: Bool) {
         guard !cleanup.cleaning, !shuttingDown, !restoringLocation, !showFullDiskAccessOffer else { return }
@@ -528,8 +538,12 @@ enum WorkspacePhase: Equatable {
 
     func performCleanup(_ mode: CleanupMode) {
         guard canClean, !scan.roots.isEmpty, let index = scan.index, let items = cleanup.begin() else { return }
+        diagnostics.record("cleanup", "Started \(mode == .permanent ? "permanent deletion" : "move to Trash") of \(items.count) entries")
         cleanupTask = Task {
-            if await cleanup.execute(items, roots: scan.roots, index: index, mode: mode) {
+            let succeeded = await cleanup.execute(items, roots: scan.roots, index: index, mode: mode)
+            let results = cleanup.results
+            diagnostics.record("cleanup", "Finished: \(results.filter(\.succeeded).count) succeeded, \(results.filter { !$0.succeeded }.count) failed or refused")
+            if succeeded {
                 // The map is stale after removals: rerun the scan of the same scope on the
                 // spot — the deletion report survives the scan — and land back on the
                 // updated map instead of sending the user to the location chooser to

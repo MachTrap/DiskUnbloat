@@ -48,7 +48,11 @@ struct PendingGroup: Sendable {
     private(set) var protectedFoldersRefused = false
     /// Protected directory the consent preflight is currently opening; macOS holds the
     /// open until its consent dialog is answered. `nil` outside the preflight.
-    private(set) var awaitingPermission: String?
+    private(set) var awaitingPermission: String? {
+        didSet { if oldValue != awaitingPermission { noteConsentWait(ended: oldValue) } }
+    }
+    @ObservationIgnored var diagnostics: DiagnosticsLog?
+    @ObservationIgnored private var consentWaitStarted: Date?
     private(set) var scanning = false
     private(set) var snapshot: ScanSnapshot?
     private(set) var issues: [String] = []
@@ -116,8 +120,24 @@ struct PendingGroup: Sendable {
         return ScanRequest(root: roots[0], extraRoots: title == nil ? [] : Array(roots.dropFirst()), groupTitle: title ?? "", options: options)
     }
 
+    /// Consent waits longer than half a second are what a stuck-looking scan is made of.
+    private func noteConsentWait(ended path: String?) {
+        if let path, let started = consentWaitStarted {
+            let seconds = Date().timeIntervalSince(started)
+            if seconds >= 0.5 { diagnostics?.record("consent", String(format: "Waited %.1f s on %@", seconds, URL(fileURLWithPath: path).lastPathComponent)) }
+        }
+        consentWaitStarted = awaitingPermission == nil ? nil : Date()
+    }
+
+    private func logOutcome(_ prefix: String) {
+        let started = startedAt.map { String(format: " after %.1f s", Date().timeIntervalSince($0)) } ?? ""
+        let s = snapshot
+        diagnostics?.record("scan", "\(prefix)\(started): \(s?.items ?? 0) items, \(s?.folders ?? 0) folders, \(s?.bytes ?? 0) bytes, \(s?.errors ?? 0) issues\(s?.cancelled == true ? ", cancelled" : "")\(protectedFoldersRefused ? ", protected folders refused" : "")")
+    }
+
     func run(_ request: ScanRequest) async throws {
         defer { scanning = false; awaitingPermission = nil }
+        diagnostics?.record("scan", "Started \(request.roots.map(\.path).joined(separator: ", "))")
         await discardIndex()
         sessionOptions = request.options
         let db = try storage.makeIndex()
@@ -127,7 +147,9 @@ struct PendingGroup: Sendable {
         var lastIssuesRefresh = Date.distantPast
         for await event in stream {
             switch event {
-            case .stage(let stage): self.stage = stage
+            case .stage(let stage):
+                self.stage = stage
+                diagnostics?.record("scan", "Stage: \(stage.rawValue)" + (startedAt.map { String(format: " at %.1f s", Date().timeIntervalSince($0)) } ?? ""))
             case .protectedFoldersRefused: protectedFoldersRefused = true
             case .awaitingPermission(let path): awaitingPermission = path
             case .progress(let progress):
@@ -137,8 +159,10 @@ struct PendingGroup: Sendable {
                     lastIssuesRefresh = Date()
                     issues = await db.issues().map { $0.path + ": " + L10n.text($0.message) }
                 }
-            case .finished(let result): snapshot = result
-            case .failed(let error): throw ScanFailure(message: error)
+            case .finished(let result): snapshot = result; logOutcome("Finished")
+            case .failed(let error):
+                diagnostics?.record("scan", "Failed: \(error)")
+                throw ScanFailure(message: error)
             }
         }
         if cancellationRequested, let result = snapshot {
@@ -207,7 +231,10 @@ struct PendingGroup: Sendable {
     func requestCancellation() { if !committingRefresh { cancellationRequested = true } }
     /// Stops waiting on macOS consent dialogs and starts reading now; folders whose
     /// dialog is still open are read (or refused) when the user answers it.
-    func skipPermissionRequests() async { await coordinator.skipPermissionPreflight() }
+    func skipPermissionRequests() async {
+        diagnostics?.record("consent", "User skipped the remaining permission checks")
+        await coordinator.skipPermissionPreflight()
+    }
 
     func cancel() async { guard !committingRefresh else { return }; cancellationRequested = true; await coordinator.cancel() }
 

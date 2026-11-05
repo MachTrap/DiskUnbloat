@@ -27,6 +27,10 @@ import SwiftUI
                 Button("Cancel Scan", action: model.cancel).keyboardShortcut(".").disabled(!model.scan.scanning)
                 Button("Select items to delete") { model.cleanup.showQueue.toggle() }.keyboardShortcut("k").disabled(model.phase != .exploring)
             }
+            CommandGroup(after: .help) {
+                Button("Copy Diagnostics", action: model.copyDiagnostics)
+                Button("Save Diagnostics…", action: model.saveDiagnostics)
+            }
             CommandMenu("Explore") {
                 Group {
                 Button("Search") { model.explorer.searchRequested += 1 }.keyboardShortcut("f")

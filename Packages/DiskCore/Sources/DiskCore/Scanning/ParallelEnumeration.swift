@@ -80,17 +80,6 @@ final class ParallelEnumeration: @unchecked Sendable {
     /// directory locks and the single index writer dominate.
     static var defaultWorkerCount: Int { min(8, max(2, ProcessInfo.processInfo.activeProcessorCount)) }
 
-    func preflightTargets() async -> [ScanPermissionPreflight.Target] {
-        await withCheckedContinuation { continuation in
-            drainQueue.async { continuation.resume(returning: ScanPermissionPreflight.targets(for: self.request)) }
-        }
-    }
-    func probe(_ target: ScanPermissionPreflight.Target) async -> ScanPermissionPreflight.ProbeOutcome {
-        await withCheckedContinuation { continuation in
-            drainQueue.async { continuation.resume(returning: ScanPermissionPreflight.probe(target, excludedPaths: self.excludedPaths)) }
-        }
-    }
-
     /// Next batch of discovered nodes: returns once 2048 nodes are buffered, 0.1 s passed,
     /// or enumeration finished. The first call opens the roots and starts the workers.
     func next() async -> WorkerBatch {

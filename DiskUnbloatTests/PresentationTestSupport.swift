@@ -73,6 +73,7 @@ extension WorkspaceViewModel {
 }
 
 actor ControlledScanner: ScanServing {
+    func skipPermissionPreflight() {}
     private var continuation: AsyncStream<ScanEvent>.Continuation?
     private var waiters: [CheckedContinuation<Void, Never>] = []
     func scan(_ request: ScanRequest, into index: ScanIndex) async -> AsyncStream<ScanEvent> {
@@ -115,6 +116,7 @@ actor ControlledScanner: ScanServing {
 }
 
 actor InitiallyPartialScanner: ScanServing {
+    func skipPermissionPreflight() {}
     private var first = true
     private let scanner = ScanCoordinator()
     func scan(_ request: ScanRequest, into index: ScanIndex) async -> AsyncStream<ScanEvent> {

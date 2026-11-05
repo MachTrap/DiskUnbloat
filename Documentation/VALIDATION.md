@@ -2,6 +2,15 @@
 
 Toolchain: Xcode 27.2 (27B52), Apple Swift 6.4.2, macOS 26 deployment target, Apple Silicon execution host.
 
+## Scan stuck at zero files on a fresh Mac (consent preflight) — 2026-11-05
+
+- Report: a Release build sent to another Mac asked for permissions, then the scan of the home folder stayed at 0 files while the timer ran.
+- Cause (from code; not reproduced on the friend's Mac): before reading anything the coordinator opened ~30 protected folders serially, and each `opendir` blocks until its macOS consent dialog is answered. Nothing reported this, so a dialog hidden behind the window or on another desktop looked like a frozen scan; cancel was only checked between probes, so "Cancelling…" could hang too; and the preflight ran without the enumeration workers' dataless-materialization-off policy, so iCloud-backed Desktop/Documents could block on File Provider.
+- Fix: abandonable per-probe `PreflightWaiter` threads with materialization off, `awaitingPermission` events with a scan-screen card and *Skip permission checks* (`skipPermissionChecks`), cancel before any row returns to the chooser.
+- Found while testing: a no-op protocol-extension default for `skipPermissionPreflight()` was picked over the actor's method for concrete calls from async code (async overload preference), so Skip silently did nothing; the default was removed.
+- Passed: `PreflightWaitTests` (skip through a never-answered probe scans everything; cancel ends the stream while the probe stays blocked; waiter resumes once), hosted `PermissionWaitTests`, core 93 tests, hosted 91 tests, universal Release build, localization audit (551 entries).
+- Not verified: the friend's machine itself (which dialog was pending, or whether iCloud was involved) — ask for a retest with the new build; if it still stalls with no card shown, a `sample` of the process is the next step.
+
 ## Livelier scanning screen and map motion — 2026-11-04
 
 - Scanning: `ScanMosaic` is now a time-driven living treemap (morphing cells, fill levels, light beam, flying particles, glow) with Reduce Motion / Reduce Transparency fallbacks; counters, progress bar and stage icons animate their value changes.

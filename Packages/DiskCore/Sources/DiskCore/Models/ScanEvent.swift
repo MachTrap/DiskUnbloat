@@ -29,6 +29,10 @@ public enum ScanEvent: Sendable {
     /// The system offers no consent dialog for these reads; full measurement needs the
     /// user's Full Disk Access decision, so the UI explains that instead of a raw error list.
     case protectedFoldersRefused
+    /// The consent preflight is opening this protected directory; macOS blocks the open
+    /// until the user answers any consent dialog it raised. `nil` once the preflight is
+    /// over. Lets the scan screen say it is waiting on macOS instead of looking frozen.
+    case awaitingPermission(String?)
 }
 
 public struct ScanIssue: Sendable {

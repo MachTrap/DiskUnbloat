@@ -46,6 +46,9 @@ struct PendingGroup: Sendable {
     /// channel (other applications' app data on macOS 26+); the issues sheet explains
     /// the Full Disk Access decision instead of leaving raw permission errors.
     private(set) var protectedFoldersRefused = false
+    /// Protected directory the consent preflight is currently opening; macOS holds the
+    /// open until its consent dialog is answered. `nil` outside the preflight.
+    private(set) var awaitingPermission: String?
     private(set) var scanning = false
     private(set) var snapshot: ScanSnapshot?
     private(set) var issues: [String] = []
@@ -103,7 +106,7 @@ struct PendingGroup: Sendable {
         root = roots[0]; pendingRoot = nil
         groupTitle = title; groupRoots = title == nil ? [] : roots
         showSetup = false; stage = .reading; cancellationRequested = false; startedAt = Date(); scanning = true; snapshot = nil; issues = []
-        protectedFoldersRefused = false
+        protectedFoldersRefused = false; awaitingPermission = nil
         volumeUsedBytes = volume.flatMap(Self.volumeUsedBytes(for:))
         options.exclusions = exclusionText.split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
@@ -114,7 +117,7 @@ struct PendingGroup: Sendable {
     }
 
     func run(_ request: ScanRequest) async throws {
-        defer { scanning = false }
+        defer { scanning = false; awaitingPermission = nil }
         await discardIndex()
         sessionOptions = request.options
         let db = try storage.makeIndex()
@@ -126,8 +129,9 @@ struct PendingGroup: Sendable {
             switch event {
             case .stage(let stage): self.stage = stage
             case .protectedFoldersRefused: protectedFoldersRefused = true
+            case .awaitingPermission(let path): awaitingPermission = path
             case .progress(let progress):
-                snapshot = progress
+                snapshot = progress; awaitingPermission = nil
                 // Unreachable locations are listable while the scan is still running.
                 if progress.errors > 0, Date().timeIntervalSince(lastIssuesRefresh) >= 1 {
                     lastIssuesRefresh = Date()
@@ -164,7 +168,7 @@ struct PendingGroup: Sendable {
     }
 
     func runRefresh(_ request: ScanRequest, node: FileNode) async throws -> Bool {
-        defer { scanning = false; committingRefresh = false }
+        defer { scanning = false; committingRefresh = false; awaitingPermission = nil }
         guard let index else { return false }
         try await index.validateBranch(BranchRefreshRequest(nodeID: node.id, identity: node.identity))
         let staging = try storage.makeIndex()
@@ -177,6 +181,7 @@ struct PendingGroup: Sendable {
                 case .progress(let value), .finished(let value): snapshot = value
                 case .failed(let error): throw ScanFailure(message: error)
                 case .protectedFoldersRefused: protectedFoldersRefused = true
+                case .awaitingPermission(let path): awaitingPermission = path
                 }
             }
             if cancellationRequested || snapshot?.cancelled == true { await storage.discard(staging); return false }
@@ -200,6 +205,10 @@ struct PendingGroup: Sendable {
     }
 
     func requestCancellation() { if !committingRefresh { cancellationRequested = true } }
+    /// Stops waiting on macOS consent dialogs and starts reading now; folders whose
+    /// dialog is still open are read (or refused) when the user answers it.
+    func skipPermissionRequests() async { await coordinator.skipPermissionPreflight() }
+
     func cancel() async { guard !committingRefresh else { return }; cancellationRequested = true; await coordinator.cancel() }
 
     func discardIndex() async {

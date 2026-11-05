@@ -9595,6 +9595,54 @@
           }
         }
       }
+    },
+    "Waiting for macOS to allow access to “%@”" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for macOS to allow access to “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание разрешения macOS на доступ к «%@»"
+          }
+        }
+      }
+    },
+    "Answer the system permission dialog to continue. It can be hidden behind this window or on another desktop." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answer the system permission dialog to continue. It can be hidden behind this window or on another desktop."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответьте на системный запрос разрешения, чтобы продолжить. Он может быть скрыт за этим окном или на другом рабочем столе."
+          }
+        }
+      }
+    },
+    "Skip permission checks" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip permission checks"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пропустить проверку разрешений"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

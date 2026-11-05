@@ -283,6 +283,7 @@
         { "path": "MapMotionTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "NativeOpenTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PartialRefreshSafetyTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "PermissionWaitTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PresentationTestSupport.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "PresentationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "QueuePerformanceBench.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },

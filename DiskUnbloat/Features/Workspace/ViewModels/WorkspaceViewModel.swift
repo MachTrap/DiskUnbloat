@@ -240,7 +240,11 @@ enum WorkspacePhase: Equatable {
                 // The underlying refusal (e.g. a macOS Files-and-Folders denial) is fetched
                 // before the nil check so the else-branch can compose it into the message.
                 let issueDetail = await db?.issues().first.map { "\($0.path): \(L10n.text($0.message))" }
-                guard let db, await db.node(1) != nil else {
+                let hasRoot = await db?.node(1) != nil
+                // Cancelled before the first row (e.g. while macOS consent dialogs were
+                // pending): nothing was read, so this is not a failed location.
+                if !hasRoot, scan.cancellationRequested { phase = .choosing; return }
+                guard let db, hasRoot else {
                     phase = .failed(issueDetail.map {
                         L10n.format("The selected location couldn’t be read. %@", $0)
                     } ?? L10n.text("The selected location couldn’t be read. Check its permissions or choose another folder."))

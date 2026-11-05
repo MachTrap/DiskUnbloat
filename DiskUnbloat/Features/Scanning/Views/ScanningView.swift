@@ -8,6 +8,9 @@ struct ScanningView: View {
     let issues: () -> Void
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Set once the preflight has waited on one folder long enough that a consent dialog
+    /// (possibly hidden behind this window) is the likely reason; quick probes never show it.
+    @State private var showPermissionWait = false
     var body: some View {
         GeometryReader { geometry in content(compact: geometry.size.height < 720) }
     }
@@ -59,6 +62,7 @@ struct ScanningView: View {
                     }.buttonStyle(.plain).accessibilityIdentifier("scanIssues")
                 }
             }
+            if showPermissionWait, let path = model.awaitingPermission { permissionWait(path) }
             if !preparing {
                 Button(model.cancellationRequested ? "Cancelling…" : "Cancel scan", action: cancel)
                     .buttonStyle(.glass).disabled(model.cancellationRequested || model.committingRefresh).accessibilityIdentifier("cancelScan")
@@ -67,6 +71,31 @@ struct ScanningView: View {
             Text("Reading metadata, never file contents. Some locations may be protected by macOS.").font(.caption).foregroundStyle(.tertiary).padding(.bottom, 24)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(24).accessibilityElement(children: .contain).accessibilityIdentifier("scanningScreen")
         .animation(motion(.easeInOut(duration: 0.3)), value: preparing)
+        .animation(motion(.smooth(duration: 0.25)), value: showPermissionWait)
+        .task(id: model.awaitingPermission) {
+            showPermissionWait = false
+            guard model.awaitingPermission != nil else { return }
+            do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            showPermissionWait = true
+        }
+    }
+    private func permissionWait(_ path: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lock.shield").font(.title2).foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L10n.format("Waiting for macOS to allow access to “%@”", URL(fileURLWithPath: path).lastPathComponent))
+                    .font(.callout.weight(.semibold))
+                Text("Answer the system permission dialog to continue. It can be hidden behind this window or on another desktop.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Button("Skip permission checks") { Task { await model.skipPermissionRequests() } }
+                .accessibilityIdentifier("skipPermissionChecks")
+        }
+        .padding(14).frame(maxWidth: 560)
+        .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .transition(.opacity)
+        .accessibilityElement(children: .contain).accessibilityIdentifier("awaitingPermission")
     }
     /// Value transitions follow real updates, so they are skipped entirely under Reduce Motion.
     private func motion(_ animation: Animation) -> Animation? { reduceMotion ? nil : animation }

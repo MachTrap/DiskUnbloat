@@ -46,6 +46,11 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
     @ObservationIgnored private var searchHighlight: SearchHighlight?
     @ObservationIgnored private var matchCursor = -1
     static let matchLimit = 5000
+    /// Space a volume scan could not reach; shown as its own tile at the scan root.
+    private(set) var unreached: UnreachedSpace?
+    var showUnreached = true {
+        didSet { defaults.set(showUnreached, forKey: "showUnreached"); if showUnreached != oldValue, unreached != nil { scheduleRefresh() } }
+    }
     var highlightSearchActive: Bool { searchMode == .highlight && !search.isEmpty }
     /// Leaf-tile bytes per class in the current scene, for the legend.
     private(set) var classShares: [TileClass: Int64] = [:]
@@ -88,6 +93,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         self.settings = settings; self.activity = activity; self.defaults = defaults; cacheRootPath = userCacheRoot?.path
         colorMode = defaults.string(forKey: "mapColorMode").flatMap(MapColorMode.init(rawValue:)) ?? .safety
         searchMode = defaults.string(forKey: "searchMode").flatMap(SearchMode.init(rawValue:)) ?? .filter
+        showUnreached = defaults.object(forKey: "showUnreached") as? Bool ?? true
         homePath = userCacheRoot?.deletingLastPathComponent().deletingLastPathComponent().path
     }
 
@@ -95,7 +101,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         refreshTask?.cancel(); queryGeneration += 1; index = nil; nodesByID = [:]
         sceneCache = [:]; sceneCacheOrder = []
         scene = MapScene(); current = nil; selectionIDs = []
-        safety = .empty; roots = []; tileStyle = MapTileStyle(); classShares = [:]
+        safety = .empty; roots = []; tileStyle = MapTileStyle(); classShares = [:]; unreached = nil
         breadcrumbs = []; back = []; forward = []; suggestion = nil; highlightedClass = nil
         search = ""; minimumGB = 0; olderDays = 0; extensionFilter = ""; scope = .current
         hiddenPaths = []; hiddenSubtrees = []; queuedPaths = []; hiddenGeneration += 1
@@ -191,6 +197,9 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
         await loadSafety()
     }
 
+    /// Waits for the pending navigation or debounced refresh to commit (tests, agent bridge).
+    func settle() async { await refreshTask?.value }
+
     func scheduleRefresh() {
         refreshTask?.cancel()
         refreshTask = Task {
@@ -212,6 +221,20 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             cacheRootPath: cacheRootPath, homePath: homePath, cacheAgeDays: settings.cacheAgeDays,
             ageDays: settings.ageDays, largeGB: settings.largeGB, groupScan: groupScan
         )
+    }
+
+    func setUnreached(_ value: UnreachedSpace?) {
+        unreached = value
+        Task { await loadResults() }
+    }
+
+    /// The unreached tile sits beside the root's children, only on the unfiltered root
+    /// view in on-disk size (the volume's used space is an on-disk measure).
+    private func withUnreached(_ scene: MapScene, filtered: Bool) -> MapScene {
+        guard let unreached, showUnreached, !filtered, metric == .allocated, unreached.bytes > 0,
+              scene.rootID == 1, current?.id == 1 else { return scene }
+        let entry = MapEntry(id: MapEntry.unreachedID, parentID: scene.rootID, ownerID: scene.rootID, kind: .unreached, node: nil, bytes: unreached.bytes)
+        return MapScene(rootID: scene.rootID, entries: scene.entries + [entry], summary: scene.summary)
     }
 
     private func searchLit() -> Set<Int64>? {
@@ -279,7 +302,7 @@ enum ExplorerScope: String, CaseIterable, Identifiable {
             }
         }
         let retainedSelection = selectedNodes
-        scene = resolvedScene
+        scene = withUnreached(resolvedScene, filtered: filtered)
         await loadSearchMatches(index: index, queries: queries)
         guard generation == queryGeneration else { return }
         recolor()

@@ -67,7 +67,7 @@ import DiskCore
 
     @Test func selectionTotalsDoNotDoubleCountParentAndChild() async throws {
         let scanner = ControlledScanner()
-        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess())
+        let model = WorkspaceViewModel(coordinator: scanner, fullDiskAccess: GrantedFullDiskAccess(), defaults: isolatedDefaults())
         model.scan.pendingRoot = URL(fileURLWithPath: "/fixture")
         model.startScan(); await scanner.ready(); await scanner.finish(); await model.waitForScan()
         model.explorer.selectionIDs = [2,3]
@@ -75,7 +75,6 @@ import DiskCore
         #expect(model.explorer.selectionBytes == 4096)
         let geometryBefore = model.explorer.scene
         model.explorer.highlightedClass = .junk; model.explorer.colorMode = .age
-        defer { model.explorer.colorMode = .safety } // restore the persisted default
         #expect(model.explorer.scene == geometryBefore)
         await model.shutdown()
     }

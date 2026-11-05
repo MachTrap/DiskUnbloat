@@ -50,7 +50,8 @@ enum WorkspacePhase: Equatable {
         fullDiskAccess: any FullDiskAccessChecking = SystemFullDiskAccessProbe(),
         openFullDiskAccessPane: @escaping () -> Void = { FullDiskAccessSettings.open() },
         catalog: LocationCatalog = LocationCatalog(),
-        storage: ScanSessionStore = ScanSessionStore()
+        storage: ScanSessionStore = ScanSessionStore(),
+        defaults: UserDefaults = .standard
     ) {
         location = LocationSelectionViewModel(catalog: catalog)
         self.authorization = authorization
@@ -61,7 +62,7 @@ enum WorkspacePhase: Equatable {
         scan = ScanViewModel(coordinator: coordinator, storage: storage)
         scan.diagnostics = diagnostics
         scan.homePaths = [canonicalURL(catalog.home).path]
-        explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"))
+        explorer = ExplorerViewModel(settings: settings, userCacheRoot: location.catalog.home.appendingPathComponent("Library/Caches"), defaults: defaults)
         cleanup = CleanupViewModel(service: cleanupService, homePath: catalog.home.path, diagnostics: CleanupDiagnosticsService())
         // The queue is the one source of hidden map paths: every queue mutation (manual
         // picks, quick-select, refresh invalidations) is forwarded to the explorer from
@@ -325,6 +326,11 @@ enum WorkspacePhase: Equatable {
                 queue.attach(IndexCleanupQueueProvider(index: db, inspectPackages: request.options.inspectPackages))
                 cleanup.showQueue = true
                 phase = .exploring
+                // Volume scans also account for the space they could not reach.
+                if request.extraRoots.isEmpty, scan.snapshot?.cancelled != true {
+                    let known = await db.node(1)?.knownSize(for: .allocated) ?? 0
+                    explorer.setUnreached(await VolumeSpaceService.unreached(root: request.root, knownBytes: known, unreadableLocations: scan.issues.count))
+                }
             } catch { phase = .failed(L10n.format("Couldn’t start the scan. %@", error.diagnosticDescription)) }
         }
     }

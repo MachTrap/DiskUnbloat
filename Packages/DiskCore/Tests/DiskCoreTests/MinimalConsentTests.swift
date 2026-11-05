@@ -59,3 +59,20 @@ struct MinimalConsentTests {
         await index.close()
     }
 }
+
+/// The unreached-space tile is laid out beside the root's children when it is big
+/// enough to see, and never folded into an "N more items" aggregate.
+struct UnreachedTileLayoutTests {
+    private func file(_ id: Int64, _ bytes: Int64) -> MapEntry {
+        MapEntry(id: id, parentID: 1, ownerID: 1, kind: .file, node: FileNode(id: id, parentID: 1, path: "/v/\(id)", name: "\(id)", isDirectory: false, logicalSize: bytes, allocatedSize: bytes, modified: nil, identity: "\(id)"), bytes: bytes)
+    }
+    @Test func unreachedTileStandsAloneOrDisappears() {
+        let unreached = MapEntry(id: MapEntry.unreachedID, parentID: 1, ownerID: 1, kind: .unreached, node: nil, bytes: 600)
+        let big = NestedTreemap.layoutSync(MapScene(rootID: 1, entries: [file(2, 400), unreached]), in: CGRect(x: 0, y: 0, width: 400, height: 300))
+        #expect(big.contains { $0.entry.kind == .unreached && $0.id == MapEntry.unreachedID })
+        #expect(!big.contains { $0.entry.kind == .aggregate })
+        let tiny = MapEntry(id: MapEntry.unreachedID, parentID: 1, ownerID: 1, kind: .unreached, node: nil, bytes: 1)
+        let small = NestedTreemap.layoutSync(MapScene(rootID: 1, entries: [file(2, 10_000_000), tiny]), in: CGRect(x: 0, y: 0, width: 400, height: 300))
+        #expect(!small.contains { $0.entry.kind == .unreached || $0.entry.kind == .aggregate })
+    }
+}

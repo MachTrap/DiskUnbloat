@@ -6,6 +6,8 @@ struct TreemapView: View {
     let scene: MapScene
     let selection: Set<Int64>
     let style: MapTileStyle
+    /// Breakdown for the unreached-space tile's hover card.
+    var unreached: UnreachedSpace?
     let fitRevision: Int
     let select: (MapEntry, Bool) -> Void
     let open: (FileNode) -> Void
@@ -128,7 +130,7 @@ struct TreemapView: View {
                         Button("Copy path", systemImage: "doc.on.doc") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(node.path, forType: .string) }
                         Divider()
                         cleanupMenu(for: node)
-                    } else { Button("Browse these items") { aggregate(entry) } }
+                    } else if entry.kind == .aggregate { Button("Browse these items") { aggregate(entry) } }
                 }
             }
             .task(id: LayoutKey(scene: scene, size: geometry.size, revision: fitRevision)) {
@@ -221,6 +223,14 @@ struct TreemapView: View {
                 }.padding(.top, 2)
             }
             if tile.entry.kind == .aggregate { Text("Click to browse all items in this folder").font(.caption2).foregroundStyle(.secondary) }
+            if tile.entry.kind == .unreached, let unreached {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read.")
+                    if let purgeable = unreached.purgeable { Text(L10n.format("macOS can free about %@ of purgeable space on its own.", sizeText(purgeable))) }
+                    if let snapshots = unreached.localSnapshots, snapshots > 0 { Text(L10n.count("%lld local snapshots (sizes not reported)", snapshots)) }
+                    if unreached.unreadableLocations > 0 { Text(L10n.count("%lld locations couldn’t be read", unreached.unreadableLocations)) }
+                }.font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         }.padding(12).frame(maxWidth: 340, alignment: .leading).background(.regularMaterial, in: .rect(cornerRadius: 12)).padding(12)
     }
 }

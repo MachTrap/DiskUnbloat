@@ -463,6 +463,18 @@
                   ],
                 },
               ],
+            }, {
+              "kind": "group",
+              "path": "VolumeSpace",
+              "children": [
+                {
+                  "path": "VolumeSpaceService.swift",
+                  "target-membership": [
+                    "DiskUnbloat/compile-sources",
+                    "DiskUnbloatTesting/compile-sources",
+                  ],
+                },
+              ],
             },
           ],
         }, {
@@ -549,6 +561,7 @@
         { "path": "PresentationTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "QueuePerformanceBench.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "SearchModeTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
+        { "path": "UnreachedSpaceTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
         { "path": "WorkspaceRecoveryTests.swift", "target-membership": [ "DiskUnbloatTests/compile-sources" ] },
       ],
     }, {

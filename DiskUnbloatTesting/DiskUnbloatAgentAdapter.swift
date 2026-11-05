@@ -63,6 +63,8 @@ import DiskCore
         fields["search"] = .string(ScreenSnapshot.preview(explorer.search, maxBytes: 128))
         fields["matchCount"] = .integer(Int64(explorer.searchMatches.count))
         fields["litTiles"] = .integer(Int64(explorer.tileStyle.searchLit?.count ?? -1))
+        fields["unreachedBytes"] = .integer(explorer.unreached?.bytes ?? 0)
+        fields["unreachedTile"] = .bool(explorer.scene.entries.contains { $0.kind == .unreached })
         if let path = scan.awaitingPermission { fields["awaitingPermission"] = .string(relative(path)) }
         if let current = explorer.current { fields["currentFolder"] = .string(relative(current.path)) }
         if let message = workspace.message { fields["message"] = .string(ScreenSnapshot.preview(message)) }
@@ -130,6 +132,7 @@ import DiskCore
     private struct Path: Decodable { let path: String }
     private struct Mode: Decodable { let mode: String; let highlight: String? }
     private struct Search: Decodable { let text: String; let mode: String? }
+    private struct Unreached: Decodable { let megabytes: Int; let visible: Bool? }
 
     private var actions: [AgentAction] {
         let workspace = workspace, composition = composition
@@ -169,6 +172,16 @@ import DiskCore
                         as: Search.self, enabled: { workspace.phase == .exploring }) { input, _ in
                 if let mode = input.mode.flatMap(SearchMode.init(rawValue:)) { workspace.explorer.searchMode = mode }
                 workspace.explorer.search = input.text
+                await workspace.explorer.loadResults()
+                return .completed
+            },
+            // Fixture homes are not volume roots; this feeds the same entry point a volume
+            // scan uses so the tile can be inspected without scanning a whole disk.
+            AgentAction("unreached.set", scope: "current-screen",
+                        input: ObjectSchema(["megabytes": .integer(minimum: 0, maximum: 10_000_000), "visible": .boolean], required: ["megabytes"]),
+                        as: Unreached.self, enabled: { workspace.phase == .exploring }) { input, _ in
+                if let visible = input.visible { workspace.explorer.showUnreached = visible }
+                workspace.explorer.setUnreached(input.megabytes == 0 ? nil : UnreachedSpace(bytes: Int64(input.megabytes) << 20, purgeable: 3 << 20, localSnapshots: 2, unreadableLocations: 4))
                 await workspace.explorer.loadResults()
                 return .completed
             },

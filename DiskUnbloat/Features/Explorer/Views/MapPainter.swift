@@ -53,6 +53,15 @@ enum MapPainter {
             context.fill(path, with: .linearGradient(Gradient(colors: [color.opacity(fill), color.opacity(fill * 0.7)]), startPoint: rect.origin, endPoint: CGPoint(x: rect.maxX, y: rect.maxY)))
             context.stroke(path, with: .color(color.opacity(dimmed ? 0.08 : 0.22)), lineWidth: 0.5)
         }
+        if entry.kind == .unreached {
+            // Hatched: this is space on the disk, not something the scan found.
+            var hatch = context
+            hatch.clip(to: path)
+            var stripes = Path()
+            var x = rect.minX - rect.height
+            while x < rect.maxX { stripes.move(to: CGPoint(x: x, y: rect.maxY)); stripes.addLine(to: CGPoint(x: x + rect.height, y: rect.minY)); x += 10 }
+            hatch.stroke(stripes, with: .color(.primary.opacity(0.08)), lineWidth: 3)
+        }
         guard rect.width > 62 && rect.height > 23 else { return }
         let foreground: Color = dimmed ? .secondary.opacity(0.4) : .primary
         let label = Text(entry.localizedTitle).font(.system(size: tile.isContainer ? 11 : 12, weight: .medium)).foregroundStyle(foreground)

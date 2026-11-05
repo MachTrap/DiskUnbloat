@@ -186,6 +186,7 @@ struct MapTileStyle: Equatable {
     func color(of tile: SceneTile) -> Color {
         switch tile.entry.kind {
         case .aggregate: return .gray
+        case .unreached: return Color(white: 0.42)
         default: return classes[tile.id]?.color ?? .gray
         }
     }

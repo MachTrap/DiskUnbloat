@@ -45,7 +45,7 @@ struct ExplorerView: View {
                     Spacer(); Button("Details", action: issues).buttonStyle(.plain)
                 }.font(.caption).foregroundStyle(.orange).padding(.horizontal, 20).padding(.vertical, 7)
             }
-            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
+            TreemapView(scene: model.scene, selection: model.selectionIDs, style: model.tileStyle, unreached: model.unreached, fitRevision: model.fitRevision, select: model.select, open: { model.navigate($0) }, aggregate: model.openAggregate, preview: preview, reveal: reveal, selectForCleanup: selectForCleanup, deselectFromCleanup: deselectFromCleanup, queuedPaths: queuedPaths, canClean: canClean, membership: membership, description: model.description, refreshFolder: refreshFolder, parent: model.up, history: model.history)
                 .padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 8)
                 .overlay {
                     if model.isLoading {
@@ -275,6 +275,14 @@ struct ExplorerView: View {
                     if model.highlightedClass != nil { Button("Show all") { model.highlightedClass = nil }.buttonStyle(.plain).foregroundStyle(.teal) }
                 }
             }
+            if let unreached = model.unreached {
+                Toggle(isOn: $model.showUnreached) {
+                    Text(L10n.format("Unreached ≈ %@", sizeText(unreached.bytes))).monospacedDigit()
+                }
+                .toggleStyle(.checkbox).fixedSize()
+                .help("Show space the scan couldn't reach")
+                .accessibilityIdentifier("legendShowUnreached")
+            }
             Spacer(minLength: 4)
         }.font(.caption2).padding(.horizontal, 20).padding(.vertical, 8).background(.bar)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.colorMode)
@@ -315,6 +323,9 @@ struct ExplorerView: View {
             Menu {
                 Picker("Size", selection: $model.metric) { ForEach(SizeMetric.allCases) { Text(L10n.text($0.rawValue)).tag($0) } }
                 Divider()
+                if model.unreached != nil {
+                    Toggle("Show space the scan couldn't reach", isOn: $model.showUnreached).accessibilityIdentifier("showUnreached")
+                }
                 Button("Fit map") { model.fitRevision += 1 }
                 Button("Scan options") { showOptions = true }
                 Button("Rescan folder") { if let node = model.current { refreshFolder(node) } }.accessibilityIdentifier("rescanFolder")

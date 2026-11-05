@@ -10299,6 +10299,190 @@
           }
         }
       }
+    },
+    "Not reached by the scan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not reached by the scan"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вне сканирования"
+          }
+        }
+      }
+    },
+    "Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approximate: the volume's used space minus what this scan read. It includes system data, other users, local snapshots and locations the scan couldn't read."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приблизительно: занятое место тома минус прочитанное сканированием. Сюда входят системные данные, другие пользователи, локальные снимки и места, которые не удалось прочитать."
+          }
+        }
+      }
+    },
+    "macOS can free about %@ of purgeable space on its own." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS can free about %@ of purgeable space on its own."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS может сама освободить около %@ очищаемого места."
+          }
+        }
+      }
+    },
+    "Show space the scan couldn't reach" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show space the scan couldn't reach"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать место вне сканирования"
+          }
+        }
+      }
+    },
+    "Unreached ≈ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unreached ≈ %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вне сканирования ≈ %@"
+          }
+        }
+      }
+    },
+    "%lld local snapshots (sizes not reported)" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld local snapshot (size not reported)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld local snapshots (sizes not reported)"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локальный снимок (размер не сообщается)"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локальных снимка (размер не сообщается)"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локальных снимков (размер не сообщается)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld локального снимка (размер не сообщается)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld locations couldn’t be read" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld location couldn’t be read"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld locations couldn’t be read"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld место не удалось прочитать"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld места не удалось прочитать"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld мест не удалось прочитать"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld места не удалось прочитать"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

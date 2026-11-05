@@ -18,7 +18,7 @@ import DiskCore
 
     @Test func highlightKeepsGeometryAndLightsMatchesWithTheirFolders() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
-        let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess())
+        let model = WorkspaceViewModel(fullDiskAccess: GrantedFullDiskAccess(), defaults: isolatedDefaults())
         model.scan.pendingRoot = root; model.startScan(); await model.waitForScan()
         let explorer = model.explorer
         let unfiltered = explorer.scene
@@ -37,8 +37,6 @@ import DiskCore
         #expect(explorer.tileStyle.searchLit == nil)
         let filteredNames = Set(explorer.scene.entries.compactMap { $0.node?.name })
         #expect(filteredNames.isSubset(of: ["holiday-1.jpg", "holiday-2.jpg", "holiday-plan.txt"]))
-        // Tests run inside the shipping app's defaults domain: leave the default mode behind.
-        explorer.searchMode = .filter
         await model.shutdown()
     }
 

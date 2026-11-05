@@ -2,7 +2,11 @@ import Foundation
 import CoreGraphics
 
 public struct MapEntry: Identifiable, Sendable, Equatable {
-    public enum Kind: Sendable { case folder, file, aggregate }
+    /// `unreached` is the app's synthetic "space the scan couldn't reach" tile on volume
+    /// scans: never selectable or cleanable, never folded into an aggregate.
+    public enum Kind: Sendable { case folder, file, aggregate, unreached }
+    /// Stable ID of the unreached tile; outside the node and aggregate ID ranges.
+    public static let unreachedID: Int64 = .min + 1
     public let id: Int64
     public let parentID: Int64
     public let ownerID: Int64
@@ -138,6 +142,11 @@ public enum NestedTreemap {
             let scale = bounds.width * bounds.height / sum
             var visible: [MapEntry] = []; var aggregateBytes: Int64 = 0; var count = 0; var unknown = 0
             for entry in positive {
+                if entry.kind == .unreached {
+                    // Shown on its own or not at all; it is not "more items" of a folder.
+                    if Double(entry.bytes) * scale >= 32 { visible.append(entry) }
+                    continue
+                }
                 if Double(entry.bytes) * scale < 32 || entry.kind == .aggregate {
                     aggregateBytes += entry.bytes; count += entry.count; unknown += entry.unknownCount
                 } else { visible.append(entry) }
